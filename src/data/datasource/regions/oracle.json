@@ -1,178 +1,44 @@
 [
-  {
-    "display_name": "Australia East (Sydney)",
-    "key": "ap-sydney-1",
-    "country": "AU",
-    "geo": "Oceania",
-    "location": "Sydney",
-    "ping_url": "https://objectstorage.ap-sydney-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "Australia Southeast (Melbourne)",
-    "key": "ap-melbourne-1",
-    "country": "AU",
-    "geo": "Oceania",
-    "location": "Melbourne",
-    "ping_url": "https://objectstorage.ap-melbourne-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "Brazil East (Sao Paulo)",
-    "key": "sa-saopaulo-1",
-    "country": "BR",
-    "geo": "South America",
-    "location": "Sao Paulo",
-    "ping_url": "https://objectstorage.sa-saopaulo-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "Canada Southeast (Montreal)",
-    "key": "ca-montreal-1",
-    "country": "CA",
-    "geo": "North America",
-    "location": "Montreal",
-    "ping_url": "https://objectstorage.ca-montreal-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "Canada Southeast (Toronto)",
-    "key": "ca-toronto-1",
-    "country": "CA",
-    "geo": "North America",
-    "location": "Toronto",
-    "ping_url": "https://objectstorage.ca-toronto-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "Chile (Santiago)",
-    "key": "sa-santiago-1",
-    "country": "CL",
-    "geo": "South America",
-    "location": "Santiago",
-    "ping_url": "https://objectstorage.sa-santiago-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "Germany Central (Frankfurt)",
-    "key": "eu-frankfurt-1",
-    "country": "DE",
-    "geo": "Europe",
-    "location": "Frankfurt",
-    "ping_url": "https://objectstorage.eu-frankfurt-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "India South (Hyderabad)",
-    "key": "ap-hyderabad-1",
-    "country": "IN",
-    "geo": "Asia",
-    "location": "Hyderabad",
-    "ping_url": "https://objectstorage.ap-hyderabad-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "India West (Mumbai)",
-    "key": "ap-mumbai-1",
-    "country": "IN",
-    "geo": "Hyderabad",
-    "location": "Mumbai",
-    "ping_url": "https://objectstorage.ap-mumbai-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "Japan Central (Osaka)",
-    "key": "ap-osaka-1",
-    "country": "JP",
-    "geo": "Asia",
-    "location": "Osaka",
-    "ping_url": "https://objectstorage.ap-osaka-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "Japan East (Tokyo)",
-    "key": "ap-tokyo-1",
-    "country": "JP",
-    "geo": "Asia",
-    "location": "Tokyo",
-    "ping_url": "https://objectstorage.ap-tokyo-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "Netherlands Northwest (Amsterdam)",
-    "key": "eu-amsterdam-1",
-    "country": "NL",
-    "geo": "Europe",
-    "location": "Amsterdam",
-    "ping_url": "https://objectstorage.eu-amsterdam-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "Saudi Arabia West (Jeddah)",
-    "key": "me-jeddah-1",
-    "country": "SA",
-    "geo": "Middle East",
-    "location": "Jeddah",
-    "ping_url": "https://objectstorage.me-jeddah-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "South Korea Central (Seoul)",
-    "key": "ap-seoul-1",
-    "country": "KR",
-    "geo": "Asia",
-    "location": "Seoul",
-    "ping_url": "https://objectstorage.ap-seoul-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "South Korea North (Chuncheon)",
-    "key": "ap-chuncheon-1",
-    "country": "KR",
-    "geo": "Asia",
-    "location": "Chuncheon",
-    "ping_url": "https://objectstorage.ap-chuncheon-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "Switzerland North (Zurich)",
-    "key": "eu-zurich-1",
-    "country": "CH",
-    "geo": "Europe",
-    "location": "Zurich",
-    "ping_url": "https://objectstorage.eu-zurich-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "UAE East (Dubai)",
-    "key": "me-dubai-1",
-    "country": "AE",
-    "geo": "Middle East",
-    "location": "Dubai",
-    "ping_url": "https://objectstorage.me-dubai-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "UK South (London)",
-    "key": "uk-london-1",
-    "country": "UK",
-    "geo": "Europe",
-    "location": "London",
-    "ping_url": "https://objectstorage.uk-london-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "UK West (Newport)",
-    "key": "uk-cardiff-1",
-    "country": "UK",
-    "geo": "Europe",
-    "location": "Newport",
-    "ping_url": "https://objectstorage.uk-cardiff-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "US East (Ashburn)",
-    "key": "us-ashburn-1",
-    "country": "US",
-    "geo": "North America",
-    "location": "Ashburn",
-    "ping_url": "https://objectstorage.us-ashburn-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "US West (Phoenix)",
-    "key": "us-phoenix-1",
-    "country": "US",
-    "geo": "North America",
-    "location": "Phoenix",
-    "ping_url": "https://objectstorage.us-phoenix-1.oraclecloud.com/ping"
-  },
-  {
-    "display_name": "US West (San Jose)",
-    "key": "us-sanjose-1",
-    "country": "US",
-    "geo": "North America",
-    "location": "San Jose",
-    "ping_url": "https://objectstorage.us-sanjose-1.oraclecloud.com/ping"
-  }
+  {"key": "ap-sydney-1", "display_name": "Australia East (Sydney)", "country": "AU", "location": "Sydney", "geo": "Oceania", "ping_url": "https://objectstorage.ap-sydney-1.oraclecloud.com/ping"},
+  {"key": "ap-melbourne-1", "display_name": "Australia Southeast (Melbourne)", "country": "AU", "location": "Melbourne", "geo": "Oceania", "ping_url": "https://objectstorage.ap-melbourne-1.oraclecloud.com/ping"},
+  {"key": "sa-saopaulo-1", "display_name": "Brazil East (Sao Paulo)", "country": "BR", "location": "Sao Paulo", "geo": "South America", "ping_url": "https://objectstorage.sa-saopaulo-1.oraclecloud.com/ping"},
+  {"key": "sa-vinhedo-1", "display_name": "Brazil Southeast (Vinhedo)", "country": "BR", "location": "Vinhedo", "geo": "South America", "ping_url": "https://objectstorage.sa-vinhedo-1.oraclecloud.com/ping"},
+  {"key": "ca-montreal-1", "display_name": "Canada Southeast (Montreal)", "country": "CA", "location": "Montreal", "geo": "North America", "ping_url": "https://objectstorage.ca-montreal-1.oraclecloud.com/ping"},
+  {"key": "ca-toronto-1", "display_name": "Canada Southeast (Toronto)", "country": "CA", "location": "Toronto", "geo": "North America", "ping_url": "https://objectstorage.ca-toronto-1.oraclecloud.com/ping"},
+  {"key": "sa-santiago-1", "display_name": "Chile (Santiago)", "country": "CL", "location": "Santiago", "geo": "South America", "ping_url": "https://objectstorage.sa-santiago-1.oraclecloud.com/ping"},
+  {"key": "sa-valparaiso-1", "display_name": "Chile West (Valparaiso)", "country": "CL", "location": "Valparaiso", "geo": "South America", "ping_url": "https://objectstorage.sa-valparaiso-1.oraclecloud.com/ping"},
+  {"key": "sa-bogota-1", "display_name": "Colombia Central (Bogota)", "country": "CO", "location": "Bogota", "geo": "South America", "ping_url": "https://objectstorage.sa-bogota-1.oraclecloud.com/ping"},
+  {"key": "eu-paris-1", "display_name": "France Central (Paris)", "country": "FR", "location": "Paris", "geo": "Europe", "ping_url": "https://objectstorage.eu-paris-1.oraclecloud.com/ping"},
+  {"key": "eu-marseille-1", "display_name": "France South (Marseille)", "country": "FR", "location": "Marseille", "geo": "Europe", "ping_url": "https://objectstorage.eu-marseille-1.oraclecloud.com/ping"},
+  {"key": "eu-frankfurt-1", "display_name": "Germany Central (Frankfurt)", "country": "DE", "location": "Frankfurt", "geo": "Europe", "ping_url": "https://objectstorage.eu-frankfurt-1.oraclecloud.com/ping"},
+  {"key": "ap-hyderabad-1", "display_name": "India South (Hyderabad)", "country": "IN", "location": "Hyderabad", "geo": "Asia", "ping_url": "https://objectstorage.ap-hyderabad-1.oraclecloud.com/ping"},
+  {"key": "ap-mumbai-1", "display_name": "India West (Mumbai)", "country": "IN", "location": "Mumbai", "geo": "Asia", "ping_url": "https://objectstorage.ap-mumbai-1.oraclecloud.com/ping"},
+  {"key": "ap-batam-1", "display_name": "Indonesia North (Batam)", "country": "ID", "location": "Batam", "geo": "Asia", "ping_url": "https://objectstorage.ap-batam-1.oraclecloud.com/ping"},
+  {"key": "il-jerusalem-1", "display_name": "Israel Central (Jerusalem)", "country": "IL", "location": "Jerusalem", "geo": "Middle East", "ping_url": "https://objectstorage.il-jerusalem-1.oraclecloud.com/ping"},
+  {"key": "eu-milan-1", "display_name": "Italy Northwest (Milan)", "country": "IT", "location": "Milan", "geo": "Europe", "ping_url": "https://objectstorage.eu-milan-1.oraclecloud.com/ping"},
+  {"key": "ap-osaka-1", "display_name": "Japan Central (Osaka)", "country": "JP", "location": "Osaka", "geo": "Asia", "ping_url": "https://objectstorage.ap-osaka-1.oraclecloud.com/ping"},
+  {"key": "ap-tokyo-1", "display_name": "Japan East (Tokyo)", "country": "JP", "location": "Tokyo", "geo": "Asia", "ping_url": "https://objectstorage.ap-tokyo-1.oraclecloud.com/ping"},
+  {"key": "ap-seoul-1", "display_name": "South Korea Central (Seoul)", "country": "KR", "location": "Seoul", "geo": "Asia", "ping_url": "https://objectstorage.ap-seoul-1.oraclecloud.com/ping"},
+  {"key": "ap-chuncheon-1", "display_name": "South Korea North (Chuncheon)", "country": "KR", "location": "Chuncheon", "geo": "Asia", "ping_url": "https://objectstorage.ap-chuncheon-1.oraclecloud.com/ping"},
+  {"key": "ap-kulai-2", "display_name": "Malaysia West (Kulai)", "country": "MY", "location": "Kulai", "geo": "Asia", "ping_url": "https://objectstorage.ap-kulai-2.oraclecloud.com/ping"},
+  {"key": "mx-queretaro-1", "display_name": "Mexico Central (Queretaro)", "country": "MX", "location": "Queretaro", "geo": "North America", "ping_url": "https://objectstorage.mx-queretaro-1.oraclecloud.com/ping"},
+  {"key": "mx-monterrey-1", "display_name": "Mexico Northeast (Monterrey)", "country": "MX", "location": "Monterrey", "geo": "North America", "ping_url": "https://objectstorage.mx-monterrey-1.oraclecloud.com/ping"},
+  {"key": "af-casablanca-1", "display_name": "Morocco West (Casablanca)", "country": "MA", "location": "Casablanca", "geo": "Africa", "ping_url": "https://objectstorage.af-casablanca-1.oraclecloud.com/ping"},
+  {"key": "eu-amsterdam-1", "display_name": "Netherlands Northwest (Amsterdam)", "country": "NL", "location": "Amsterdam", "geo": "Europe", "ping_url": "https://objectstorage.eu-amsterdam-1.oraclecloud.com/ping"},
+  {"key": "me-jeddah-1", "display_name": "Saudi Arabia West (Jeddah)", "country": "SA", "location": "Jeddah", "geo": "Middle East", "ping_url": "https://objectstorage.me-jeddah-1.oraclecloud.com/ping"},
+  {"key": "me-riyadh-1", "display_name": "Saudi Arabia Central (Riyadh)", "country": "SA", "location": "Riyadh", "geo": "Middle East", "ping_url": "https://objectstorage.me-riyadh-1.oraclecloud.com/ping"},
+  {"key": "eu-jovanovac-1", "display_name": "Serbia Central (Jovanovac)", "country": "RS", "location": "Jovanovac", "geo": "Europe", "ping_url": "https://objectstorage.eu-jovanovac-1.oraclecloud.com/ping"},
+  {"key": "ap-singapore-1", "display_name": "Singapore", "country": "SG", "location": "Singapore", "geo": "Asia", "ping_url": "https://objectstorage.ap-singapore-1.oraclecloud.com/ping"},
+  {"key": "af-johannesburg-1", "display_name": "South Africa Central (Johannesburg)", "country": "ZA", "location": "Johannesburg", "geo": "Africa", "ping_url": "https://objectstorage.af-johannesburg-1.oraclecloud.com/ping"},
+  {"key": "eu-madrid-1", "display_name": "Spain Central (Madrid)", "country": "ES", "location": "Madrid", "geo": "Europe", "ping_url": "https://objectstorage.eu-madrid-1.oraclecloud.com/ping"},
+  {"key": "eu-stockholm-1", "display_name": "Sweden Central (Stockholm)", "country": "SE", "location": "Stockholm", "geo": "Europe", "ping_url": "https://objectstorage.eu-stockholm-1.oraclecloud.com/ping"},
+  {"key": "eu-zurich-1", "display_name": "Switzerland North (Zurich)", "country": "CH", "location": "Zurich", "geo": "Europe", "ping_url": "https://objectstorage.eu-zurich-1.oraclecloud.com/ping"},
+  {"key": "me-abudhabi-1", "display_name": "UAE Central (Abu Dhabi)", "country": "AE", "location": "Abu Dhabi", "geo": "Middle East", "ping_url": "https://objectstorage.me-abudhabi-1.oraclecloud.com/ping"},
+  {"key": "me-dubai-1", "display_name": "UAE East (Dubai)", "country": "AE", "location": "Dubai", "geo": "Middle East", "ping_url": "https://objectstorage.me-dubai-1.oraclecloud.com/ping"},
+  {"key": "uk-london-1", "display_name": "UK South (London)", "country": "UK", "location": "London", "geo": "Europe", "ping_url": "https://objectstorage.uk-london-1.oraclecloud.com/ping"},
+  {"key": "uk-cardiff-1", "display_name": "UK West (Newport)", "country": "UK", "location": "Newport", "geo": "Europe", "ping_url": "https://objectstorage.uk-cardiff-1.oraclecloud.com/ping"},
+  {"key": "us-ashburn-1", "display_name": "US East (Ashburn)", "country": "US", "location": "Ashburn", "geo": "North America", "ping_url": "https://objectstorage.us-ashburn-1.oraclecloud.com/ping"},
+  {"key": "us-chicago-1", "display_name": "US Midwest (Chicago)", "country": "US", "location": "Chicago", "geo": "North America", "ping_url": "https://objectstorage.us-chicago-1.oraclecloud.com/ping"},
+  {"key": "us-phoenix-1", "display_name": "US West (Phoenix)", "country": "US", "location": "Phoenix", "geo": "North America", "ping_url": "https://objectstorage.us-phoenix-1.oraclecloud.com/ping"},
+  {"key": "us-sanjose-1", "display_name": "US West (San Jose)", "country": "US", "location": "San Jose", "geo": "North America", "ping_url": "https://objectstorage.us-sanjose-1.oraclecloud.com/ping"}
 ]
