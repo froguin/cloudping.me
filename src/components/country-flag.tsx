@@ -4,7 +4,7 @@ import Image from 'next/image'
 export interface CountryFlagProps {
   countryCode: string
   className?: string
-  width: string
+  width: number
 }
 
 export function CountryFlag(props: CountryFlagProps): JSX.Element {
