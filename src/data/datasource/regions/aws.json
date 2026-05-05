@@ -120,6 +120,22 @@
     "ping_url": "http://dynamodb.ap-southeast-4.amazonaws.com/ping"
   },
   {
+    "key": "ap-southeast-5",
+    "display_name": "Asia Pacific (Malaysia)",
+    "country": "MY",
+    "location": "Kuala Lumpur",
+    "geo": "Asia",
+    "ping_url": "http://dynamodb.ap-southeast-5.amazonaws.com/ping"
+  },
+  {
+    "key": "ap-southeast-7",
+    "display_name": "Asia Pacific (Thailand)",
+    "country": "TH",
+    "location": "Bangkok",
+    "geo": "Asia",
+    "ping_url": "http://dynamodb.ap-southeast-7.amazonaws.com/ping"
+  },
+  {
     "key": "ap-northeast-1",
     "display_name": "Asia Pacific (Tokyo)",
     "country": "JP",
