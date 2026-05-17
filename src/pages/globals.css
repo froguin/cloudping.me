@@ -2,39 +2,216 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
-h1 {
-  @apply text-3xl font-black
+/* Theme variables */
+:root {
+  --bg: #ffffff;
+  --bg-surface: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-sidebar: #f1f5f9;
+  --border: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --text: #020617;
+  --text-secondary: #1e293b;
+  --text-muted: #64748b;
+  --pill-bg: #f1f5f9;
+  --pill-border: #e2e8f0;
+  --pill-active-bg: #eff6ff;
+  --pill-active-border: #3b82f6;
+  --pill-active-text: #1d4ed8;
+  --badge-success-bg: #dcfce7;
+  --badge-success-text: #166534;
+  --badge-warning-bg: #fef9c3;
+  --badge-warning-text: #854d0e;
+  --badge-danger-bg: #fee2e2;
+  --badge-danger-text: #991b1b;
+  --checkbox-border: #cbd5e1;
+  --checkbox-bg: #ffffff;
 }
 
-h2 {
-  @apply text-2xl font-extrabold
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --bg-surface: #1e293b;
+  --bg-card: #1e293b;
+  --bg-sidebar: #0f172a;
+  --border: #334155;
+  --border-subtle: #1e293b;
+  --text: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #94a3b8;
+  --pill-bg: transparent;
+  --pill-border: #1e293b;
+  --pill-active-bg: rgba(59, 130, 246, 0.15);
+  --pill-active-border: #3b82f6;
+  --pill-active-text: #ffffff;
+  --badge-success-bg: rgba(34, 197, 94, 0.15);
+  --badge-success-text: #4ade80;
+  --badge-warning-bg: rgba(234, 179, 8, 0.15);
+  --badge-warning-text: #fbbf24;
+  --badge-danger-bg: rgba(239, 68, 68, 0.15);
+  --badge-danger-text: #f87171;
+  --checkbox-border: #334155;
+  --checkbox-bg: #1e293b;
 }
 
-h3 {
-  @apply text-xl font-bold
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f172a;
+    --bg-surface: #1e293b;
+    --bg-card: #1e293b;
+    --bg-sidebar: #0f172a;
+    --border: #334155;
+    --border-subtle: #1e293b;
+    --text: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #94a3b8;
+    --pill-bg: transparent;
+    --pill-border: #1e293b;
+    --pill-active-bg: rgba(59, 130, 246, 0.15);
+    --pill-active-border: #3b82f6;
+    --pill-active-text: #ffffff;
+    --badge-success-bg: rgba(34, 197, 94, 0.15);
+    --badge-success-text: #4ade80;
+    --badge-warning-bg: rgba(234, 179, 8, 0.15);
+    --badge-warning-text: #fbbf24;
+    --badge-danger-bg: rgba(239, 68, 68, 0.15);
+    --badge-danger-text: #f87171;
+    --checkbox-border: #334155;
+    --checkbox-bg: #1e293b;
+  }
 }
 
-h4 {
-  @apply text-lg font-bold
+img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
 }
 
-h5 {
-  @apply text-lg font-medium
+body {
+  background-color: var(--bg) !important;
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s, color 0.2s;
 }
 
-h6 {
-  @apply text-lg font-medium
-}
+h1 { @apply text-2xl font-semibold; }
+h1 { color: var(--text); }
+h5 { @apply text-sm font-medium; }
+h5 { color: var(--text-secondary); }
+h6 { @apply text-xs font-medium; }
+h6 { color: var(--text-muted); }
 
 .form-checkbox {
-  @apply rounded border-gray-300 text-blue-600 shadow-sm;
-  @apply focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50;
+  @apply rounded;
+  border-color: var(--checkbox-border);
+  background-color: var(--checkbox-bg);
+  @apply text-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500;
 }
 
+/* Provider Pills */
+.pills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.provider-pill {
+  @apply flex items-center gap-2 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all duration-150;
+  border: 1px solid var(--pill-border);
+  background: var(--pill-bg);
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+.provider-pill:hover { opacity: 0.85; }
+.provider-pill.active {
+  border-color: var(--pill-active-border);
+  background: var(--pill-active-bg);
+  color: var(--pill-active-text);
+  opacity: 1;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+}
+
+/* Sidebar */
+.sidebar-section { @apply mb-2 }
+.sidebar-header {
+  @apply flex items-center justify-between py-1.5 px-1 cursor-pointer text-sm font-medium;
+  color: var(--text-secondary);
+}
+.sidebar-header:hover { color: var(--text); transition: color 0.15s; }
+.sidebar-content { @apply space-y-0.5 }
+
+/* Latency Card */
+.latency-card {
+  @apply relative overflow-hidden;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.latency-card:last-child { border-bottom: none; }
+.latency-card:hover { background: var(--bg-surface); }
+.latency-bar { @apply absolute inset-y-0 left-0; }
+.latency-card-inner { @apply relative flex items-center justify-between px-4 py-2.5; }
+
+/* Latency Badge */
+.latency-badge {
+  @apply inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold tabular-nums;
+}
+.latency-badge.success { background: var(--badge-success-bg); color: var(--badge-success-text); }
+.latency-badge.warning { background: var(--badge-warning-bg); color: var(--badge-warning-text); }
+.latency-badge.danger { background: var(--badge-danger-bg); color: var(--badge-danger-text); }
+
+/* Skeleton */
+.skeleton {
+  @apply rounded-md;
+  background: linear-gradient(90deg, var(--border-subtle) 25%, var(--border) 50%, var(--border-subtle) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Mobile Filter Button */
+.mobile-filter-btn {
+  @apply w-full flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+}
+
+/* Tweet/Share Button */
 .bt-tweet {
-  background-color: #1DA1F2;
+
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  @apply hover:opacity-80 transition-all;
 }
 
-.bt-tweet:hover {
-  background-color: #0c85d0;
+/* Theme Toggle */
+.theme-toggle {
+  @apply w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-all;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-muted);
 }
+.theme-toggle:hover { color: var(--text); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply rounded-full; }
+::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* Card borders — 더 명확하게 */
+.latency-card {
+  border-bottom: 1px solid var(--border) !important;
+}
+
+
+.bt-tweet svg { fill: var(--text); }
+.bt-tweet { color: var(--text); }
+
+/* Force text colors in latency cards for theme switching */
+.latency-card-inner { color: var(--text); }
+.latency-card-inner code { color: var(--text); }
+.latency-card-inner span { color: var(--text-muted); }
+
+[data-theme="dark"] body { background: radial-gradient(ellipse at top, #1e293b 0%, #0f172a 60%) !important; }
