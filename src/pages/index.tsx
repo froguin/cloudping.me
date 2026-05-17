@@ -44,9 +44,23 @@ export async function getStaticProps(): Promise<GetStaticPropsResult<CloudPingPr
 interface LatencyState { [key: string]: RegionLatency }
 interface RegionLatency { key: string; provider: CloudProvider; region: CloudRegion; latency?: number }
 
-function GeoSection({ geo, countries, selectedCountries, onToggleCountry, onToggleGeo }: { geo: string; countries: string[]; selectedCountries: string[]; onToggleCountry: (c: string) => void; onToggleGeo: (g: string, checked: boolean) => void }) {
-  const [isOpen, setIsOpen] = useState(true)
-  const selectedCount = countries.filter(c => selectedCountries.includes(c)).length
+function GeoSection({
+  geo,
+  countries,
+  selectedCountries,
+  onToggleCountry,
+  onToggleGeo,
+}: {
+  geo: string
+  countries: string[]
+  selectedCountries: string[]
+  onToggleCountry: (c: string) => void
+  onToggleGeo: (g: string, checked: boolean) => void
+}) {
+  const [isOpen, setIsOpen] = useState(geo === 'Asia')
+  const selectedCount = countries.filter((c) =>
+    selectedCountries.includes(c)
+  ).length
   const allSelected = selectedCount === countries.length
   const someSelected = selectedCount > 0 && selectedCount < countries.length
   return (
