@@ -75,22 +75,102 @@ function GeoSection({ geo, countries, selectedCountries, onToggleCountry, onTogg
   )
 }
 
-function LatencyCard({ data, maxLatency }: { data: RegionLatency; maxLatency: number }) {
+function LatencyCard({
+  data,
+  maxLatency,
+  rank,
+}: {
+  data: RegionLatency
+  maxLatency: number
+  rank?: number
+}) {
   const relative = maxLatency > 0 ? ((data.latency || 0) / maxLatency) * 100 : 0
-  const getBadgeClass = () => { if (!data.latency) return ''; if (data.latency < 80) return 'success'; if (data.latency < 200) return 'warning'; return 'danger' }
-  const getBarColor = () => { if (!data.latency) return 'transparent'; if (data.latency < 80) return 'rgba(34, 197, 94, 0.08)'; if (data.latency < 200) return 'rgba(234, 179, 8, 0.08)'; return 'rgba(239, 68, 68, 0.08)' }
+  const getBadgeClass = () => {
+    if (!data.latency) return ''
+    if (data.latency < 80) return 'success'
+    if (data.latency < 200) return 'warning'
+    return 'danger'
+  }
+  const getBarColor = () => {
+    if (!data.latency) return 'var(--border)'
+    if (data.latency < 80) return '#22c55e'
+    if (data.latency < 200) return '#eab308'
+    return '#ef4444'
+  }
+
   return (
-    <div className="latency-card border-b border-[color:var(--border)] last:border-b-0">
-      {data.latency && <div className="latency-bar" style={{ width: `${Math.min(relative, 100)}%`, background: `linear-gradient(90deg, ${getBarColor()}, transparent)` }} />}
-      <div className="latency-card-inner">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center"><CloudProviderLogo width="20px" providerKey={data.provider.key} providerName={data.provider.display_name} /></div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2"><code className="text-sm font-mono font-medium">{data.region.key}</code><span className="hidden sm:inline text-xs" >{data.provider.display_name}</span></div>
-            <div className="flex items-center gap-1.5 text-xs"><CountryFlag width="12px" countryCode={data.region.country} /><span className="truncate">{data.region.location}</span></div>
+    <div className="latency-card border-b border-[color:var(--border)] last:border-b-0 py-3 px-4 group">
+      <div className="flex items-center gap-4 relative z-10">
+        <div className="flex-shrink-0 w-8 text-center flex flex-col items-center justify-center">
+          {rank === 1 ? (
+            <div className="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center text-[10px] font-bold text-yellow-900 shadow-sm">
+              1st
+            </div>
+          ) : (
+            <span className="text-xs font-mono text-[color:var(--text-muted)] group-hover:text-[color:var(--text-secondary)]">
+              {rank}
+            </span>
+          )}
+        </div>
+
+        <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-[color:var(--bg-surface)] rounded-lg border border-[color:var(--border-subtle)]">
+          <CloudProviderLogo
+            width={24}
+            providerKey={data.provider.key}
+            providerName={data.provider.display_name}
+          />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <code className="text-sm font-mono font-bold text-[color:var(--text)]">
+              {data.region.key}
+            </code>
+            {rank === 1 && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-green-500/10 text-green-500 border border-green-500/20">
+                Fastest
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-[color:var(--text-muted)]">
+            <CountryFlag width={14} countryCode={data.region.country} />
+            <span className="truncate">{data.region.location}</span>
+            <span className="opacity-40">&middot;</span>
+            <span className="truncate">{data.provider.display_name}</span>
           </div>
         </div>
-        {data.latency ? <span className={`latency-badge ${getBadgeClass()}`}>{data.latency}ms</span> : <div className="skeleton w-14 h-6" />}
+
+        <div className="flex flex-col items-end gap-1 min-w-[80px]">
+          {data.latency ? (
+            <>
+              <span
+                className={`text-lg font-black tabular-nums ${
+                  data.latency < 80
+                    ? 'text-green-500'
+                    : data.latency < 200
+                    ? 'text-yellow-500'
+                    : 'text-red-500'
+                }`}
+              >
+                {data.latency}
+                <span className="text-[10px] ml-0.5 opacity-50 font-medium">
+                  ms
+                </span>
+              </span>
+              <div className="w-full bg-[color:var(--border-subtle)] h-1 rounded-full overflow-hidden">
+                <div
+                  className="h-full transition-all duration-500 ease-out"
+                  style={{
+                    width: `${relative}%`,
+                    backgroundColor: getBarColor(),
+                  }}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="skeleton w-16 h-8" />
+          )}
+        </div>
       </div>
     </div>
   )
@@ -210,7 +290,22 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
                 {sortedRegionsWithLatency.length > 0 && (<div className="flex items-center gap-4 text-xs text-[color:var(--text-muted)]"><span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[var(--badge-success-text)]" />{"<80ms"}</span><span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[var(--badge-warning-text)]" />{"<200ms"}</span><span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[var(--badge-danger-text)]" />{">200ms"}</span></div>)}
               </div>
               <img src="" id="url-ping" alt="" style={{ display: 'none' }} />
-              <div className="space-y-1.5">{sortedRegions.length === 0 ? <div className="text-center py-12 text-[color:var(--text-muted)]"><p>No regions selected. Choose providers and locations above.</p></div> : sortedRegions.map((x) => <LatencyCard key={x.key} data={x} maxLatency={maxLatency} />)}</div>
+              <div className="space-y-1.5">
+                {sortedRegions.length === 0 ? (
+                  <div className="text-center py-12 text-[color:var(--text-muted)]">
+                    <p>No regions selected. Choose providers and locations above.</p>
+                  </div>
+                ) : (
+                  sortedRegions.map((x, index) => (
+                    <LatencyCard
+                      key={x.key}
+                      data={x}
+                      maxLatency={maxLatency}
+                      rank={x.latency ? index + 1 : undefined}
+                    />
+                  ))
+                )}
+              </div>
             </main>
           </div>
           <footer className="mt-12 border-t border-[color:var(--border)] pt-8">
