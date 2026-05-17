@@ -100,7 +100,12 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
 export default function CloudPing(props: CloudPingProps): JSX.Element {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [selectedProviders, setSelectedProviders] = useState(
-    props.providers.map((x) => x.key)
+    props.providers
+      .map((x) => x.key)
+      .filter(
+        (key) =>
+          !['ncp', 'kakaocloud', 'ktcloud', 'nhncloud', 'iwinv'].includes(key)
+      )
   )
   // Default to Asia only for better initial performance
   const [selectedCountries, setSelectedCountries] = useState(props.geos['Asia'] || [])
