@@ -21,7 +21,7 @@
     "country": "BR",
     "location": "Sao Paulo",
     "geo": "South America",
-    "ping_url": "https://objectstorage.sa-saopaulo-1.oraclecloud.com/ping"
+    "ping_url": "https://objectstorage.sa-saopaulo-1.oraclecloud.com"
   },
   {
     "key": "sa-vinhedo-1",
@@ -93,7 +93,7 @@
     "country": "DE",
     "location": "Frankfurt",
     "geo": "Europe",
-    "ping_url": "https://objectstorage.eu-frankfurt-1.oraclecloud.com/ping"
+    "ping_url": "https://objectstorage.eu-frankfurt-1.oraclecloud.com"
   },
   {
     "key": "ap-hyderabad-1",

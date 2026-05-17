@@ -5,7 +5,7 @@
     "country": "CN",
     "location": "Beijing",
     "geo": "Asia",
-    "ping_url": "http://oss-cn-beijing.aliyuncs.com"
+    "ping_url": "https://oss-cn-beijing.aliyuncs.com"
   },
   {
     "key": "cn-hangzhou",
@@ -13,7 +13,7 @@
     "country": "CN",
     "location": "Hangzhou",
     "geo": "Asia",
-    "ping_url": "http://oss-cn-hangzhou.aliyuncs.com"
+    "ping_url": "https://oss-cn-hangzhou.aliyuncs.com"
   },
   {
     "key": "cn-shanghai",
@@ -21,7 +21,7 @@
     "country": "CN",
     "location": "Shanghai",
     "geo": "Asia",
-    "ping_url": "http://oss-cn-shanghai.aliyuncs.com"
+    "ping_url": "https://oss-cn-shanghai.aliyuncs.com"
   },
   {
     "key": "cn-qingdao",
@@ -29,7 +29,7 @@
     "country": "CN",
     "location": "Qingdao",
     "geo": "Asia",
-    "ping_url": "http://oss-cn-qingdao.aliyuncs.com"
+    "ping_url": "https://oss-cn-qingdao.aliyuncs.com"
   },
   {
     "key": "cn-zhangjiakou",
@@ -37,7 +37,7 @@
     "country": "CN",
     "location": "Zhangjiakou",
     "geo": "Asia",
-    "ping_url": "http://oss-cn-zhangjiakou.aliyuncs.com"
+    "ping_url": "https://oss-cn-zhangjiakou.aliyuncs.com"
   },
   {
     "key": "cn-huhehaote",
@@ -45,7 +45,7 @@
     "country": "CN",
     "location": "Hohhot",
     "geo": "Asia",
-    "ping_url": "http://oss-cn-huhehaote.aliyuncs.com"
+    "ping_url": "https://oss-cn-huhehaote.aliyuncs.com"
   },
   {
     "key": "cn-wulanchabu",
@@ -53,7 +53,7 @@
     "country": "CN",
     "location": "Ulanqab",
     "geo": "Asia",
-    "ping_url": "http://oss-cn-wulanchabu.aliyuncs.com"
+    "ping_url": "https://oss-cn-wulanchabu.aliyuncs.com"
   },
   {
     "key": "cn-shenzhen",
@@ -61,7 +61,7 @@
     "country": "CN",
     "location": "Shenzhen",
     "geo": "Asia",
-    "ping_url": "http://oss-cn-shenzhen.aliyuncs.com"
+    "ping_url": "https://oss-cn-shenzhen.aliyuncs.com"
   },
   {
     "key": "cn-heyuan",
@@ -69,7 +69,7 @@
     "country": "CN",
     "location": "Heyuan",
     "geo": "Asia",
-    "ping_url": "http://oss-cn-heyuan.aliyuncs.com"
+    "ping_url": "https://oss-cn-heyuan.aliyuncs.com"
   },
   {
     "key": "cn-guangzhou",
@@ -77,7 +77,7 @@
     "country": "CN",
     "location": "Guangzhou",
     "geo": "Asia",
-    "ping_url": "http://oss-cn-guangzhou.aliyuncs.com"
+    "ping_url": "https://oss-cn-guangzhou.aliyuncs.com"
   },
   {
     "key": "cn-chengdu",
@@ -85,7 +85,7 @@
     "country": "CN",
     "location": "Chengdu",
     "geo": "Asia",
-    "ping_url": "http://oss-cn-chengdu.aliyuncs.com"
+    "ping_url": "https://oss-cn-chengdu.aliyuncs.com"
   },
   {
     "key": "cn-hongkong",
@@ -93,7 +93,7 @@
     "country": "CN",
     "location": "Hong Kong",
     "geo": "Asia",
-    "ping_url": "http://oss-cn-hongkong.aliyuncs.com"
+    "ping_url": "https://oss-cn-hongkong.aliyuncs.com"
   },
   {
     "key": "ap-northeast-1",
@@ -101,7 +101,7 @@
     "country": "JP",
     "location": "Tokyo",
     "geo": "Asia",
-    "ping_url": "http://oss-ap-northeast-1.aliyuncs.com"
+    "ping_url": "https://oss-ap-northeast-1.aliyuncs.com"
   },
   {
     "key": "ap-northeast-2",
@@ -109,7 +109,7 @@
     "country": "KR",
     "location": "Seoul",
     "geo": "Asia",
-    "ping_url": "http://oss-ap-northeast-2.aliyuncs.com"
+    "ping_url": "https://oss-ap-northeast-2.aliyuncs.com"
   },
   {
     "key": "ap-southeast-1",
@@ -117,7 +117,7 @@
     "country": "SG",
     "location": "Singapore",
     "geo": "Asia",
-    "ping_url": "http://oss-ap-southeast-1.aliyuncs.com"
+    "ping_url": "https://oss-ap-southeast-1.aliyuncs.com"
   },
   {
     "key": "ap-southeast-3",
@@ -125,7 +125,7 @@
     "country": "MY",
     "location": "Kuala Lumpur",
     "geo": "Asia",
-    "ping_url": "http://oss-ap-southeast-3.aliyuncs.com"
+    "ping_url": "https://oss-ap-southeast-3.aliyuncs.com"
   },
   {
     "key": "ap-southeast-5",
@@ -133,7 +133,7 @@
     "country": "ID",
     "location": "Jakarta",
     "geo": "Asia",
-    "ping_url": "http://oss-ap-southeast-5.aliyuncs.com"
+    "ping_url": "https://oss-ap-southeast-5.aliyuncs.com"
   },
   {
     "key": "ap-southeast-6",
@@ -141,7 +141,7 @@
     "country": "PH",
     "location": "Manila",
     "geo": "Asia",
-    "ping_url": "http://oss-ap-southeast-6.aliyuncs.com"
+    "ping_url": "https://oss-ap-southeast-6.aliyuncs.com"
   },
   {
     "key": "ap-southeast-7",
@@ -149,7 +149,7 @@
     "country": "TH",
     "location": "Bangkok",
     "geo": "Asia",
-    "ping_url": "http://oss-ap-southeast-7.aliyuncs.com"
+    "ping_url": "https://oss-ap-southeast-7.aliyuncs.com"
   },
   {
     "key": "us-west-1",
@@ -157,7 +157,7 @@
     "country": "US",
     "location": "California",
     "geo": "North America",
-    "ping_url": "http://oss-us-west-1.aliyuncs.com"
+    "ping_url": "https://oss-us-west-1.aliyuncs.com"
   },
   {
     "key": "us-east-1",
@@ -165,7 +165,7 @@
     "country": "US",
     "location": "Virginia",
     "geo": "North America",
-    "ping_url": "http://oss-us-east-1.aliyuncs.com"
+    "ping_url": "https://oss-us-east-1.aliyuncs.com"
   },
   {
     "key": "eu-central-1",
@@ -173,7 +173,7 @@
     "country": "DE",
     "location": "Frankfurt",
     "geo": "Europe",
-    "ping_url": "http://oss-eu-central-1.aliyuncs.com"
+    "ping_url": "https://oss-eu-central-1.aliyuncs.com"
   },
   {
     "key": "eu-west-1",
@@ -181,7 +181,7 @@
     "country": "UK",
     "location": "London",
     "geo": "Europe",
-    "ping_url": "http://oss-eu-west-1.aliyuncs.com"
+    "ping_url": "https://oss-eu-west-1.aliyuncs.com"
   },
   {
     "key": "me-east-1",
@@ -189,6 +189,6 @@
     "country": "AE",
     "location": "Dubai",
     "geo": "Middle East",
-    "ping_url": "http://oss-me-east-1.aliyuncs.com"
+    "ping_url": "https://oss-me-east-1.aliyuncs.com"
   }
 ]

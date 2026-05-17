@@ -5,7 +5,7 @@
     "country": "US",
     "location": "Dallas",
     "geo": "North America",
-    "ping_url": "http://s3.us-south.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.us-south.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "us-east",
@@ -13,7 +13,7 @@
     "country": "US",
     "location": "Washington, D.C.",
     "geo": "North America",
-    "ping_url": "http://s3.us-east.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.us-east.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "eu-gb",
@@ -21,7 +21,7 @@
     "country": "UK",
     "location": "London",
     "geo": "Europe",
-    "ping_url": "http://s3.eu-gb.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.eu-gb.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "eu-de",
@@ -29,7 +29,7 @@
     "country": "DE",
     "location": "Frankfurt",
     "geo": "Europe",
-    "ping_url": "http://s3.eu-de.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "au-syd",
@@ -37,7 +37,7 @@
     "country": "AU",
     "location": "Sydney",
     "geo": "Oceania",
-    "ping_url": "http://s3.au-syd.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.au-syd.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "jp-tok",
@@ -45,7 +45,7 @@
     "country": "JP",
     "location": "Tokyo",
     "geo": "Asia",
-    "ping_url": "http://s3.jp-tok.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.jp-tok.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "jp-osa",
@@ -53,7 +53,7 @@
     "country": "JP",
     "location": "Osaka",
     "geo": "Asia",
-    "ping_url": "http://s3.jp-osa.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.jp-osa.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "ams03",
@@ -61,7 +61,7 @@
     "country": "NL",
     "location": "Amsterdam",
     "geo": "Europe",
-    "ping_url": "http://s3.ams03.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.ams03.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "che01",
@@ -69,7 +69,7 @@
     "country": "IN",
     "location": "Chennai",
     "geo": "Asia",
-    "ping_url": "http://s3.che01.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.che01.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "mil01",
@@ -77,7 +77,7 @@
     "country": "IT",
     "location": "Milan",
     "geo": "Europe",
-    "ping_url": "http://s3.mil01.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.mil01.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "mon01",
@@ -85,7 +85,7 @@
     "country": "CA",
     "location": "Montreal",
     "geo": "North America",
-    "ping_url": "http://s3.mon01.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.mon01.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "par01",
@@ -93,7 +93,7 @@
     "country": "FR",
     "location": "Paris",
     "geo": "Europe",
-    "ping_url": "http://s3.par01.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.par01.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "sjc04",
@@ -101,7 +101,7 @@
     "country": "US",
     "location": "San Jose",
     "geo": "North America",
-    "ping_url": "http://s3.sjc04.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.sjc04.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "sao01",
@@ -109,7 +109,7 @@
     "country": "BR",
     "location": "São Paulo",
     "geo": "South America",
-    "ping_url": "http://s3.sao01.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.sao01.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "sng01",
@@ -117,7 +117,7 @@
     "country": "SG",
     "location": "Singapore",
     "geo": "Asia",
-    "ping_url": "http://s3.sng01.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.sng01.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "tor01",
@@ -125,7 +125,7 @@
     "country": "CA",
     "location": "Toronto",
     "geo": "North America",
-    "ping_url": "http://s3.tor01.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.tor01.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "ca-tor",
@@ -133,7 +133,7 @@
     "country": "CA",
     "location": "Toronto",
     "geo": "North America",
-    "ping_url": "http://s3.ca-tor.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.ca-tor.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "eu-es",
@@ -141,7 +141,7 @@
     "country": "ES",
     "location": "Madrid",
     "geo": "Europe",
-    "ping_url": "http://s3.eu-es.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.eu-es.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "br-sao",
@@ -149,6 +149,6 @@
     "country": "BR",
     "location": "São Paulo",
     "geo": "South America",
-    "ping_url": "http://s3.br-sao.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.br-sao.cloud-object-storage.appdomain.cloud"
   }
 ]

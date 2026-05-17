@@ -5,7 +5,7 @@
     "country": "KR",
     "location": "Seoul",
     "geo": "Asia",
-    "ping_url": "http://cos.ap-seoul.myqcloud.com"
+    "ping_url": "https://cos.ap-seoul.myqcloud.com"
   },
   {
     "key": "ap-tokyo",
@@ -13,7 +13,7 @@
     "country": "JP",
     "location": "Tokyo",
     "geo": "Asia",
-    "ping_url": "http://cos.ap-tokyo.myqcloud.com"
+    "ping_url": "https://cos.ap-tokyo.myqcloud.com"
   },
   {
     "key": "ap-singapore",
@@ -21,7 +21,7 @@
     "country": "SG",
     "location": "Singapore",
     "geo": "Asia",
-    "ping_url": "http://cos.ap-singapore.myqcloud.com"
+    "ping_url": "https://cos.ap-singapore.myqcloud.com"
   },
   {
     "key": "ap-bangkok",
@@ -29,7 +29,7 @@
     "country": "TH",
     "location": "Bangkok",
     "geo": "Asia",
-    "ping_url": "http://cos.ap-bangkok.myqcloud.com"
+    "ping_url": "https://cos.ap-bangkok.myqcloud.com"
   },
   {
     "key": "ap-jakarta",
@@ -37,7 +37,7 @@
     "country": "ID",
     "location": "Jakarta",
     "geo": "Asia",
-    "ping_url": "http://cos.ap-jakarta.myqcloud.com"
+    "ping_url": "https://cos.ap-jakarta.myqcloud.com"
   },
   {
     "key": "ap-hongkong",
@@ -45,7 +45,7 @@
     "country": "HK",
     "location": "Hong Kong",
     "geo": "Asia",
-    "ping_url": "http://cos.ap-hongkong.myqcloud.com"
+    "ping_url": "https://cos.ap-hongkong.myqcloud.com"
   },
   {
     "key": "ap-beijing",
@@ -53,7 +53,7 @@
     "country": "CN",
     "location": "Beijing",
     "geo": "Asia",
-    "ping_url": "http://cos.ap-beijing.myqcloud.com"
+    "ping_url": "https://cos.ap-beijing.myqcloud.com"
   },
   {
     "key": "ap-shanghai",
@@ -61,7 +61,7 @@
     "country": "CN",
     "location": "Shanghai",
     "geo": "Asia",
-    "ping_url": "http://cos.ap-shanghai.myqcloud.com"
+    "ping_url": "https://cos.ap-shanghai.myqcloud.com"
   },
   {
     "key": "ap-guangzhou",
@@ -69,7 +69,7 @@
     "country": "CN",
     "location": "Guangzhou",
     "geo": "Asia",
-    "ping_url": "http://cos.ap-guangzhou.myqcloud.com"
+    "ping_url": "https://cos.ap-guangzhou.myqcloud.com"
   },
   {
     "key": "eu-frankfurt",
@@ -77,7 +77,7 @@
     "country": "DE",
     "location": "Frankfurt",
     "geo": "Europe",
-    "ping_url": "http://cos.eu-frankfurt.myqcloud.com"
+    "ping_url": "https://cos.eu-frankfurt.myqcloud.com"
   },
   {
     "key": "na-siliconvalley",
@@ -85,7 +85,7 @@
     "country": "US",
     "location": "Silicon Valley",
     "geo": "North America",
-    "ping_url": "http://cos.na-siliconvalley.myqcloud.com"
+    "ping_url": "https://cos.na-siliconvalley.myqcloud.com"
   },
   {
     "key": "na-ashburn",
@@ -93,7 +93,7 @@
     "country": "US",
     "location": "Virginia",
     "geo": "North America",
-    "ping_url": "http://cos.na-ashburn.myqcloud.com"
+    "ping_url": "https://cos.na-ashburn.myqcloud.com"
   },
   {
     "key": "sa-saopaulo",
@@ -101,7 +101,7 @@
     "country": "BR",
     "location": "São Paulo",
     "geo": "South America",
-    "ping_url": "http://cos.sa-saopaulo.myqcloud.com"
+    "ping_url": "https://cos.sa-saopaulo.myqcloud.com"
   },
   {
     "key": "ap-nanjing",
@@ -109,7 +109,7 @@
     "country": "CN",
     "location": "Nanjing",
     "geo": "Asia",
-    "ping_url": "http://cos.ap-nanjing.myqcloud.com"
+    "ping_url": "https://cos.ap-nanjing.myqcloud.com"
   },
   {
     "key": "ap-chengdu",
@@ -117,7 +117,7 @@
     "country": "CN",
     "location": "Chengdu",
     "geo": "Asia",
-    "ping_url": "http://cos.ap-chengdu.myqcloud.com"
+    "ping_url": "https://cos.ap-chengdu.myqcloud.com"
   },
   {
     "key": "ap-chongqing",
@@ -125,6 +125,6 @@
     "country": "CN",
     "location": "Chongqing",
     "geo": "Asia",
-    "ping_url": "http://cos.ap-chongqing.myqcloud.com"
+    "ping_url": "https://cos.ap-chongqing.myqcloud.com"
   }
 ]
