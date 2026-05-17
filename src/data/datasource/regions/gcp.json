@@ -1,45 +1,346 @@
 [
-  {"key": "africa-south1", "display_name": "South Africa", "country": "ZA", "location": "Johannesburg", "geo": "Africa", "ping_url": "http://africa-south1-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "asia-east1", "display_name": "Taiwan", "country": "TW", "location": "Taiwan", "geo": "Asia", "ping_url": "http://asia-east1-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "asia-east2", "display_name": "Hong Kong", "country": "HK", "location": "Hong Kong", "geo": "Asia", "ping_url": "http://asia-east2-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "asia-northeast1", "display_name": "Tokyo", "country": "JP", "location": "Tokyo", "geo": "Asia", "ping_url": "http://asia-northeast1-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "asia-northeast2", "display_name": "Osaka", "country": "JP", "location": "Osaka", "geo": "Asia", "ping_url": "http://asia-northeast2-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "asia-northeast3", "display_name": "Seoul", "country": "KR", "location": "Seoul", "geo": "Asia", "ping_url": "http://asia-northeast3-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "asia-south1", "display_name": "Mumbai", "country": "IN", "location": "Mumbai", "geo": "Asia", "ping_url": "http://asia-south1-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "asia-south2", "display_name": "Delhi", "country": "IN", "location": "Delhi", "geo": "Asia", "ping_url": "https://asia-south2-5tkroniexa-em.a.run.app/api/ping"},
-  {"key": "asia-southeast1", "display_name": "Singapore", "country": "SG", "location": "Singapore", "geo": "Asia", "ping_url": "http://asia-southeast1-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "asia-southeast2", "display_name": "Jakarta", "country": "ID", "location": "Jakarta", "geo": "Asia", "ping_url": "http://asia-southeast2-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "asia-southeast3", "display_name": "Thailand", "country": "TH", "location": "Bangkok", "geo": "Asia", "ping_url": "http://asia-southeast3-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "australia-southeast1", "display_name": "Sydney", "country": "AU", "location": "Sydney", "geo": "Oceania", "ping_url": "http://australia-southeast1-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "australia-southeast2", "display_name": "Melbourne", "country": "AU", "location": "Melbourne", "geo": "Oceania", "ping_url": "https://australia-southeast2-5tkroniexa-km.a.run.app/api/ping"},
-  {"key": "europe-central2", "display_name": "Poland", "country": "PL", "location": "Warsaw", "geo": "Europe", "ping_url": "https://europe-central2-5tkroniexa-lm.a.run.app/api/ping"},
-  {"key": "europe-north1", "display_name": "Finland", "country": "FI", "location": "Hamina", "geo": "Europe", "ping_url": "https://europe-north1-5tkroniexa-lz.a.run.app/api/ping"},
-  {"key": "europe-north2", "display_name": "Sweden", "country": "SE", "location": "Stockholm", "geo": "Europe", "ping_url": "http://europe-north2-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "europe-southwest1", "display_name": "Spain", "country": "ES", "location": "Madrid", "geo": "Europe", "ping_url": "https://europe-southwest1-5tkroniexa-no.a.run.app/api/ping"},
-  {"key": "europe-west1", "display_name": "Belgium", "country": "BE", "location": "Saint-Ghislain", "geo": "Europe", "ping_url": "https://europe-west1-5tkroniexa-ew.a.run.app/api/ping"},
-  {"key": "europe-west2", "display_name": "England", "country": "UK", "location": "London", "geo": "Europe", "ping_url": "https://europe-west2-5tkroniexa-nw.a.run.app/api/ping"},
-  {"key": "europe-west3", "display_name": "Germany", "country": "DE", "location": "Frankfurt", "geo": "Europe", "ping_url": "https://europe-west3-5tkroniexa-ey.a.run.app/api/ping"},
-  {"key": "europe-west4", "display_name": "Netherlands", "country": "NL", "location": "Eemshaven", "geo": "Europe", "ping_url": "https://europe-west4-5tkroniexa-ez.a.run.app/api/ping"},
-  {"key": "europe-west6", "display_name": "Switzerland", "country": "CH", "location": "Zürich", "geo": "Europe", "ping_url": "https://europe-west6-5tkroniexa-oa.a.run.app/api/ping"},
-  {"key": "europe-west8", "display_name": "Italy", "country": "IT", "location": "Milan", "geo": "Europe", "ping_url": "https://europe-west8-5tkroniexa-oc.a.run.app/api/ping"},
-  {"key": "europe-west9", "display_name": "France", "country": "FR", "location": "Paris", "geo": "Europe", "ping_url": "https://europe-west9-5tkroniexa-od.a.run.app/api/ping"},
-  {"key": "europe-west10", "display_name": "Berlin", "country": "DE", "location": "Berlin", "geo": "Europe", "ping_url": "https://europe-west10-5tkroniexa-oe.a.run.app/api/ping"},
-  {"key": "europe-west12", "display_name": "Turin", "country": "IT", "location": "Turin", "geo": "Europe", "ping_url": "http://europe-west12-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "me-central1", "display_name": "Qatar", "country": "QA", "location": "Doha", "geo": "Middle East", "ping_url": "http://me-central1-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "me-central2", "display_name": "Saudi Arabia", "country": "SA", "location": "Dammam", "geo": "Middle East", "ping_url": "http://me-central2-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "me-west1", "display_name": "Israel", "country": "IL", "location": "Tel Aviv", "geo": "Middle East", "ping_url": "https://me-west1-5tkroniexa-zf.a.run.app/api/ping"},
-  {"key": "northamerica-northeast1", "display_name": "Montreal", "country": "CA", "location": "Montreal", "geo": "North America", "ping_url": "http://northamerica-northeast1-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "northamerica-northeast2", "display_name": "Toronto", "country": "CA", "location": "Toronto", "geo": "North America", "ping_url": "https://northamerica-northeast2-5tkroniexa-pd.a.run.app/api/ping"},
-  {"key": "northamerica-south1", "display_name": "Mexico", "country": "MX", "location": "Queretaro", "geo": "North America", "ping_url": "http://northamerica-south1-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "southamerica-east1", "display_name": "São Paulo", "country": "BR", "location": "São Paulo", "geo": "South America", "ping_url": "http://southamerica-east1-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "southamerica-west1", "display_name": "Chile", "country": "CL", "location": "Santiago", "geo": "South America", "ping_url": "https://southamerica-west1-5tkroniexa-tl.a.run.app/api/ping"},
-  {"key": "us-central1", "display_name": "Iowa", "country": "US", "location": "Iowa", "geo": "North America", "ping_url": "http://us-central1-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "us-east1", "display_name": "South Carolina", "country": "US", "location": "South Carolina", "geo": "North America", "ping_url": "http://us-east1-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "us-east4", "display_name": "Virginia", "country": "US", "location": "Virginia", "geo": "North America", "ping_url": "http://us-east4-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "us-east5", "display_name": "Columbus", "country": "US", "location": "Columbus", "geo": "North America", "ping_url": "https://us-east5-5tkroniexa-ul.a.run.app/api/ping"},
-  {"key": "us-south1", "display_name": "Dallas", "country": "US", "location": "Dallas", "geo": "North America", "ping_url": "https://us-south1-5tkroniexa-vp.a.run.app/api/ping"},
-  {"key": "us-west1", "display_name": "Oregon", "country": "US", "location": "Oregon", "geo": "North America", "ping_url": "http://us-west1-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "us-west2", "display_name": "California", "country": "US", "location": "California", "geo": "North America", "ping_url": "http://us-west2-a-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "us-west3", "display_name": "Utah", "country": "US", "location": "Utah", "geo": "North America", "ping_url": "http://us-west3-gce.cloudharmony.net/probe/ping.js"},
-  {"key": "us-west4", "display_name": "Las Vegas", "country": "US", "location": "Las Vegas", "geo": "North America", "ping_url": "https://us-west4-5tkroniexa-wn.a.run.app/api/ping"}
+  {
+    "key": "africa-south1",
+    "display_name": "South Africa",
+    "country": "ZA",
+    "location": "Johannesburg",
+    "geo": "Africa",
+    "ping_url": "https://africa-south1-5tkroniexa-bq.a.run.app/api/ping"
+  },
+  {
+    "key": "asia-east1",
+    "display_name": "Taiwan",
+    "country": "TW",
+    "location": "Taiwan",
+    "geo": "Asia",
+    "ping_url": "https://asia-east1-5tkroniexa-de.a.run.app/api/ping"
+  },
+  {
+    "key": "asia-east2",
+    "display_name": "Hong Kong",
+    "country": "HK",
+    "location": "Hong Kong",
+    "geo": "Asia",
+    "ping_url": "https://asia-east2-5tkroniexa-df.a.run.app/api/ping"
+  },
+  {
+    "key": "asia-northeast1",
+    "display_name": "Tokyo",
+    "country": "JP",
+    "location": "Tokyo",
+    "geo": "Asia",
+    "ping_url": "https://asia-northeast1-5tkroniexa-an.a.run.app/api/ping"
+  },
+  {
+    "key": "asia-northeast2",
+    "display_name": "Osaka",
+    "country": "JP",
+    "location": "Osaka",
+    "geo": "Asia",
+    "ping_url": "https://asia-northeast2-5tkroniexa-dt.a.run.app/api/ping"
+  },
+  {
+    "key": "asia-northeast3",
+    "display_name": "Seoul",
+    "country": "KR",
+    "location": "Seoul",
+    "geo": "Asia",
+    "ping_url": "https://asia-northeast3-5tkroniexa-du.a.run.app/api/ping"
+  },
+  {
+    "key": "asia-south1",
+    "display_name": "Mumbai",
+    "country": "IN",
+    "location": "Mumbai",
+    "geo": "Asia",
+    "ping_url": "https://asia-south1-5tkroniexa-el.a.run.app/api/ping"
+  },
+  {
+    "key": "asia-south2",
+    "display_name": "Delhi",
+    "country": "IN",
+    "location": "Delhi",
+    "geo": "Asia",
+    "ping_url": "https://asia-south2-5tkroniexa-em.a.run.app/api/ping"
+  },
+  {
+    "key": "asia-southeast1",
+    "display_name": "Singapore",
+    "country": "SG",
+    "location": "Singapore",
+    "geo": "Asia",
+    "ping_url": "https://asia-southeast1-5tkroniexa-as.a.run.app/api/ping"
+  },
+  {
+    "key": "asia-southeast2",
+    "display_name": "Jakarta",
+    "country": "ID",
+    "location": "Jakarta",
+    "geo": "Asia",
+    "ping_url": "https://asia-southeast2-5tkroniexa-et.a.run.app/api/ping"
+  },
+  {
+    "key": "asia-southeast3",
+    "display_name": "Thailand",
+    "country": "TH",
+    "location": "Bangkok",
+    "geo": "Asia",
+    "ping_url": "https://asia-southeast3-5tkroniexa-eu.a.run.app/api/ping"
+  },
+  {
+    "key": "australia-southeast1",
+    "display_name": "Sydney",
+    "country": "AU",
+    "location": "Sydney",
+    "geo": "Oceania",
+    "ping_url": "https://australia-southeast1-5tkroniexa-ts.a.run.app/api/ping"
+  },
+  {
+    "key": "australia-southeast2",
+    "display_name": "Melbourne",
+    "country": "AU",
+    "location": "Melbourne",
+    "geo": "Oceania",
+    "ping_url": "https://australia-southeast2-5tkroniexa-km.a.run.app/api/ping"
+  },
+  {
+    "key": "europe-central2",
+    "display_name": "Poland",
+    "country": "PL",
+    "location": "Warsaw",
+    "geo": "Europe",
+    "ping_url": "https://europe-central2-5tkroniexa-lm.a.run.app/api/ping"
+  },
+  {
+    "key": "europe-north1",
+    "display_name": "Finland",
+    "country": "FI",
+    "location": "Hamina",
+    "geo": "Europe",
+    "ping_url": "https://europe-north1-5tkroniexa-lz.a.run.app/api/ping"
+  },
+  {
+    "key": "europe-north2",
+    "display_name": "Sweden",
+    "country": "SE",
+    "location": "Stockholm",
+    "geo": "Europe",
+    "ping_url": "https://europe-north2-5tkroniexa-ma.a.run.app/api/ping"
+  },
+  {
+    "key": "europe-southwest1",
+    "display_name": "Spain",
+    "country": "ES",
+    "location": "Madrid",
+    "geo": "Europe",
+    "ping_url": "https://europe-southwest1-5tkroniexa-no.a.run.app/api/ping"
+  },
+  {
+    "key": "europe-west1",
+    "display_name": "Belgium",
+    "country": "BE",
+    "location": "Saint-Ghislain",
+    "geo": "Europe",
+    "ping_url": "https://europe-west1-5tkroniexa-ew.a.run.app/api/ping"
+  },
+  {
+    "key": "europe-west2",
+    "display_name": "England",
+    "country": "UK",
+    "location": "London",
+    "geo": "Europe",
+    "ping_url": "https://europe-west2-5tkroniexa-nw.a.run.app/api/ping"
+  },
+  {
+    "key": "europe-west3",
+    "display_name": "Germany",
+    "country": "DE",
+    "location": "Frankfurt",
+    "geo": "Europe",
+    "ping_url": "https://europe-west3-5tkroniexa-ey.a.run.app/api/ping"
+  },
+  {
+    "key": "europe-west4",
+    "display_name": "Netherlands",
+    "country": "NL",
+    "location": "Eemshaven",
+    "geo": "Europe",
+    "ping_url": "https://europe-west4-5tkroniexa-ez.a.run.app/api/ping"
+  },
+  {
+    "key": "europe-west6",
+    "display_name": "Switzerland",
+    "country": "CH",
+    "location": "Zürich",
+    "geo": "Europe",
+    "ping_url": "https://europe-west6-5tkroniexa-oa.a.run.app/api/ping"
+  },
+  {
+    "key": "europe-west8",
+    "display_name": "Italy",
+    "country": "IT",
+    "location": "Milan",
+    "geo": "Europe",
+    "ping_url": "https://europe-west8-5tkroniexa-oc.a.run.app/api/ping"
+  },
+  {
+    "key": "europe-west9",
+    "display_name": "France",
+    "country": "FR",
+    "location": "Paris",
+    "geo": "Europe",
+    "ping_url": "https://europe-west9-5tkroniexa-od.a.run.app/api/ping"
+  },
+  {
+    "key": "europe-west10",
+    "display_name": "Berlin",
+    "country": "DE",
+    "location": "Berlin",
+    "geo": "Europe",
+    "ping_url": "https://europe-west10-5tkroniexa-oe.a.run.app/api/ping"
+  },
+  {
+    "key": "europe-west12",
+    "display_name": "Turin",
+    "country": "IT",
+    "location": "Turin",
+    "geo": "Europe",
+    "ping_url": "https://europe-west12-5tkroniexa-og.a.run.app/api/ping"
+  },
+  {
+    "key": "me-central1",
+    "display_name": "Qatar",
+    "country": "QA",
+    "location": "Doha",
+    "geo": "Middle East",
+    "ping_url": "https://me-central1-5tkroniexa-ww.a.run.app/api/ping"
+  },
+  {
+    "key": "me-central2",
+    "display_name": "Saudi Arabia",
+    "country": "SA",
+    "location": "Dammam",
+    "geo": "Middle East",
+    "ping_url": "https://me-central2-5tkroniexa-wx.a.run.app/api/ping"
+  },
+  {
+    "key": "me-west1",
+    "display_name": "Israel",
+    "country": "IL",
+    "location": "Tel Aviv",
+    "geo": "Middle East",
+    "ping_url": "https://me-west1-5tkroniexa-zf.a.run.app/api/ping"
+  },
+  {
+    "key": "northamerica-northeast1",
+    "display_name": "Montreal",
+    "country": "CA",
+    "location": "Montreal",
+    "geo": "North America",
+    "ping_url": "https://northamerica-northeast1-5tkroniexa-nn.a.run.app/api/ping"
+  },
+  {
+    "key": "northamerica-northeast2",
+    "display_name": "Toronto",
+    "country": "CA",
+    "location": "Toronto",
+    "geo": "North America",
+    "ping_url": "https://northamerica-northeast2-5tkroniexa-pd.a.run.app/api/ping"
+  },
+  {
+    "key": "northamerica-south1",
+    "display_name": "Mexico",
+    "country": "MX",
+    "location": "Queretaro",
+    "geo": "North America",
+    "ping_url": "https://northamerica-south1-5tkroniexa-pv.a.run.app/api/ping"
+  },
+  {
+    "key": "southamerica-east1",
+    "display_name": "São Paulo",
+    "country": "BR",
+    "location": "São Paulo",
+    "geo": "South America",
+    "ping_url": "https://southamerica-east1-5tkroniexa-rj.a.run.app/api/ping"
+  },
+  {
+    "key": "southamerica-west1",
+    "display_name": "Chile",
+    "country": "CL",
+    "location": "Santiago",
+    "geo": "South America",
+    "ping_url": "https://southamerica-west1-5tkroniexa-tl.a.run.app/api/ping"
+  },
+  {
+    "key": "us-central1",
+    "display_name": "Iowa",
+    "country": "US",
+    "location": "Iowa",
+    "geo": "North America",
+    "ping_url": "https://us-central1-5tkroniexa-uc.a.run.app/api/ping"
+  },
+  {
+    "key": "us-east1",
+    "display_name": "South Carolina",
+    "country": "US",
+    "location": "South Carolina",
+    "geo": "North America",
+    "ping_url": "https://us-east1-5tkroniexa-ue.a.run.app/api/ping"
+  },
+  {
+    "key": "us-east4",
+    "display_name": "Virginia",
+    "country": "US",
+    "location": "Virginia",
+    "geo": "North America",
+    "ping_url": "https://us-east4-5tkroniexa-uk.a.run.app/api/ping"
+  },
+  {
+    "key": "us-east5",
+    "display_name": "Columbus",
+    "country": "US",
+    "location": "Columbus",
+    "geo": "North America",
+    "ping_url": "https://us-east5-5tkroniexa-ul.a.run.app/api/ping"
+  },
+  {
+    "key": "us-south1",
+    "display_name": "Dallas",
+    "country": "US",
+    "location": "Dallas",
+    "geo": "North America",
+    "ping_url": "https://us-south1-5tkroniexa-vp.a.run.app/api/ping"
+  },
+  {
+    "key": "us-west1",
+    "display_name": "Oregon",
+    "country": "US",
+    "location": "Oregon",
+    "geo": "North America",
+    "ping_url": "https://us-west1-5tkroniexa-uw.a.run.app/api/ping"
+  },
+  {
+    "key": "us-west2",
+    "display_name": "California",
+    "country": "US",
+    "location": "California",
+    "geo": "North America",
+    "ping_url": "https://us-west2-5tkroniexa-wl.a.run.app/api/ping"
+  },
+  {
+    "key": "us-west3",
+    "display_name": "Utah",
+    "country": "US",
+    "location": "Utah",
+    "geo": "North America",
+    "ping_url": "https://us-west3-5tkroniexa-wm.a.run.app/api/ping"
+  },
+  {
+    "key": "us-west4",
+    "display_name": "Las Vegas",
+    "country": "US",
+    "location": "Las Vegas",
+    "geo": "North America",
+    "ping_url": "https://us-west4-5tkroniexa-wn.a.run.app/api/ping"
+  }
 ]

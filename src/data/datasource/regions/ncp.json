@@ -1,0 +1,7 @@
+[
+  {"key": "kr", "display_name": "South Korea", "country": "KR", "location": "Seoul", "geo": "Asia", "ping_url": "https://kr.object.ncloudstorage.com"},
+  {"key": "us", "display_name": "US West", "country": "US", "location": "California", "geo": "North America", "ping_url": "https://us.object.ncloudstorage.com"},
+  {"key": "sg", "display_name": "Singapore", "country": "SG", "location": "Singapore", "geo": "Asia", "ping_url": "https://sg.object.ncloudstorage.com"},
+  {"key": "jp", "display_name": "Japan", "country": "JP", "location": "Tokyo", "geo": "Asia", "ping_url": "https://jp.object.ncloudstorage.com"},
+  {"key": "de", "display_name": "Germany", "country": "DE", "location": "Frankfurt", "geo": "Europe", "ping_url": "https://de.object.ncloudstorage.com"}
+]

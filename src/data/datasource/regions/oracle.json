@@ -224,14 +224,6 @@
     "ping_url": "https://objectstorage.me-riyadh-1.oraclecloud.com/ping"
   },
   {
-    "key": "eu-jovanovac-1",
-    "display_name": "Serbia Central (Jovanovac)",
-    "country": "RS",
-    "location": "Jovanovac",
-    "geo": "Europe",
-    "ping_url": "https://objectstorage.eu-jovanovac-1.oraclecloud.com/ping"
-  },
-  {
     "key": "ap-singapore-1",
     "display_name": "Singapore",
     "country": "SG",

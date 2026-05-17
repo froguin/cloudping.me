@@ -1,0 +1,6 @@
+[
+  {"key": "kr1", "display_name": "South Korea (Pangyo)", "country": "KR", "location": "Pangyo", "geo": "Asia", "ping_url": "https://kr1-api-object-storage.nhncloudservice.com"},
+  {"key": "kr2", "display_name": "South Korea (Pyeongchon)", "country": "KR", "location": "Pyeongchon", "geo": "Asia", "ping_url": "https://kr2-api-object-storage.nhncloudservice.com"},
+  {"key": "kr3", "display_name": "South Korea (Gwangju)", "country": "KR", "location": "Gwangju", "geo": "Asia", "ping_url": "https://kr3-api-object-storage.nhncloudservice.com"},
+  {"key": "jp1", "display_name": "Japan", "country": "JP", "location": "Tokyo", "geo": "Asia", "ping_url": "https://jp1-api-object-storage.nhncloudservice.com"}
+]

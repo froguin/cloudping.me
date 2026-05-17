@@ -1,42 +1,322 @@
 [
-  {"key": "eastasia", "display_name": "East Asia", "country": "HK", "location": "Hong Kong", "geo": "Asia", "ping_url": "https://eastasia.communication.azure.com/"},
-  {"key": "southeastasia", "display_name": "Southeast Asia", "country": "SG", "location": "Singapore", "geo": "Asia", "ping_url": "https://southeastasia.communication.azure.com/"},
-  {"key": "australiaeast", "display_name": "Australia East", "country": "AU", "location": "New South Wales", "geo": "Oceania", "ping_url": "https://australiaeast.communication.azure.com/"},
-  {"key": "australiacentral", "display_name": "Australia Central", "country": "AU", "location": "Canberra", "geo": "Oceania", "ping_url": "https://australiacentral.communication.azure.com/"},
-  {"key": "centralindia", "display_name": "Central India", "country": "IN", "location": "Pune", "geo": "Asia", "ping_url": "https://centralindia.communication.azure.com/"},
-  {"key": "japaneast", "display_name": "Japan East", "country": "JP", "location": "Tokyo", "geo": "Asia", "ping_url": "https://japaneast.communication.azure.com/"},
-  {"key": "japanwest", "display_name": "Japan West", "country": "JP", "location": "Osaka", "geo": "Asia", "ping_url": "https://japanwest.communication.azure.com/"},
-  {"key": "koreacentral", "display_name": "Korea Central", "country": "KR", "location": "Seoul", "geo": "Asia", "ping_url": "https://koreacentral.communication.azure.com/"},
-  {"key": "koreasouth", "display_name": "Korea South", "country": "KR", "location": "Busan", "geo": "Asia", "ping_url": "https://koreasouth.communication.azure.com/"},
-  {"key": "indonesiacentral", "display_name": "Indonesia Central", "country": "ID", "location": "Jakarta", "geo": "Asia", "ping_url": "https://indonesiacentral.communication.azure.com/"},
-  {"key": "malaysiawest", "display_name": "Malaysia West", "country": "MY", "location": "Kuala Lumpur", "geo": "Asia", "ping_url": "https://malaysiawest.communication.azure.com/"},
-  {"key": "northeurope", "display_name": "North Europe", "country": "IE", "location": "Dublin", "geo": "Europe", "ping_url": "https://northeurope.communication.azure.com/"},
-  {"key": "westeurope", "display_name": "West Europe", "country": "NL", "location": "Amsterdam", "geo": "Europe", "ping_url": "https://westeurope.communication.azure.com/"},
-  {"key": "francecentral", "display_name": "France Central", "country": "FR", "location": "Paris", "geo": "Europe", "ping_url": "https://francecentral.communication.azure.com/"},
-  {"key": "uksouth", "display_name": "UK South", "country": "UK", "location": "London", "geo": "Europe", "ping_url": "https://uksouth.communication.azure.com/"},
-  {"key": "germanywestcentral", "display_name": "Germany West Central", "country": "DE", "location": "Frankfurt", "geo": "Europe", "ping_url": "https://germanywestcentral.communication.azure.com/"},
-  {"key": "swedencentral", "display_name": "Sweden Central", "country": "SE", "location": "Gävle", "geo": "Europe", "ping_url": "https://swedencentral.communication.azure.com/"},
-  {"key": "norwayeast", "display_name": "Norway East", "country": "NO", "location": "Oslo", "geo": "Europe", "ping_url": "https://norwayeast.communication.azure.com/"},
-  {"key": "polandcentral", "display_name": "Poland Central", "country": "PL", "location": "Warsaw", "geo": "Europe", "ping_url": "https://polandcentral.communication.azure.com/"},
-  {"key": "italynorth", "display_name": "Italy North", "country": "IT", "location": "Milan", "geo": "Europe", "ping_url": "https://italynorth.communication.azure.com/"},
-  {"key": "spaincentral", "display_name": "Spain Central", "country": "ES", "location": "Madrid", "geo": "Europe", "ping_url": "https://spaincentral.communication.azure.com/"},
-  {"key": "austriaeast", "display_name": "Austria East", "country": "AT", "location": "Vienna", "geo": "Europe", "ping_url": "https://austriaeast.communication.azure.com/"},
-  {"key": "denmarkeast", "display_name": "Denmark East", "country": "DK", "location": "Copenhagen", "geo": "Europe", "ping_url": "https://denmarkeast.communication.azure.com/"},
-  {"key": "switzerlandnorth", "display_name": "Switzerland North", "country": "CH", "location": "Zürich", "geo": "Europe", "ping_url": "https://switzerlandnorth.communication.azure.com/"},
-  {"key": "eastus", "display_name": "East US", "country": "US", "location": "Virginia", "geo": "North America", "ping_url": "https://eastus.communication.azure.com/"},
-  {"key": "eastus2", "display_name": "East US 2", "country": "US", "location": "Virginia", "geo": "North America", "ping_url": "https://eastus2.communication.azure.com/"},
-  {"key": "centralus", "display_name": "Central US", "country": "US", "location": "Iowa", "geo": "North America", "ping_url": "https://centralus.communication.azure.com/"},
-  {"key": "southcentralus", "display_name": "South Central US", "country": "US", "location": "Texas", "geo": "North America", "ping_url": "https://southcentralus.communication.azure.com/"},
-  {"key": "westus", "display_name": "West US", "country": "US", "location": "California", "geo": "North America", "ping_url": "https://westus.communication.azure.com/"},
-  {"key": "westus2", "display_name": "West US 2", "country": "US", "location": "Washington", "geo": "North America", "ping_url": "https://westus2.communication.azure.com/"},
-  {"key": "westus3", "display_name": "West US 3", "country": "US", "location": "Phoenix", "geo": "North America", "ping_url": "https://westus3.communication.azure.com/"},
-  {"key": "canadacentral", "display_name": "Canada Central", "country": "CA", "location": "Toronto", "geo": "North America", "ping_url": "https://canadacentral.communication.azure.com/"},
-  {"key": "mexicocentral", "display_name": "Mexico Central", "country": "MX", "location": "Querétaro", "geo": "North America", "ping_url": "https://mexicocentral.communication.azure.com/"},
-  {"key": "brazilsouth", "display_name": "Brazil South", "country": "BR", "location": "Sao Paulo", "geo": "South America", "ping_url": "https://brazilsouth.communication.azure.com/"},
-  {"key": "chilecentral", "display_name": "Chile Central", "country": "CL", "location": "Santiago", "geo": "South America", "ping_url": "https://chilecentral.communication.azure.com/"},
-  {"key": "southafricanorth", "display_name": "South Africa North", "country": "ZA", "location": "Johannesburg", "geo": "Africa", "ping_url": "https://southafricanorth.communication.azure.com/"},
-  {"key": "uaenorth", "display_name": "UAE North", "country": "AE", "location": "Dubai", "geo": "Middle East", "ping_url": "https://uaenorth.communication.azure.com/"},
-  {"key": "qatarcentral", "display_name": "Qatar Central", "country": "QA", "location": "Doha", "geo": "Middle East", "ping_url": "https://qatarcentral.communication.azure.com/"},
-  {"key": "israelcentral", "display_name": "Israel Central", "country": "IL", "location": "Israel", "geo": "Middle East", "ping_url": "https://israelcentral.communication.azure.com/"},
-  {"key": "newzealandnorth", "display_name": "New Zealand North", "country": "NZ", "location": "Auckland", "geo": "Oceania", "ping_url": "https://newzealandnorth.communication.azure.com/"}
+  {
+    "key": "eastasia",
+    "display_name": "East Asia",
+    "country": "HK",
+    "location": "Hong Kong",
+    "geo": "Asia",
+    "ping_url": "https://s8eastasia.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "southeastasia",
+    "display_name": "Southeast Asia",
+    "country": "SG",
+    "location": "Singapore",
+    "geo": "Asia",
+    "ping_url": "https://s8southeastasia.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "australiaeast",
+    "display_name": "Australia East",
+    "country": "AU",
+    "location": "New South Wales",
+    "geo": "Oceania",
+    "ping_url": "https://s8australiaeast.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "australiacentral",
+    "display_name": "Australia Central",
+    "country": "AU",
+    "location": "Canberra",
+    "geo": "Oceania",
+    "ping_url": "https://s8australiacentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "centralindia",
+    "display_name": "Central India",
+    "country": "IN",
+    "location": "Pune",
+    "geo": "Asia",
+    "ping_url": "https://s8centralindia.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "japaneast",
+    "display_name": "Japan East",
+    "country": "JP",
+    "location": "Tokyo",
+    "geo": "Asia",
+    "ping_url": "https://s8japaneast.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "japanwest",
+    "display_name": "Japan West",
+    "country": "JP",
+    "location": "Osaka",
+    "geo": "Asia",
+    "ping_url": "https://s8japanwest.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "koreacentral",
+    "display_name": "Korea Central",
+    "country": "KR",
+    "location": "Seoul",
+    "geo": "Asia",
+    "ping_url": "https://s8koreacentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "koreasouth",
+    "display_name": "Korea South",
+    "country": "KR",
+    "location": "Busan",
+    "geo": "Asia",
+    "ping_url": "https://s8koreasouth.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "indonesiacentral",
+    "display_name": "Indonesia Central",
+    "country": "ID",
+    "location": "Jakarta",
+    "geo": "Asia",
+    "ping_url": "https://s8indonesiacentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "malaysiawest",
+    "display_name": "Malaysia West",
+    "country": "MY",
+    "location": "Kuala Lumpur",
+    "geo": "Asia",
+    "ping_url": "https://s8malaysiawest.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "northeurope",
+    "display_name": "North Europe",
+    "country": "IE",
+    "location": "Dublin",
+    "geo": "Europe",
+    "ping_url": "https://s8northeurope.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "westeurope",
+    "display_name": "West Europe",
+    "country": "NL",
+    "location": "Amsterdam",
+    "geo": "Europe",
+    "ping_url": "https://s8westeurope.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "francecentral",
+    "display_name": "France Central",
+    "country": "FR",
+    "location": "Paris",
+    "geo": "Europe",
+    "ping_url": "https://s8francecentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "uksouth",
+    "display_name": "UK South",
+    "country": "UK",
+    "location": "London",
+    "geo": "Europe",
+    "ping_url": "https://s8uksouth.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "germanywestcentral",
+    "display_name": "Germany West Central",
+    "country": "DE",
+    "location": "Frankfurt",
+    "geo": "Europe",
+    "ping_url": "https://s8germanywestcentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "swedencentral",
+    "display_name": "Sweden Central",
+    "country": "SE",
+    "location": "Gävle",
+    "geo": "Europe",
+    "ping_url": "https://s8swedencentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "norwayeast",
+    "display_name": "Norway East",
+    "country": "NO",
+    "location": "Oslo",
+    "geo": "Europe",
+    "ping_url": "https://s8norwayeast.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "polandcentral",
+    "display_name": "Poland Central",
+    "country": "PL",
+    "location": "Warsaw",
+    "geo": "Europe",
+    "ping_url": "https://s8polandcentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "italynorth",
+    "display_name": "Italy North",
+    "country": "IT",
+    "location": "Milan",
+    "geo": "Europe",
+    "ping_url": "https://s8italynorth.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "spaincentral",
+    "display_name": "Spain Central",
+    "country": "ES",
+    "location": "Madrid",
+    "geo": "Europe",
+    "ping_url": "https://s8spaincentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "austriaeast",
+    "display_name": "Austria East",
+    "country": "AT",
+    "location": "Vienna",
+    "geo": "Europe",
+    "ping_url": "https://s8austriaeast.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "denmarkeast",
+    "display_name": "Denmark East",
+    "country": "DK",
+    "location": "Copenhagen",
+    "geo": "Europe",
+    "ping_url": "https://s8denmarkeast.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "switzerlandnorth",
+    "display_name": "Switzerland North",
+    "country": "CH",
+    "location": "Zürich",
+    "geo": "Europe",
+    "ping_url": "https://s8switzerlandnorth.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "eastus",
+    "display_name": "East US",
+    "country": "US",
+    "location": "Virginia",
+    "geo": "North America",
+    "ping_url": "https://s8eastus.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "eastus2",
+    "display_name": "East US 2",
+    "country": "US",
+    "location": "Virginia",
+    "geo": "North America",
+    "ping_url": "https://s8eastus2.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "centralus",
+    "display_name": "Central US",
+    "country": "US",
+    "location": "Iowa",
+    "geo": "North America",
+    "ping_url": "https://s8centralus.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "southcentralus",
+    "display_name": "South Central US",
+    "country": "US",
+    "location": "Texas",
+    "geo": "North America",
+    "ping_url": "https://s8southcentralus.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "westus",
+    "display_name": "West US",
+    "country": "US",
+    "location": "California",
+    "geo": "North America",
+    "ping_url": "https://s8westus.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "westus2",
+    "display_name": "West US 2",
+    "country": "US",
+    "location": "Washington",
+    "geo": "North America",
+    "ping_url": "https://s8westus2.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "westus3",
+    "display_name": "West US 3",
+    "country": "US",
+    "location": "Phoenix",
+    "geo": "North America",
+    "ping_url": "https://s8westus3.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "canadacentral",
+    "display_name": "Canada Central",
+    "country": "CA",
+    "location": "Toronto",
+    "geo": "North America",
+    "ping_url": "https://s8canadacentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "mexicocentral",
+    "display_name": "Mexico Central",
+    "country": "MX",
+    "location": "Querétaro",
+    "geo": "North America",
+    "ping_url": "https://s8mexicocentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "brazilsouth",
+    "display_name": "Brazil South",
+    "country": "BR",
+    "location": "Sao Paulo",
+    "geo": "South America",
+    "ping_url": "https://s8brazilsouth.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "chilecentral",
+    "display_name": "Chile Central",
+    "country": "CL",
+    "location": "Santiago",
+    "geo": "South America",
+    "ping_url": "https://s8chilecentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "southafricanorth",
+    "display_name": "South Africa North",
+    "country": "ZA",
+    "location": "Johannesburg",
+    "geo": "Africa",
+    "ping_url": "https://s8southafricanorth.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "uaenorth",
+    "display_name": "UAE North",
+    "country": "AE",
+    "location": "Dubai",
+    "geo": "Middle East",
+    "ping_url": "https://s8uaenorth.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "qatarcentral",
+    "display_name": "Qatar Central",
+    "country": "QA",
+    "location": "Doha",
+    "geo": "Middle East",
+    "ping_url": "https://s8qatarcentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "israelcentral",
+    "display_name": "Israel Central",
+    "country": "IL",
+    "location": "Israel",
+    "geo": "Middle East",
+    "ping_url": "https://s8israelcentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "newzealandnorth",
+    "display_name": "New Zealand North",
+    "country": "NZ",
+    "location": "Auckland",
+    "geo": "Oceania",
+    "ping_url": "https://s8newzealandnorth.blob.core.windows.net/public/latency-test.json"
+  }
 ]

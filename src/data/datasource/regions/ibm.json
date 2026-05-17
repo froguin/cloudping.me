@@ -72,22 +72,6 @@
     "ping_url": "http://s3.che01.cloud-object-storage.appdomain.cloud"
   },
   {
-    "key": "hkg02",
-    "display_name": "Hong Kong S.A.R. of the PRC",
-    "country": "CN",
-    "location": "Hong Kong",
-    "geo": "Asia",
-    "ping_url": "http://s3.hkg02.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "mex01",
-    "display_name": "Mexico City, Mexico",
-    "country": "US",
-    "location": "Mexico City",
-    "geo": "North America",
-    "ping_url": "http://s3.mex01.cloud-object-storage.appdomain.cloud"
-  },
-  {
     "key": "mil01",
     "display_name": "Milan, Italy",
     "country": "IT",
@@ -126,14 +110,6 @@
     "location": "São Paulo",
     "geo": "South America",
     "ping_url": "http://s3.sao01.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "seo01",
-    "display_name": "Seoul, South Korea",
-    "country": "KR",
-    "location": "Seoul",
-    "geo": "Asia",
-    "ping_url": "http://s3.seo01.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "sng01",

@@ -5,7 +5,7 @@
     "country": "NL",
     "location": "Amsterdam",
     "geo": "Europe",
-    "ping_url": "http://speedtest-ams3.digitalocean.com/test_checksums.txt"
+    "ping_url": "https://ams3.digitaloceanspaces.com"
   },
   {
     "key": "blr1",
@@ -13,7 +13,7 @@
     "country": "IN",
     "location": "Bangalore",
     "geo": "Asia",
-    "ping_url": "http://speedtest-blr1.digitalocean.com/test_checksums.txt"
+    "ping_url": "https://blr1.digitaloceanspaces.com"
   },
   {
     "key": "fra1",
@@ -21,7 +21,7 @@
     "country": "DE",
     "location": "Frankfurt",
     "geo": "Europe",
-    "ping_url": "http://speedtest-fra1.digitalocean.com/test_checksums.txt"
+    "ping_url": "https://fra1.digitaloceanspaces.com"
   },
   {
     "key": "lon1",
@@ -29,15 +29,7 @@
     "country": "UK",
     "location": "London",
     "geo": "Europe",
-    "ping_url": "http://speedtest-lon1.digitalocean.com/test_checksums.txt"
-  },
-  {
-    "key": "nyc1",
-    "display_name": "NYC1",
-    "country": "US",
-    "location": "New York",
-    "geo": "North America",
-    "ping_url": "http://speedtest-nyc1.digitalocean.com/test_checksums.txt"
+    "ping_url": "https://lon1.digitaloceanspaces.com"
   },
   {
     "key": "nyc3",
@@ -45,7 +37,15 @@
     "country": "US",
     "location": "New York",
     "geo": "North America",
-    "ping_url": "http://speedtest-nyc3.digitalocean.com/test_checksums.txt"
+    "ping_url": "https://nyc3.digitaloceanspaces.com"
+  },
+  {
+    "key": "sfo2",
+    "display_name": "SFO2",
+    "country": "US",
+    "location": "San Francisco",
+    "geo": "North America",
+    "ping_url": "https://sfo2.digitaloceanspaces.com"
   },
   {
     "key": "sfo3",
@@ -53,7 +53,7 @@
     "country": "US",
     "location": "San Francisco",
     "geo": "North America",
-    "ping_url": "http://speedtest-sfo3.digitalocean.com/test_checksums.txt"
+    "ping_url": "https://sfo3.digitaloceanspaces.com"
   },
   {
     "key": "sgp1",
@@ -61,7 +61,7 @@
     "country": "SG",
     "location": "Singapore",
     "geo": "Asia",
-    "ping_url": "http://speedtest-sgp1.digitalocean.com/test_checksums.txt"
+    "ping_url": "https://sgp1.digitaloceanspaces.com"
   },
   {
     "key": "tor1",
@@ -69,6 +69,6 @@
     "country": "CA",
     "location": "Toronto",
     "geo": "North America",
-    "ping_url": "http://speedtest-tor1.digitalocean.com/test_checksums.txt"
+    "ping_url": "https://tor1.digitaloceanspaces.com"
   }
 ]
