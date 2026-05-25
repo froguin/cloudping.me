@@ -449,14 +449,6 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
       ? `${selectedGeos.slice(0, 2).join(', ')} +${selectedGeos.length - 2}`
       : selectedGeos.join(', ') || `${selectedCountries.length} countries`
 
-  // Share top result on X/Twitter
-  const shareResult = () => {
-    const top = sortedRegionsWithLatency[0]
-    if (!top) return
-    const text = `My nearest cloud region is ${top.provider.short_name ?? top.provider.display_name} ${top.region.key} at ${top.latency}ms 🚀`
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent('https://webping.cloud')}`
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }
 
   return (
     <>
@@ -603,14 +595,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
                       </span>
                     </div>
                   )}
-                  {sortedRegionsWithLatency.length > 0 && (
-                    <button onClick={shareResult} className="share-btn" title="Share top result on X">
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631Zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                      </svg>
-                      Share
-                    </button>
-                  )}
+
                 </div>
               </div>
               <div className="space-y-1.5">

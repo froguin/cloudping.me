@@ -21,7 +21,7 @@ type CloudRegion struct {
 }
 
 func getCloudProviders() ([]CloudProvider, error) {
-	res, err := http.Get("https://webping.cloud/api/regions")
+	res, err := http.Get("https://ping.cloudpick.kr/api/regions")
 	if err != nil {
 		return nil, err
 	}
