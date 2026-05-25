@@ -1,58 +1,72 @@
 [
     {
         "key": "aws",
-        "display_name": "Amazon Web Services"
+        "display_name": "Amazon Web Services",
+        "short_name": "AWS"
     },
     {
         "key": "azure",
-        "display_name": "Microsoft Azure"
+        "display_name": "Microsoft Azure",
+        "short_name": "Azure"
     },
     {
         "key": "gcp",
-        "display_name": "Google Cloud Platform"
+        "display_name": "Google Cloud Platform",
+        "short_name": "GCP"
     },
     {
         "key": "alibaba",
-        "display_name": "Alibaba Cloud"
+        "display_name": "Alibaba Cloud",
+        "short_name": "Alibaba"
     },
     {
         "key": "tencent",
-        "display_name": "Tencent Cloud"
+        "display_name": "Tencent Cloud",
+        "short_name": "Tencent"
     },
     {
         "key": "ibm",
-        "display_name": "IBM Cloud"
+        "display_name": "IBM Cloud",
+        "short_name": "IBM"
     },
     {
         "key": "oracle",
-        "display_name": "Oracle Cloud"
+        "display_name": "Oracle Cloud",
+        "short_name": "Oracle"
     },
     {
         "key": "digitalocean",
-        "display_name": "Digital Ocean"
+        "display_name": "DigitalOcean",
+        "short_name": "DigitalOcean"
     },
     {
         "key": "vultr",
-        "display_name": "Vultr"
+        "display_name": "Vultr",
+        "short_name": "Vultr"
     },
     {
         "key": "ncp",
-        "display_name": "NAVER Cloud"
+        "display_name": "NAVER Cloud",
+        "short_name": "NAVER"
     },
     {
         "key": "kakaocloud",
-        "display_name": "Kakao Cloud"
+        "display_name": "Kakao Cloud",
+        "short_name": "Kakao"
     },
     {
         "key": "ktcloud",
-        "display_name": "KT Cloud"
+        "display_name": "KT Cloud",
+        "short_name": "KT Cloud"
     },
     {
         "key": "nhncloud",
-        "display_name": "NHN Cloud"
+        "display_name": "NHN Cloud",
+        "short_name": "NHN"
     },
     {
         "key": "iwinv",
-        "display_name": "iwinv"
+        "display_name": "iwinv",
+        "short_name": "iwinv"
     }
 ]

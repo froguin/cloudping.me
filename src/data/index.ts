@@ -3,6 +3,7 @@ import providers from './datasource/providers.json'
 export interface CloudProvider {
   key: string
   display_name: string
+  short_name?: string
 }
 
 export interface CloudRegion {

@@ -36,8 +36,8 @@
   --border: #334155;
   --border-subtle: #1e293b;
   --text: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #94a3b8;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
   --pill-bg: transparent;
   --pill-border: #1e293b;
   --pill-active-bg: rgba(59, 130, 246, 0.15);
@@ -62,8 +62,8 @@
     --border: #334155;
     --border-subtle: #1e293b;
     --text: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-muted: #94a3b8;
+    --text-secondary: #cbd5e1;
+    --text-muted: #64748b;
     --pill-bg: transparent;
     --pill-border: #1e293b;
     --pill-active-bg: rgba(59, 130, 246, 0.15);
@@ -187,6 +187,38 @@ h6 { color: var(--text-muted); }
   color: var(--text-muted);
 }
 .theme-toggle:hover { color: var(--text); }
+
+/* Top 3 rank highlight */
+.latency-card.rank-1 { border-left: 2px solid rgba(251, 191, 36, 0.6); }
+.latency-card.rank-2 { border-left: 2px solid rgba(148, 163, 184, 0.5); }
+.latency-card.rank-3 { border-left: 2px solid rgba(180, 83, 9, 0.45); }
+.rank-badge-1 { color: #fbbf24; font-weight: 700; }
+.rank-badge-2 { color: #94a3b8; font-weight: 700; }
+.rank-badge-3 { color: #b45309; font-weight: 700; }
+[data-theme="dark"] .rank-badge-3 { color: #fb923c; }
+
+/* Measuring pulse dot */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.measuring-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: pulse-dot 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* Share button */
+.share-btn {
+  @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+}
+.share-btn:hover { color: var(--text); border-color: var(--text-muted); }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
