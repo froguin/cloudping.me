@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Head from 'next/head'
 import { GetStaticPropsResult } from 'next'
 import { CloudProvider, CloudRegion, getAllCloudRegions, getAllProviders } from '@app/data'
@@ -230,18 +230,11 @@ function GeoSection({
   onToggleCountry: (c: string) => void
   onToggleGeo: (g: string, checked: boolean) => void
 }) {
-  const [isOpen, setIsOpen] = useState(geo === 'Asia')
-  const hasAutoOpened = useRef(false)
+  const [manualOpen, setManualOpen] = useState<boolean | null>(null)
   const selectedCount = countries.filter((c) => selectedCountries.includes(c)).length
+  const isOpen = manualOpen ?? selectedCount > 0
   const allSelected = selectedCount === countries.length
   const someSelected = selectedCount > 0 && selectedCount < countries.length
-
-  useEffect(() => {
-    if (!hasAutoOpened.current && selectedCount > 0) {
-      setIsOpen(true)
-      hasAutoOpened.current = true
-    }
-  }, [selectedCount])
 
   return (
     <div className="sidebar-section">
@@ -260,7 +253,7 @@ function GeoSection({
             }}
             onClick={(e) => e.stopPropagation()}
           />
-          <button type="button" className="flex min-w-0 items-center gap-2 text-left" aria-expanded={isOpen} onClick={() => setIsOpen(!isOpen)}>
+          <button type="button" className="flex min-w-0 items-center gap-2 text-left" aria-expanded={isOpen} onClick={() => setManualOpen(!isOpen)}>
             <span className="truncate">{geo}</span>
             <svg
               className={`w-3 h-3 flex-shrink-0 text-[color:var(--text-muted)] transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
@@ -328,7 +321,11 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
       )}
       <div className="latency-card-inner">
         <div className="flex items-center gap-3 min-w-0">
-          <div className={`flex-shrink-0 w-8 text-center text-xs font-mono ${isTop3 ? RANK_CSS[rank! - 1] : 'text-[color:var(--text-muted)]'}`}>
+          <div
+            className={`flex-shrink-0 w-9 text-center font-mono ${
+              isTop3 ? `text-lg sm:text-xl leading-none ${RANK_CSS[rank! - 1]}` : 'text-xs text-[color:var(--text-muted)]'
+            }`}
+          >
             {isTop3 ? RANK_MEDALS[rank! - 1] : rank}
           </div>
           <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
@@ -415,7 +412,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
     document.documentElement.setAttribute('data-theme', next)
   }
 
-  async function pingAll(cancelToken: { cancel: boolean }, isFirstRound = true) {
+  async function pingAll(cancelToken: { cancel: boolean }) {
     await delay(1000)
     const shuffledItems = Object.values(latencyState)
       .filter((item) => item.region.ping_url && selectedCountries.includes(item.region.country) && selectedProviders.includes(item.provider.key))
@@ -471,9 +468,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
   }, [isLocationInitialized, selectedProviders, selectedCountries, pingVersion])
 
   const filteredRegions = Object.values(latencyState).filter((x) => selectedProviders.includes(x.provider.key) && selectedCountries.includes(x.region.country))
-  const sortedRegionsWithLatency = filteredRegions
-    .filter((x) => x.p50)
-    .sort((a, b) => (a.p50 && b.p50 ? a.p50 - b.p50 : 1))
+  const sortedRegionsWithLatency = filteredRegions.filter((x) => x.p50).sort((a, b) => (a.p50 && b.p50 ? a.p50 - b.p50 : 1))
   const sortedRegions = [...sortedRegionsWithLatency, ...filteredRegions.filter((x) => !x.p50)]
   const maxLatency = sortedRegionsWithLatency.length > 1 ? sortedRegionsWithLatency[sortedRegionsWithLatency.length - 1].p50 || 0 : 0
 
@@ -522,11 +517,21 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
               <button onClick={toggleTheme} className="theme-toggle" title="Toggle theme">
                 {theme === 'dark' ? (
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
                   </svg>
                 ) : (
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                    />
                   </svg>
                 )}
               </button>
@@ -535,7 +540,8 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
               Measure network latency to cloud data centers worldwide. Results update continuously.
             </p>
             <p className="text-xs text-[color:var(--text-muted)] max-w-xl mt-1">
-              Latency is measured as HTTP round-trip time from your browser. Results may vary by network conditions and do not reflect guaranteed service performance.
+              Latency is measured as HTTP round-trip time from your browser. Results may vary by network conditions and do not reflect guaranteed service
+              performance.
             </p>
           </header>
           <div className="mb-8">
@@ -569,7 +575,12 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
             <div className="lg:hidden">
               <button onClick={() => setIsFilterOpen(!isFilterOpen)} className="mobile-filter-btn">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                  />
                 </svg>
                 <span>Filter Locations</span>
                 <span className="ml-auto text-xs text-[color:var(--text-muted)] truncate max-w-[140px]">{selectedGeoLabel}</span>
@@ -636,22 +647,24 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
                       title="Clear and restart latency measurements"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                        />
                       </svg>
                       <span>Reset</span>
                     </button>
                   )}
                 </div>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-h-[60vh]">
                 {sortedRegions.length === 0 ? (
                   <div className="text-center py-12 text-[color:var(--text-muted)]">
                     <p>No regions selected. Choose providers and locations above.</p>
                   </div>
                 ) : (
-                  sortedRegions.map((x, index) => (
-                    <LatencyCard key={x.key} data={x} maxLatency={maxLatency} rank={x.p50 ? index + 1 : undefined} />
-                  ))
+                  sortedRegions.map((x, index) => <LatencyCard key={x.key} data={x} maxLatency={maxLatency} rank={x.p50 ? index + 1 : undefined} />)
                 )}
               </div>
             </main>
@@ -666,7 +679,11 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
                 className="flex items-center gap-1.5 hover:text-[color:var(--text-secondary)] transition-colors"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+                  <path
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                    d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"
+                  />
                 </svg>
                 <span>Open Source</span>
               </a>
