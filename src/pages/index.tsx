@@ -545,6 +545,9 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
             <p className="text-sm text-[color:var(--text-secondary)] max-w-xl">
               Measure network latency to cloud data centers worldwide. Results update continuously.
             </p>
+            <p className="text-xs text-[color:var(--text-muted)] max-w-xl mt-1">
+              Latency is measured as HTTP round-trip time from your browser. Results may vary by network conditions and do not reflect guaranteed service performance.
+            </p>
           </header>
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
