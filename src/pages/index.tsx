@@ -486,7 +486,6 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
   const description = 'Test your network latency to cloud data centers from AWS, Azure, GCP, and 11 more providers.'
   const geoOrder = ['North America', 'Europe', 'Asia', 'Middle East', 'South America', 'Oceania', 'Africa']
 
-  // Mobile filter button: show selected geo names (e.g. "Asia, Europe")
   const selectedGeos = Object.entries(props.geos)
     .filter(([, countries]) => countries.some((c) => selectedCountries.includes(c)))
     .map(([geo]) => geo)
@@ -523,21 +522,11 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
               <button onClick={toggleTheme} className="theme-toggle" title="Toggle theme">
                 {theme === 'dark' ? (
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                 ) : (
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                   </svg>
                 )}
               </button>
@@ -580,12 +569,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
             <div className="lg:hidden">
               <button onClick={() => setIsFilterOpen(!isFilterOpen)} className="mobile-filter-btn">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
                 <span>Filter Locations</span>
                 <span className="ml-auto text-xs text-[color:var(--text-muted)] truncate max-w-[140px]">{selectedGeoLabel}</span>
@@ -676,7 +660,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
             <p className="text-sm text-[color:var(--text-muted)]">&copy; {new Date().getFullYear()} Cloudping.me</p>
             <div className="flex items-center gap-4 text-sm text-[color:var(--text-muted)]">
               <a
-                href="https://github.com/froguin/cloudping"
+                href="https://github.com/froguin/cloudping.me"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 hover:text-[color:var(--text-secondary)] transition-colors"
