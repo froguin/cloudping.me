@@ -1,11 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="NHN Cloud">
-  <!-- Deep navy background matching official NHN Cloud favicon -->
-  <rect width="64" height="64" rx="12" fill="#002fa7"/>
-  <!-- Three overlapping circles forming the cloud mark -->
-  <!-- Teal/cyan circle — top left -->
-  <circle cx="24" cy="27" r="13" fill="#00d4d0"/>
-  <!-- Light silver circle — bottom center -->
-  <circle cx="34" cy="40" r="13" fill="#b8c4d8"/>
-  <!-- Bright blue circle — right -->
-  <circle cx="44" cy="30" r="13" fill="#1e6fff"/>
+  <rect width="64" height="64" rx="12" fill="#00398c"/>
+  <!-- gray: 가장 뒤, 약간 반투명 -->
+  <circle cx="22" cy="38" r="12" fill="#c1cfe3" opacity="0.9"/>
+  <!-- teal -->
+  <circle cx="28" cy="26" r="12" fill="#17cccf"/>
+  <!-- blue: 맨 앞 -->
+  <circle cx="42" cy="38" r="12" fill="#135de2"/>
 </svg>

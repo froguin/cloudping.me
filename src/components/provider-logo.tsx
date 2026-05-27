@@ -8,6 +8,8 @@ export interface CloudProviderLogoProps {
 }
 
 export function CloudProviderLogo(props: CloudProviderLogoProps): JSX.Element {
+  const extension = 'svg'
+
   return (
     <div
       style={{
@@ -27,7 +29,7 @@ export function CloudProviderLogo(props: CloudProviderLogoProps): JSX.Element {
           height: '100%',
         }}
         className={`inline ${props.className}`}
-        src={`/images/provider/${props.providerKey}.svg`}
+        src={`/images/provider/${props.providerKey}.${extension}`}
         title={props.providerName}
         alt={props.providerName}
       />
