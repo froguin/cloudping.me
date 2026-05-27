@@ -19,7 +19,7 @@ export async function getStaticProps(): Promise<GetStaticPropsResult<CloudPingPr
   for (const provider of providers) {
     for (const region of regions[provider.key]) {
       const key = `${provider.key}-${region.key}`
-      initialState[key] = { key, provider, region }
+      initialState[key] = { key, provider, region, samples: [] }
     }
   }
   return {
@@ -53,7 +53,26 @@ interface RegionLatency {
   key: string
   provider: CloudProvider
   region: CloudRegion
-  latency?: number
+  samples: number[]
+  p50?: number
+  p80?: number
+  p95?: number
+}
+
+type Percentile = 'p50' | 'p80' | 'p95'
+
+const MAX_SAMPLES = 120 // cap per region (~40 rounds × 3 samples)
+
+function calcPercentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0
+  const idx = Math.ceil((p / 100) * sorted.length) - 1
+  return sorted[Math.max(0, idx)]
+}
+
+function getDisplayLatency(data: RegionLatency, p: Percentile): number | undefined {
+  if (p === 'p95') return data.p95
+  if (p === 'p80') return data.p80
+  return data.p50
 }
 
 const FALLBACK_GEO = 'Asia'
@@ -291,24 +310,35 @@ function GeoSection({
 const RANK_MEDALS = ['🥇', '🥈', '🥉']
 const RANK_CSS = ['rank-badge-1', 'rank-badge-2', 'rank-badge-3']
 
-function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLatency: number; rank?: number }) {
-  const relative = maxLatency > 0 ? ((data.latency || 0) / maxLatency) * 100 : 0
+function LatencyCard({
+  data,
+  maxLatency,
+  rank,
+  selectedPercentile,
+}: {
+  data: RegionLatency
+  maxLatency: number
+  rank?: number
+  selectedPercentile: Percentile
+}) {
+  const latency = getDisplayLatency(data, selectedPercentile)
+  const relative = maxLatency > 0 ? ((latency || 0) / maxLatency) * 100 : 0
   const getBadgeClass = () => {
-    if (!data.latency) return ''
-    if (data.latency < 80) return 'success'
-    if (data.latency < 200) return 'warning'
+    if (!latency) return ''
+    if (latency < 80) return 'success'
+    if (latency < 200) return 'warning'
     return 'danger'
   }
   const getBarColor = () => {
-    if (!data.latency) return 'transparent'
-    if (data.latency < 80) return 'rgba(34, 197, 94, 0.18)'
-    if (data.latency < 200) return 'rgba(234, 179, 8, 0.18)'
+    if (!latency) return 'transparent'
+    if (latency < 80) return 'rgba(34, 197, 94, 0.18)'
+    if (latency < 200) return 'rgba(234, 179, 8, 0.18)'
     return 'rgba(239, 68, 68, 0.18)'
   }
   const isTop3 = rank !== undefined && rank <= 3
   return (
     <div className={`latency-card border-b border-[color:var(--border)] last:border-b-0${isTop3 ? ` rank-${rank}` : ''}`}>
-      {data.latency && (
+      {latency && (
         <div className="latency-bar" style={{ width: `${Math.min(relative, 100)}%`, background: `linear-gradient(90deg, ${getBarColor()}, transparent)` }} />
       )}
       <div className="latency-card-inner">
@@ -327,14 +357,25 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
             <div className="flex items-center gap-1.5 text-xs">
               <CountryFlag width={12} countryCode={data.region.country} />
               <span className="truncate">{data.region.location}</span>
+              {data.samples.length > 0 && (
+                <span className="text-[color:var(--text-muted)] tabular-nums">· {data.samples.length}샘플</span>
+              )}
             </div>
           </div>
         </div>
-        {data.latency ? <span className={`latency-badge ${getBadgeClass()}`}>{data.latency}ms</span> : <div className="skeleton w-14 h-6" />}
+        {latency ? <span className={`latency-badge ${getBadgeClass()}`}>{latency}ms</span> : <div className="skeleton w-14 h-6" />}
       </div>
     </div>
   )
 }
+
+const PERCENTILE_LABELS: Record<Percentile, string> = {
+  p50: 'P50',
+  p80: 'P80',
+  p95: 'P95',
+}
+
+const MIN_SAMPLES_FOR_P95 = 10
 
 export default function CloudPing(props: CloudPingProps): JSX.Element {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -346,12 +387,13 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
   const [isLocationInitialized, setIsLocationInitialized] = useState(false)
   const [latencyState, setLatencyState] = useState<LatencyState>(props.initialState)
   const [pingVersion, setPingVersion] = useState(0)
+  const [selectedPercentile, setSelectedPercentile] = useState<Percentile>('p50')
 
   const handleReset = () => {
     setLatencyState((current) => {
       const next = { ...current }
       for (const key of Object.keys(next)) {
-        next[key] = { ...next[key], latency: undefined }
+        next[key] = { ...next[key], samples: [], p50: undefined, p80: undefined, p95: undefined }
       }
       return next
     })
@@ -398,15 +440,15 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
         if (!item) break
 
         try {
-          const latency = await ping(`${item.region.ping_url}`)
+          const newSamples = await ping(`${item.region.ping_url}`)
           setLatencyState((x) => {
             const n = { ...x[item.key] }
-            if (isFirstRound || !n.latency) {
-              n.latency = latency
-            } else {
-              // Smooth the latency update
-              n.latency = Math.round(n.latency * 0.6 + latency * 0.4)
-            }
+            const accumulated = [...(n.samples || []), ...newSamples].slice(-MAX_SAMPLES)
+            const sorted = [...accumulated].sort((a, b) => a - b)
+            n.samples = accumulated
+            n.p50 = calcPercentile(sorted, 50)
+            n.p80 = calcPercentile(sorted, 80)
+            n.p95 = calcPercentile(sorted, 95)
             return { ...x, [item.key]: n }
           })
         } catch {
@@ -439,9 +481,21 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
   }, [isLocationInitialized, selectedProviders, selectedCountries, pingVersion])
 
   const filteredRegions = Object.values(latencyState).filter((x) => selectedProviders.includes(x.provider.key) && selectedCountries.includes(x.region.country))
-  const sortedRegionsWithLatency = filteredRegions.filter((x) => x.latency).sort((a, b) => (a.latency && b.latency ? a.latency - b.latency : 1))
-  const sortedRegions = [...sortedRegionsWithLatency, ...filteredRegions.filter((x) => !x.latency)]
-  const maxLatency = sortedRegionsWithLatency.length > 1 ? sortedRegionsWithLatency[sortedRegionsWithLatency.length - 1].latency || 0 : 0
+  const sortedRegionsWithLatency = filteredRegions
+    .filter((x) => getDisplayLatency(x, selectedPercentile))
+    .sort((a, b) => {
+      const la = getDisplayLatency(a, selectedPercentile) || 0
+      const lb = getDisplayLatency(b, selectedPercentile) || 0
+      return la - lb
+    })
+  const sortedRegions = [...sortedRegionsWithLatency, ...filteredRegions.filter((x) => !getDisplayLatency(x, selectedPercentile))]
+  const maxLatency = sortedRegionsWithLatency.length > 1 ? getDisplayLatency(sortedRegionsWithLatency[sortedRegionsWithLatency.length - 1], selectedPercentile) || 0 : 0
+
+  // P95 신뢰도: 선택된 리전들의 평균 샘플 수
+  const avgSamples = filteredRegions.length > 0
+    ? Math.round(filteredRegions.reduce((sum, x) => sum + x.samples.length, 0) / filteredRegions.length)
+    : 0
+  const p95Ready = avgSamples >= MIN_SAMPLES_FOR_P95
 
   const toggleProvider = (k: string) => setSelectedProviders((v) => (v.includes(k) ? v.filter((x) => x !== k) : [...v, k]))
   const toggleCountry = (c: string) => setSelectedCountries((v) => (v.includes(c) ? v.filter((x) => x !== c) : [...v, c]))
@@ -590,6 +644,38 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
+                  {/* Percentile selector */}
+                  <div className="flex items-center rounded-lg border border-[color:var(--border)] overflow-hidden text-xs font-medium">
+                    {(['p50', 'p80', 'p95'] as Percentile[]).map((p) => {
+                      const isActive = selectedPercentile === p
+                      const isDisabled = p === 'p95' && !p95Ready && avgSamples > 0
+                      return (
+                        <button
+                          key={p}
+                          onClick={() => setSelectedPercentile(p)}
+                          title={
+                            p === 'p95' && !p95Ready
+                              ? `P95는 신뢰도를 위해 샘플 ${MIN_SAMPLES_FOR_P95}개 이상 필요 (현재 평균 ${avgSamples}개)`
+                              : PERCENTILE_LABELS[p]
+                          }
+                          className={[
+                            'px-2.5 py-1.5 transition-colors tabular-nums',
+                            isActive
+                              ? 'bg-[color:var(--text)] text-[color:var(--bg)] font-semibold'
+                              : isDisabled
+                              ? 'text-[color:var(--text-muted)] opacity-50 cursor-default'
+                              : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text)] hover:bg-[color:var(--border-subtle)] cursor-pointer',
+                          ].join(' ')}
+                        >
+                          {PERCENTILE_LABELS[p]}
+                          {p === 'p95' && !p95Ready && avgSamples > 0 && (
+                            <span className="ml-0.5 opacity-60">·</span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+
                   {sortedRegionsWithLatency.length > 0 && (
                     <div className="hidden sm:flex items-center gap-4 text-xs text-[color:var(--text-muted)]">
                       <span className="flex items-center gap-1.5" title="Excellent — suitable for real-time apps">
@@ -626,7 +712,15 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
                     <p>No regions selected. Choose providers and locations above.</p>
                   </div>
                 ) : (
-                  sortedRegions.map((x, index) => <LatencyCard key={x.key} data={x} maxLatency={maxLatency} rank={x.latency ? index + 1 : undefined} />)
+                  sortedRegions.map((x, index) => (
+                    <LatencyCard
+                      key={x.key}
+                      data={x}
+                      maxLatency={maxLatency}
+                      rank={getDisplayLatency(x, selectedPercentile) ? index + 1 : undefined}
+                      selectedPercentile={selectedPercentile}
+                    />
+                  ))
                 )}
               </div>
             </main>

@@ -36,7 +36,7 @@ async function singlePing(url: string, controller: AbortController): Promise<num
   return elapsed
 }
 
-export async function ping(url: string): Promise<number> {
+export async function ping(url: string): Promise<number[]> {
   const MAX_RETRIES = 2
   let lastError: Error | null = null
 
@@ -52,7 +52,7 @@ export async function ping(url: string): Promise<number> {
         // ignore warm-up errors
       }
 
-      // Take samples and return the minimum
+      // Take samples and return all of them
       const samples: number[] = []
       for (let i = 0; i < 3; i++) {
         try {
@@ -65,7 +65,7 @@ export async function ping(url: string): Promise<number> {
 
       if (samples.length > 0) {
         clearTimeout(timer)
-        return Math.min(...samples)
+        return samples
       }
     } catch (e) {
       lastError = e as Error
