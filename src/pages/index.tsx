@@ -472,7 +472,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
             if (fc >= 3) {
               const backoff = Math.min(300_000, 10_000 * Math.pow(2, fc - 3))
               const jitter = backoff * (0.8 + Math.random() * 0.4)
-              n.nextAttemptAt = Date.now() + jitter
+              n.nextAttemptAt = now + jitter
             }
             return { ...x, [item.key]: n }
           })
