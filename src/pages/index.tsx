@@ -351,7 +351,7 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
                   <span className={`latency-badge ${getBadgeClass(p95)}`}>{p95}ms</span>
                 </div>
               ) : (
-                <div className="flex sm:hidden skeleton w-20 h-5 flex-shrink-0" />
+                <div className="flex sm:hidden skeleton w-[104px] h-[22px] flex-shrink-0" />
               )}
             </div>
             {/* Bottom line: flag + location */}
@@ -380,7 +380,7 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
             </div>
           </div>
         ) : (
-          <div className="hidden sm:block skeleton w-14 h-6" />
+          <div className="hidden sm:block skeleton w-[106px] h-[34px]" />
         )}
       </div>
     </div>
@@ -393,7 +393,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
   const [selectedProviders, setSelectedProviders] = useState(
     props.providers.map((x) => x.key).filter((key) => !['ncp', 'kakaocloud', 'ktcloud', 'nhncloud', 'iwinv'].includes(key))
   )
-  const [selectedCountries, setSelectedCountries] = useState<string[]>([])
+  const [selectedCountries, setSelectedCountries] = useState<string[]>(props.geos[FALLBACK_GEO] || [])
   const [isLocationInitialized, setIsLocationInitialized] = useState(false)
   const [latencyState, setLatencyState] = useState<LatencyState>(props.initialState)
   const [pingVersion, setPingVersion] = useState(0)
