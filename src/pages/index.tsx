@@ -69,7 +69,7 @@ function calcPercentile(sorted: number[], p: number): number {
   return sorted[Math.max(0, idx)]
 }
 
-const FALLBACK_GEO = 'Asia'
+const FALLBACK_GEO = 'North America'
 
 const TIMEZONE_REGION_TO_GEO: Record<string, string> = {
   Africa: 'Africa',
