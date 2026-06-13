@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
 import { GetStaticPropsResult } from 'next'
 import { CloudProvider, CloudRegion, getAllCloudRegions, getAllProviders } from '@app/data'
@@ -57,6 +57,8 @@ interface RegionLatency {
   p50?: number
   p80?: number
   p95?: number
+  failureCount?: number
+  nextAttemptAt?: number
 }
 
 const MAX_SAMPLES = 120 // cap per region (~40 rounds × 3 samples)
@@ -306,6 +308,7 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
   const p50 = data.p50
   const p80 = data.p80
   const p95 = data.p95
+  const isUnreachable = (data.failureCount || 0) >= 3
   const relative = maxLatency > 0 ? ((p50 || 0) / maxLatency) * 100 : 0
   const getBarColor = () => {
     if (!p50) return 'transparent'
@@ -315,8 +318,8 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
   }
   const isTop3 = rank !== undefined && rank <= 3
   return (
-    <div className={`latency-card border-b border-[color:var(--border)] last:border-b-0${isTop3 ? ` rank-${rank}` : ''}`}>
-      {p50 && (
+    <div className={`latency-card border-b border-[color:var(--border)] last:border-b-0${isTop3 ? ` rank-${rank}` : ''}${isUnreachable ? ' opacity-50' : ''}`}>
+      {p50 && !isUnreachable && (
         <div className="latency-bar" style={{ width: `${Math.min(relative, 100)}%`, background: `linear-gradient(90deg, ${getBarColor()}, transparent)` }} />
       )}
       <div className="latency-card-inner">
@@ -338,15 +341,17 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
                 <code className="text-sm font-mono font-medium truncate">{data.region.key}</code>
                 <span className="hidden sm:inline text-xs flex-shrink-0">{data.provider.display_name}</span>
               </div>
-              {/* Mobile badges — no P50/P80/P95 labels to save space */}
-              {p50 ? (
+              {/* Mobile badges */}
+              {isUnreachable ? (
+                <span className="flex sm:hidden text-xs text-red-400 flex-shrink-0" title={`Failed ${data.failureCount} times`}>⊘ Unreachable</span>
+              ) : p50 ? (
                 <div className="flex sm:hidden items-center gap-1 flex-shrink-0">
                   <span className={`latency-badge ${getBadgeClass(p50)}`}>{p50}ms</span>
                   <span className={`latency-badge ${getBadgeClass(p80)}`}>{p80}ms</span>
                   <span className={`latency-badge ${getBadgeClass(p95)}`}>{p95}ms</span>
                 </div>
               ) : (
-                <div className="flex sm:hidden skeleton w-20 h-5 flex-shrink-0" />
+                <div className="flex sm:hidden skeleton w-[104px] h-[22px] flex-shrink-0" />
               )}
             </div>
             {/* Bottom line: flag + location */}
@@ -357,7 +362,9 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
           </div>
         </div>
         {/* Desktop badges with P50/P80/P95 labels */}
-        {p50 ? (
+        {isUnreachable ? (
+          <span className="hidden sm:flex text-xs text-red-400 flex-shrink-0 items-center gap-1" title={`Failed ${data.failureCount} times`}>⊘ Unreachable</span>
+        ) : p50 ? (
           <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
             <div className="flex flex-col items-center gap-0.5">
               <span className={`latency-badge ${getBadgeClass(p50)}`}>{p50}ms</span>
@@ -373,7 +380,7 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
             </div>
           </div>
         ) : (
-          <div className="hidden sm:block skeleton w-14 h-6" />
+          <div className="hidden sm:block skeleton w-[106px] h-[34px]" />
         )}
       </div>
     </div>
@@ -386,16 +393,18 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
   const [selectedProviders, setSelectedProviders] = useState(
     props.providers.map((x) => x.key).filter((key) => !['ncp', 'kakaocloud', 'ktcloud', 'nhncloud', 'iwinv'].includes(key))
   )
-  const [selectedCountries, setSelectedCountries] = useState<string[]>([])
+  const [selectedCountries, setSelectedCountries] = useState<string[]>(props.geos[FALLBACK_GEO] || [])
   const [isLocationInitialized, setIsLocationInitialized] = useState(false)
   const [latencyState, setLatencyState] = useState<LatencyState>(props.initialState)
+  const latencyStateRef = useRef(latencyState)
+  latencyStateRef.current = latencyState
   const [pingVersion, setPingVersion] = useState(0)
 
   const handleReset = () => {
     setLatencyState((current) => {
       const next = { ...current }
       for (const key of Object.keys(next)) {
-        next[key] = { ...next[key], samples: [], p50: undefined, p80: undefined, p95: undefined }
+        next[key] = { ...next[key], samples: [], p50: undefined, p80: undefined, p95: undefined, failureCount: 0, nextAttemptAt: undefined }
       }
       return next
     })
@@ -429,8 +438,11 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
 
   async function pingAll(cancelToken: { cancel: boolean }) {
     await delay(1000)
-    const shuffledItems = Object.values(latencyState)
+    const now = Date.now()
+    const currentState = latencyStateRef.current
+    const shuffledItems = Object.values(currentState)
       .filter((item) => item.region.ping_url && selectedCountries.includes(item.region.country) && selectedProviders.includes(item.provider.key))
+      .filter((item) => !item.nextAttemptAt || now >= item.nextAttemptAt)
       .sort(() => 0.5 - Math.random())
 
     const CONCURRENCY = 10
@@ -451,10 +463,22 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
             n.p50 = calcPercentile(sorted, 50)
             n.p80 = calcPercentile(sorted, 80)
             n.p95 = calcPercentile(sorted, 95)
+            n.failureCount = 0
+            n.nextAttemptAt = undefined
             return { ...x, [item.key]: n }
           })
         } catch {
-          // Individual endpoints can fail because of CORS, browser policy, or network timeout.
+          setLatencyState((x) => {
+            const n = { ...x[item.key] }
+            const fc = (n.failureCount || 0) + 1
+            n.failureCount = fc
+            if (fc >= 3) {
+              const backoff = Math.min(300_000, 10_000 * Math.pow(2, fc - 3))
+              const jitter = backoff * (0.8 + Math.random() * 0.4)
+              n.nextAttemptAt = now + jitter
+            }
+            return { ...x, [item.key]: n }
+          })
         }
       }
     }
@@ -464,7 +488,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
 
     if (!cancelToken.cancel) {
       await delay(1000)
-      await pingAll(cancelToken, false)
+      await pingAll(cancelToken)
     }
   }
 
@@ -483,8 +507,10 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
   }, [isLocationInitialized, selectedProviders, selectedCountries, pingVersion])
 
   const filteredRegions = Object.values(latencyState).filter((x) => selectedProviders.includes(x.provider.key) && selectedCountries.includes(x.region.country))
-  const sortedRegionsWithLatency = filteredRegions.filter((x) => x.p50).sort((a, b) => (a.p50 && b.p50 ? a.p50 - b.p50 : 1))
-  const sortedRegions = [...sortedRegionsWithLatency, ...filteredRegions.filter((x) => !x.p50)]
+  const reachable = filteredRegions.filter((x) => (x.failureCount || 0) < 3)
+  const unreachable = filteredRegions.filter((x) => (x.failureCount || 0) >= 3)
+  const sortedRegionsWithLatency = reachable.filter((x) => x.p50).sort((a, b) => (a.p50 && b.p50 ? a.p50 - b.p50 : 1))
+  const sortedRegions = [...sortedRegionsWithLatency, ...reachable.filter((x) => !x.p50), ...unreachable]
   const maxLatency = sortedRegionsWithLatency.length > 1 ? sortedRegionsWithLatency[sortedRegionsWithLatency.length - 1].p50 || 0 : 0
 
   const toggleProvider = (k: string) => setSelectedProviders((v) => (v.includes(k) ? v.filter((x) => x !== k) : [...v, k]))

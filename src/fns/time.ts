@@ -37,7 +37,7 @@ async function singlePing(url: string, controller: AbortController): Promise<num
 }
 
 export async function ping(url: string): Promise<number[]> {
-  const MAX_RETRIES = 2
+  const MAX_RETRIES = 1
   let lastError: Error | null = null
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
