@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
 import { GetStaticPropsResult } from 'next'
 import { CloudProvider, CloudRegion, getAllCloudRegions, getAllProviders } from '@app/data'
@@ -396,6 +396,8 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
   const [selectedCountries, setSelectedCountries] = useState<string[]>(props.geos[FALLBACK_GEO] || [])
   const [isLocationInitialized, setIsLocationInitialized] = useState(false)
   const [latencyState, setLatencyState] = useState<LatencyState>(props.initialState)
+  const latencyStateRef = useRef(latencyState)
+  latencyStateRef.current = latencyState
   const [pingVersion, setPingVersion] = useState(0)
 
   const handleReset = () => {
@@ -437,7 +439,8 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
   async function pingAll(cancelToken: { cancel: boolean }) {
     await delay(1000)
     const now = Date.now()
-    const shuffledItems = Object.values(latencyState)
+    const currentState = latencyStateRef.current
+    const shuffledItems = Object.values(currentState)
       .filter((item) => item.region.ping_url && selectedCountries.includes(item.region.country) && selectedProviders.includes(item.provider.key))
       .filter((item) => !item.nextAttemptAt || now >= item.nextAttemptAt)
       .sort(() => 0.5 - Math.random())
