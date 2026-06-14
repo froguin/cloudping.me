@@ -396,11 +396,16 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
   const [isLocationInitialized, setIsLocationInitialized] = useState(false)
   const [latencyState, setLatencyState] = useState<LatencyState>(props.initialState)
   const latencyStateRef = useRef(latencyState)
-  latencyStateRef.current = latencyState
   const [pingVersion, setPingVersion] = useState(0)
 
+  const updateLatencyState = (updater: (current: LatencyState) => LatencyState) => {
+    const next = updater(latencyStateRef.current)
+    latencyStateRef.current = next
+    setLatencyState(next)
+  }
+
   const handleReset = () => {
-    setLatencyState((current) => {
+    updateLatencyState((current) => {
       const next = { ...current }
       for (const key of Object.keys(next)) {
         next[key] = { ...next[key], samples: [], p50: undefined, p80: undefined, p95: undefined, failureCount: 0, nextAttemptAt: undefined }
@@ -438,8 +443,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
   async function pingAll(cancelToken: { cancel: boolean }) {
     await delay(1000)
     const now = Date.now()
-    const currentState = latencyStateRef.current
-    const shuffledItems = Object.values(currentState)
+    const shuffledItems = Object.values(latencyStateRef.current)
       .filter((item) => item.region.ping_url && selectedCountries.includes(item.region.country) && selectedProviders.includes(item.provider.key))
       .filter((item) => !item.nextAttemptAt || now >= item.nextAttemptAt)
       .sort(() => 0.5 - Math.random())
@@ -454,7 +458,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
 
         try {
           const newSamples = await ping(`${item.region.ping_url}`)
-          setLatencyState((x) => {
+          updateLatencyState((x) => {
             const n = { ...x[item.key] }
             const accumulated = [...(n.samples || []), ...newSamples].slice(-MAX_SAMPLES)
             const sorted = [...accumulated].sort((a, b) => a - b)
@@ -467,14 +471,14 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
             return { ...x, [item.key]: n }
           })
         } catch {
-          setLatencyState((x) => {
+          updateLatencyState((x) => {
             const n = { ...x[item.key] }
             const fc = (n.failureCount || 0) + 1
             n.failureCount = fc
             if (fc >= 3) {
               const backoff = Math.min(300_000, 10_000 * Math.pow(2, fc - 3))
               const jitter = backoff * (0.8 + Math.random() * 0.4)
-              n.nextAttemptAt = now + jitter
+              n.nextAttemptAt = Date.now() + jitter
             }
             return { ...x, [item.key]: n }
           })
