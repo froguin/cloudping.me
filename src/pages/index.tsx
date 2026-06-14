@@ -345,10 +345,9 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
               {isUnreachable ? (
                 <span className="flex sm:hidden text-xs text-red-400 flex-shrink-0" title={`Failed ${data.failureCount} times`}>⊘ Unreachable</span>
               ) : p50 ? (
-                <div className="flex sm:hidden items-center gap-1 flex-shrink-0">
-                  <span className={`latency-badge ${getBadgeClass(p50)}`}>{p50}ms</span>
-                  <span className={`latency-badge ${getBadgeClass(p80)}`}>{p80}ms</span>
-                  <span className={`latency-badge ${getBadgeClass(p95)}`}>{p95}ms</span>
+                <div className="flex sm:hidden items-center gap-1.5 flex-shrink-0">
+                  <span className={`latency-badge ${getBadgeClass(p50)}`}><span className="opacity-60 mr-0.5">P50</span>{p50}ms</span>
+                  <span className={`latency-badge ${getBadgeClass(p95)}`}><span className="opacity-60 mr-0.5">P95</span>{p95}ms</span>
                 </div>
               ) : (
                 <div className="flex sm:hidden skeleton w-[104px] h-[22px] flex-shrink-0" />
