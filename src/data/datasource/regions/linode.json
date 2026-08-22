@@ -1,0 +1,202 @@
+[
+  {
+    "key": "us-east",
+    "display_name": "Newark, NJ",
+    "country": "US",
+    "location": "Newark",
+    "geo": "North America",
+    "ping_url": "https://speedtest.newark.linode.com"
+  },
+  {
+    "key": "us-southeast",
+    "display_name": "Atlanta, GA",
+    "country": "US",
+    "location": "Atlanta",
+    "geo": "North America",
+    "ping_url": "https://speedtest.atlanta.linode.com"
+  },
+  {
+    "key": "us-central",
+    "display_name": "Dallas, TX",
+    "country": "US",
+    "location": "Dallas",
+    "geo": "North America",
+    "ping_url": "https://speedtest.dallas.linode.com"
+  },
+  {
+    "key": "us-west",
+    "display_name": "Fremont, CA",
+    "country": "US",
+    "location": "Fremont",
+    "geo": "North America",
+    "ping_url": "https://speedtest.fremont.linode.com"
+  },
+  {
+    "key": "us-ord",
+    "display_name": "Chicago, IL",
+    "country": "US",
+    "location": "Chicago",
+    "geo": "North America",
+    "ping_url": "https://speedtest.chicago.linode.com"
+  },
+  {
+    "key": "us-iad",
+    "display_name": "Washington, DC",
+    "country": "US",
+    "location": "Washington",
+    "geo": "North America",
+    "ping_url": "https://speedtest.washington.linode.com"
+  },
+  {
+    "key": "us-lax",
+    "display_name": "Los Angeles, CA",
+    "country": "US",
+    "location": "Los Angeles",
+    "geo": "North America",
+    "ping_url": "https://speedtest.los-angeles.linode.com"
+  },
+  {
+    "key": "us-mia",
+    "display_name": "Miami, FL",
+    "country": "US",
+    "location": "Miami",
+    "geo": "North America",
+    "ping_url": "https://speedtest.miami.linode.com"
+  },
+  {
+    "key": "us-sea",
+    "display_name": "Seattle, WA",
+    "country": "US",
+    "location": "Seattle",
+    "geo": "North America",
+    "ping_url": "https://speedtest.seattle.linode.com"
+  },
+  {
+    "key": "ca-central",
+    "display_name": "Toronto, CA",
+    "country": "CA",
+    "location": "Toronto",
+    "geo": "North America",
+    "ping_url": "https://speedtest.toronto1.linode.com"
+  },
+  {
+    "key": "br-gru",
+    "display_name": "São Paulo, BR",
+    "country": "BR",
+    "location": "São Paulo",
+    "geo": "South America",
+    "ping_url": "https://speedtest.sao-paulo.linode.com"
+  },
+  {
+    "key": "eu-west",
+    "display_name": "London, UK",
+    "country": "UK",
+    "location": "London",
+    "geo": "Europe",
+    "ping_url": "https://speedtest.london.linode.com"
+  },
+  {
+    "key": "eu-central",
+    "display_name": "Frankfurt, DE",
+    "country": "DE",
+    "location": "Frankfurt",
+    "geo": "Europe",
+    "ping_url": "https://speedtest.frankfurt.linode.com"
+  },
+  {
+    "key": "fr-par",
+    "display_name": "Paris, FR",
+    "country": "FR",
+    "location": "Paris",
+    "geo": "Europe",
+    "ping_url": "https://speedtest.paris.linode.com"
+  },
+  {
+    "key": "nl-ams",
+    "display_name": "Amsterdam, NL",
+    "country": "NL",
+    "location": "Amsterdam",
+    "geo": "Europe",
+    "ping_url": "https://speedtest.amsterdam.linode.com"
+  },
+  {
+    "key": "se-sto",
+    "display_name": "Stockholm, SE",
+    "country": "SE",
+    "location": "Stockholm",
+    "geo": "Europe",
+    "ping_url": "https://speedtest.stockholm.linode.com"
+  },
+  {
+    "key": "es-mad",
+    "display_name": "Madrid, ES",
+    "country": "ES",
+    "location": "Madrid",
+    "geo": "Europe",
+    "ping_url": "https://speedtest.madrid.linode.com"
+  },
+  {
+    "key": "it-mil",
+    "display_name": "Milan, IT",
+    "country": "IT",
+    "location": "Milan",
+    "geo": "Europe",
+    "ping_url": "https://speedtest.milan.linode.com"
+  },
+  {
+    "key": "ap-south",
+    "display_name": "Singapore, SG",
+    "country": "SG",
+    "location": "Singapore",
+    "geo": "Asia",
+    "ping_url": "https://speedtest.singapore.linode.com"
+  },
+  {
+    "key": "ap-northeast",
+    "display_name": "Tokyo, JP",
+    "country": "JP",
+    "location": "Tokyo",
+    "geo": "Asia",
+    "ping_url": "https://speedtest.tokyo2.linode.com"
+  },
+  {
+    "key": "jp-osa",
+    "display_name": "Osaka, JP",
+    "country": "JP",
+    "location": "Osaka",
+    "geo": "Asia",
+    "ping_url": "https://speedtest.osaka.linode.com"
+  },
+  {
+    "key": "ap-west",
+    "display_name": "Mumbai, IN",
+    "country": "IN",
+    "location": "Mumbai",
+    "geo": "Asia",
+    "ping_url": "https://speedtest.mumbai1.linode.com"
+  },
+  {
+    "key": "in-maa",
+    "display_name": "Chennai, IN",
+    "country": "IN",
+    "location": "Chennai",
+    "geo": "Asia",
+    "ping_url": "https://speedtest.chennai.linode.com"
+  },
+  {
+    "key": "id-cgk",
+    "display_name": "Jakarta, ID",
+    "country": "ID",
+    "location": "Jakarta",
+    "geo": "Asia",
+    "ping_url": "https://speedtest.jakarta.linode.com"
+  },
+  {
+    "key": "ap-southeast",
+    "display_name": "Sydney, AU",
+    "country": "AU",
+    "location": "Sydney",
+    "geo": "Oceania",
+    "ping_url": "https://speedtest.sydney.linode.com"
+  }
+]

@@ -13,6 +13,7 @@ import kakaocloud from './datasource/regions/kakaocloud.json'
 import ktcloud from './datasource/regions/ktcloud.json'
 import nhncloud from './datasource/regions/nhncloud.json'
 import iwinv from './datasource/regions/iwinv.json'
+import linode from './datasource/regions/linode.json'
 
 export interface CloudProvider {
   key: string
@@ -44,6 +45,7 @@ const regionsMap: Record<string, CloudRegion[]> = {
   ktcloud,
   nhncloud,
   iwinv,
+  linode,
 }
 
 export function getAllProviders(): CloudProvider[] {

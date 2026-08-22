@@ -68,5 +68,10 @@
         "key": "iwinv",
         "display_name": "iwinv",
         "short_name": "iwinv"
+    },
+    {
+        "key": "linode",
+        "display_name": "Linode (Akamai)",
+        "short_name": "Linode"
     }
 ]
