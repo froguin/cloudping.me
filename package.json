@@ -16,8 +16,7 @@
     "@vercel/speed-insights": "^1.0.12",
     "next": "14.2.29",
     "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "v0-sdk": "^0.16.4"
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@tailwindcss/forms": "0.5.9",

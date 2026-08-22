@@ -2,14 +2,6 @@ export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-export function timeout(ms: number): Promise<void> {
-  return new Promise(function (_, reject) {
-    setTimeout(function () {
-      reject(new Error('timeout'))
-    }, ms)
-  })
-}
-
 function withCacheBuster(url: string): string {
   const parsedUrl = new URL(url)
   if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
@@ -37,46 +29,35 @@ async function singlePing(url: string, controller: AbortController): Promise<num
 }
 
 export async function ping(url: string): Promise<number[]> {
-  const MAX_RETRIES = 1
-  let lastError: Error | null = null
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 8000)
 
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 10000)
-
+  try {
+    // Single warm-up to establish connection
     try {
-      // Warm up the connection (DNS, TCP, TLS)
+      await singlePing(url, controller)
+    } catch {
+      // ignore warm-up errors
+    }
+
+    // Take 2 measurement samples
+    const samples: number[] = []
+    for (let i = 0; i < 2; i++) {
+      if (controller.signal.aborted) break
       try {
-        await singlePing(url, controller)
+        const latency = await singlePing(url, controller)
+        samples.push(latency)
       } catch {
-        // ignore warm-up errors
+        // skip failed sample
       }
-
-      // Take samples and return all of them
-      const samples: number[] = []
-      for (let i = 0; i < 3; i++) {
-        try {
-          const latency = await singlePing(url, controller)
-          samples.push(latency)
-        } catch (e) {
-          if (controller.signal.aborted) throw e
-        }
-      }
-
-      if (samples.length > 0) {
-        clearTimeout(timer)
-        return samples
-      }
-    } catch (e) {
-      lastError = e as Error
-    } finally {
-      clearTimeout(timer)
     }
 
-    if (attempt < MAX_RETRIES) {
-      await delay(500) // wait a bit before retry
+    if (samples.length > 0) {
+      return samples
     }
+  } finally {
+    clearTimeout(timer)
   }
 
-  throw lastError || new Error('failed to ping')
+  throw new Error('failed to ping')
 }

@@ -318,5 +318,13 @@
     "location": "Auckland",
     "geo": "Oceania",
     "ping_url": "https://s8newzealandnorth.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "belgiumcentral",
+    "display_name": "Belgium Central",
+    "country": "BE",
+    "location": "Brussels",
+    "geo": "Europe",
+    "ping_url": "https://s8belgiumcentral.blob.core.windows.net/public/latency-test.json"
   }
 ]

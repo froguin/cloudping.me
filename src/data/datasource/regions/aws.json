@@ -161,7 +161,7 @@
   },
   {
     "key": "ca-west-1",
-    "display_name": "Canada (Calgary)",
+    "display_name": "Canada West (Calgary)",
     "country": "CA",
     "location": "Calgary",
     "geo": "North America",
@@ -286,5 +286,13 @@
     "location": "Querétaro",
     "geo": "North America",
     "ping_url": "https://dynamodb.mx-central-1.amazonaws.com/ping"
+  },
+  {
+    "key": "eusc-de-east-1",
+    "display_name": "Europe Sovereign (Germany)",
+    "country": "DE",
+    "location": "Brandenburg",
+    "geo": "Europe",
+    "ping_url": "https://dynamodb.eusc-de-east-1.amazonaws.eu/ping"
   }
 ]

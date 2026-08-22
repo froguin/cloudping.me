@@ -1,4 +1,18 @@
 import providers from './datasource/providers.json'
+import aws from './datasource/regions/aws.json'
+import azure from './datasource/regions/azure.json'
+import gcp from './datasource/regions/gcp.json'
+import alibaba from './datasource/regions/alibaba.json'
+import tencent from './datasource/regions/tencent.json'
+import ibm from './datasource/regions/ibm.json'
+import oracle from './datasource/regions/oracle.json'
+import digitalocean from './datasource/regions/digitalocean.json'
+import vultr from './datasource/regions/vultr.json'
+import ncp from './datasource/regions/ncp.json'
+import kakaocloud from './datasource/regions/kakaocloud.json'
+import ktcloud from './datasource/regions/ktcloud.json'
+import nhncloud from './datasource/regions/nhncloud.json'
+import iwinv from './datasource/regions/iwinv.json'
 
 export interface CloudProvider {
   key: string
@@ -15,6 +29,23 @@ export interface CloudRegion {
   ping_url: string
 }
 
+const regionsMap: Record<string, CloudRegion[]> = {
+  aws,
+  azure,
+  gcp,
+  alibaba,
+  tencent,
+  ibm,
+  oracle,
+  digitalocean,
+  vultr,
+  ncp,
+  kakaocloud,
+  ktcloud,
+  nhncloud,
+  iwinv,
+}
+
 export function getAllProviders(): CloudProvider[] {
   return providers
 }
@@ -22,8 +53,9 @@ export function getAllProviders(): CloudProvider[] {
 export function getAllCloudRegions(): Record<string, CloudRegion[]> {
   const result: Record<string, CloudRegion[]> = {}
   for (const provider of providers) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    result[provider.key] = require(`./datasource/regions/${provider.key}.json`)
+    if (regionsMap[provider.key]) {
+      result[provider.key] = regionsMap[provider.key]
+    }
   }
   return result
 }

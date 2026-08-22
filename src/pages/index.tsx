@@ -61,7 +61,7 @@ interface RegionLatency {
   nextAttemptAt?: number
 }
 
-const MAX_SAMPLES = 120 // cap per region (~40 rounds × 3 samples)
+const MAX_SAMPLES = 30 // keep last ~10 rounds × 3 samples
 
 function calcPercentile(sorted: number[], p: number): number {
   if (sorted.length === 0) return 0
@@ -343,11 +343,15 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
               </div>
               {/* Mobile badges */}
               {isUnreachable ? (
-                <span className="flex sm:hidden text-xs text-red-400 flex-shrink-0" title={`Failed ${data.failureCount} times`}>⊘ Unreachable</span>
+                <span className="flex sm:hidden text-xs text-red-400 flex-shrink-0" title={`Failed ${data.failureCount} times`}>
+                  ⊘ Unreachable
+                </span>
               ) : p50 ? (
                 <div className="flex sm:hidden items-center gap-1.5 flex-shrink-0 text-[10px]">
-                  <span className="text-[color:var(--text-muted)]">P50</span><span className={`latency-badge ${getBadgeClass(p50)}`}>{p50}ms</span>
-                  <span className="text-[color:var(--text-muted)]">P95</span><span className={`latency-badge ${getBadgeClass(p95)}`}>{p95}ms</span>
+                  <span className="text-[color:var(--text-muted)]">P50</span>
+                  <span className={`latency-badge ${getBadgeClass(p50)}`}>{p50}ms</span>
+                  <span className="text-[color:var(--text-muted)]">P95</span>
+                  <span className={`latency-badge ${getBadgeClass(p95)}`}>{p95}ms</span>
                 </div>
               ) : (
                 <div className="flex sm:hidden skeleton w-[104px] h-[22px] flex-shrink-0" />
@@ -362,7 +366,9 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
         </div>
         {/* Desktop badges with P50/P80/P95 labels */}
         {isUnreachable ? (
-          <span className="hidden sm:flex text-xs text-red-400 flex-shrink-0 items-center gap-1" title={`Failed ${data.failureCount} times`}>⊘ Unreachable</span>
+          <span className="hidden sm:flex text-xs text-red-400 flex-shrink-0 items-center gap-1" title={`Failed ${data.failureCount} times`}>
+            ⊘ Unreachable
+          </span>
         ) : p50 ? (
           <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
             <div className="flex flex-col items-center gap-0.5">
@@ -448,7 +454,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
       .filter((item) => !item.nextAttemptAt || now >= item.nextAttemptAt)
       .sort(() => 0.5 - Math.random())
 
-    const CONCURRENCY = 10
+    const CONCURRENCY = 6
     const queue = [...shuffledItems]
 
     async function worker() {
@@ -490,22 +496,41 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
     await Promise.all(workers)
 
     if (!cancelToken.cancel) {
-      await delay(1000)
+      await delay(3000)
       await pingAll(cancelToken)
     }
   }
 
   useEffect(() => {
-    const ct = { cancel: false }
-    if (isLocationInitialized && selectedProviders.length >= 1 && selectedCountries.length >= 1) {
-      setIsMeasuring(true)
-      pingAll(ct)
-    } else {
-      setIsMeasuring(false)
+    let ct = { cancel: false }
+
+    const runPing = () => {
+      if (document.hidden) return
+      if (isLocationInitialized && selectedProviders.length >= 1 && selectedCountries.length >= 1) {
+        setIsMeasuring(true)
+        pingAll(ct)
+      } else {
+        setIsMeasuring(false)
+      }
     }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        ct.cancel = true
+        setIsMeasuring(false)
+      } else {
+        ct = { cancel: false }
+        runPing()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    runPing()
+
     return () => {
       ct.cancel = true
       setIsMeasuring(false)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [isLocationInitialized, selectedProviders, selectedCountries, pingVersion])
 
