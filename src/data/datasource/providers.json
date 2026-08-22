@@ -41,8 +41,8 @@
     },
     {
         "key": "linode",
-        "display_name": "Linode (Akamai)",
-        "short_name": "Linode"
+        "display_name": "Akamai Cloud",
+        "short_name": "Akamai"
     },
     {
         "key": "vultr",
