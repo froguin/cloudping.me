@@ -1,31 +1,25 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react'
 import Head from 'next/head'
 import { GetStaticPropsResult } from 'next'
 import { CloudProvider, CloudRegion, getAllCloudRegions, getAllProviders } from '@app/data'
 import { CloudProviderLogo, CountryFlag, CountryName } from '@app/components'
 import { delay, ping } from '@app/fns/time'
+import { getSiteUrl } from '../site-config'
 
 interface CloudPingProps {
   providers: CloudProvider[]
+  regions: Record<string, CloudRegion[]>
   geos: Record<string, string[]>
   countries: string[]
-  initialState: LatencyState
 }
 
 export async function getStaticProps(): Promise<GetStaticPropsResult<CloudPingProps>> {
   const providers = getAllProviders()
   const regions = getAllCloudRegions()
-  const initialState: LatencyState = {}
-  for (const provider of providers) {
-    for (const region of regions[provider.key]) {
-      const key = `${provider.key}-${region.key}`
-      initialState[key] = { key, provider, region, samples: [] }
-    }
-  }
   return {
     props: {
-      initialState,
       providers,
+      regions,
       geos: Object.values(regions).reduce(
         (prev, curr) => {
           for (const region of curr) {
@@ -61,7 +55,19 @@ interface RegionLatency {
   nextAttemptAt?: number
 }
 
-const MAX_SAMPLES = 30 // keep last ~10 rounds × 3 samples
+const MAX_SAMPLES = 12
+const UI_FLUSH_MS = 100
+
+function createLatencyState(providers: CloudProvider[], regions: Record<string, CloudRegion[]>): LatencyState {
+  const state: LatencyState = {}
+  for (const provider of providers) {
+    for (const region of regions[provider.key] || []) {
+      const key = `${provider.key}-${region.key}`
+      state[key] = { key, provider, region, samples: [] }
+    }
+  }
+  return state
+}
 
 function calcPercentile(sorted: number[], p: number): number {
   if (sorted.length === 0) return 0
@@ -304,7 +310,7 @@ function getBadgeClass(ms?: number) {
   return 'danger'
 }
 
-function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLatency: number; rank?: number }) {
+const LatencyCard = memo(function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLatency: number; rank?: number }) {
   const p50 = data.p50
   const p80 = data.p80
   const p95 = data.p95
@@ -390,7 +396,7 @@ function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLaten
       </div>
     </div>
   )
-}
+})
 
 export default function CloudPing(props: CloudPingProps): JSX.Element {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -400,14 +406,33 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
   )
   const [selectedCountries, setSelectedCountries] = useState<string[]>(props.geos[FALLBACK_GEO] || [])
   const [isLocationInitialized, setIsLocationInitialized] = useState(false)
-  const [latencyState, setLatencyState] = useState<LatencyState>(props.initialState)
-  const latencyStateRef = useRef(latencyState)
+  const latencyStateRef = useRef<LatencyState | null>(null)
+  if (!latencyStateRef.current) {
+    latencyStateRef.current = createLatencyState(props.providers, props.regions)
+  }
+  const [latencyState, setLatencyState] = useState<LatencyState>(latencyStateRef.current)
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [pingVersion, setPingVersion] = useState(0)
 
-  const updateLatencyState = (updater: (current: LatencyState) => LatencyState) => {
-    const next = updater(latencyStateRef.current)
-    latencyStateRef.current = next
-    setLatencyState(next)
+  const flushLatencyState = () => {
+    if (flushTimerRef.current != null) {
+      clearTimeout(flushTimerRef.current)
+      flushTimerRef.current = null
+    }
+    setLatencyState({ ...latencyStateRef.current! })
+  }
+
+  const updateLatencyState = (updater: (current: LatencyState) => LatencyState, immediate = false) => {
+    latencyStateRef.current = updater(latencyStateRef.current!)
+    if (immediate) {
+      flushLatencyState()
+      return
+    }
+    if (flushTimerRef.current != null) return
+    flushTimerRef.current = setTimeout(() => {
+      flushTimerRef.current = null
+      setLatencyState({ ...latencyStateRef.current! })
+    }, UI_FLUSH_MS)
   }
 
   const handleReset = () => {
@@ -417,7 +442,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
         next[key] = { ...next[key], samples: [], p50: undefined, p80: undefined, p95: undefined, failureCount: 0, nextAttemptAt: undefined }
       }
       return next
-    })
+    }, true)
     setPingVersion((v) => v + 1)
   }
 
@@ -449,7 +474,9 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
   async function pingAll(cancelToken: { cancel: boolean }) {
     await delay(1000)
     const now = Date.now()
-    const shuffledItems = Object.values(latencyStateRef.current)
+    const state = latencyStateRef.current
+    if (!state) return
+    const shuffledItems = Object.values(state)
       .filter((item) => item.region.ping_url && selectedCountries.includes(item.region.country) && selectedProviders.includes(item.provider.key))
       .filter((item) => !item.nextAttemptAt || now >= item.nextAttemptAt)
       .sort(() => 0.5 - Math.random())
@@ -494,6 +521,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
 
     const workers = Array.from({ length: CONCURRENCY }, () => worker())
     await Promise.all(workers)
+    flushLatencyState()
 
     if (!cancelToken.cancel) {
       await delay(3000)
@@ -517,6 +545,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         ct.cancel = true
+        flushLatencyState()
         setIsMeasuring(false)
       } else {
         ct = { cancel: false }
@@ -531,15 +560,26 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
       ct.cancel = true
       setIsMeasuring(false)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      if (flushTimerRef.current != null) {
+        clearTimeout(flushTimerRef.current)
+        flushTimerRef.current = null
+      }
     }
   }, [isLocationInitialized, selectedProviders, selectedCountries, pingVersion])
 
-  const filteredRegions = Object.values(latencyState).filter((x) => selectedProviders.includes(x.provider.key) && selectedCountries.includes(x.region.country))
-  const reachable = filteredRegions.filter((x) => (x.failureCount || 0) < 3)
-  const unreachable = filteredRegions.filter((x) => (x.failureCount || 0) >= 3)
-  const sortedRegionsWithLatency = reachable.filter((x) => x.p50).sort((a, b) => (a.p50 && b.p50 ? a.p50 - b.p50 : 1))
-  const sortedRegions = [...sortedRegionsWithLatency, ...reachable.filter((x) => !x.p50), ...unreachable]
-  const maxLatency = sortedRegionsWithLatency.length > 1 ? sortedRegionsWithLatency[sortedRegionsWithLatency.length - 1].p50 || 0 : 0
+  const { sortedRegions, sortedRegionsWithLatency, maxLatency } = useMemo(() => {
+    const filteredRegions = Object.values(latencyState).filter(
+      (x) => selectedProviders.includes(x.provider.key) && selectedCountries.includes(x.region.country)
+    )
+    const reachable = filteredRegions.filter((x) => (x.failureCount || 0) < 3)
+    const unreachable = filteredRegions.filter((x) => (x.failureCount || 0) >= 3)
+    const withLatency = reachable.filter((x) => x.p50).sort((a, b) => (a.p50 && b.p50 ? a.p50 - b.p50 : 1))
+    return {
+      sortedRegionsWithLatency: withLatency,
+      sortedRegions: [...withLatency, ...reachable.filter((x) => !x.p50), ...unreachable],
+      maxLatency: withLatency.length > 1 ? withLatency[withLatency.length - 1].p50 || 0 : 0,
+    }
+  }, [latencyState, selectedProviders, selectedCountries])
 
   const toggleProvider = (k: string) => setSelectedProviders((v) => (v.includes(k) ? v.filter((x) => x !== k) : [...v, k]))
   const toggleCountry = (c: string) => setSelectedCountries((v) => (v.includes(c) ? v.filter((x) => x !== c) : [...v, c]))
@@ -548,6 +588,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
 
   const title = 'Cloudping.me'
   const description = 'Test your network latency to cloud data centers from AWS, Azure, GCP, and 11 more providers.'
+  const siteUrl = getSiteUrl()
   const geoOrder = ['North America', 'Europe', 'Asia', 'Middle East', 'South America', 'Oceania', 'Africa']
 
   const selectedGeos = Object.entries(props.geos)
@@ -565,10 +606,10 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
         <meta name="description" content={description} />
         <meta property="og:title" content={title} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://cloudping.me" />
-        <meta property="og:image" content="https://cloudping.me/images/large-screenshot.png" />
+        {siteUrl ? <meta property="og:url" content={siteUrl} /> : null}
+        {siteUrl ? <meta property="og:image" content={`${siteUrl}/images/large-screenshot.png`} /> : null}
         <meta property="og:description" content={description} />
-        <link rel="canonical" href="https://cloudping.me" />
+        {siteUrl ? <link rel="canonical" href={siteUrl} /> : null}
         <meta name="theme-color" content="#060910" />
       </Head>
       <div className="min-h-screen">
@@ -631,7 +672,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
                     className={`provider-pill ${isActive ? 'active' : ''}`}
                     title={provider.display_name}
                   >
-                    <CloudProviderLogo width={16} providerKey={provider.key} providerName={provider.display_name} />
+                    <CloudProviderLogo width={16} providerKey={provider.key} providerName={provider.display_name} loading="eager" />
                     <span className="hidden sm:inline">{provider.display_name}</span>
                     <span className="sm:hidden">{provider.short_name ?? provider.display_name}</span>
                   </button>

@@ -1,10 +1,10 @@
 import { getCountryName } from '@app/fns/country'
-import Image from 'next/image'
 
 export interface CountryFlagProps {
   countryCode: string
   className?: string
   width: number
+  loading?: 'lazy' | 'eager'
 }
 
 export function CountryFlag(props: CountryFlagProps): JSX.Element {
@@ -20,18 +20,21 @@ export function CountryFlag(props: CountryFlagProps): JSX.Element {
         verticalAlign: 'middle',
       }}
     >
-      <Image
+      <img
         width={props.width}
         height={props.width}
         style={{
           objectFit: 'contain',
           width: '100%',
           height: '100%',
+          display: 'block',
         }}
-        className={`inline ${props.className}`}
+        className={props.className}
         src={`/images/country/${props.countryCode.toLowerCase()}.svg`}
         title={countryName}
         alt={countryName}
+        loading={props.loading || 'lazy'}
+        decoding="async"
       />
     </div>
   )

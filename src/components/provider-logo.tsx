@@ -1,15 +1,12 @@
-import Image from 'next/image'
-
 export interface CloudProviderLogoProps {
   providerKey: string
   providerName: string
   className?: string
   width: number
+  loading?: 'lazy' | 'eager'
 }
 
 export function CloudProviderLogo(props: CloudProviderLogoProps): JSX.Element {
-  const extension = 'svg'
-
   return (
     <div
       style={{
@@ -20,18 +17,21 @@ export function CloudProviderLogo(props: CloudProviderLogoProps): JSX.Element {
         justifyContent: 'center',
       }}
     >
-      <Image
+      <img
         width={props.width}
         height={props.width}
         style={{
           objectFit: 'contain',
           width: '100%',
           height: '100%',
+          display: 'block',
         }}
-        className={`inline ${props.className}`}
-        src={`/images/provider/${props.providerKey}.${extension}`}
+        className={props.className}
+        src={`/images/provider/${props.providerKey}.svg`}
         title={props.providerName}
         alt={props.providerName}
+        loading={props.loading || 'lazy'}
+        decoding="async"
       />
     </div>
   )

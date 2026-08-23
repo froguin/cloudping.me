@@ -2,6 +2,8 @@ export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+const warmedUrls = new Set<string>()
+
 function withCacheBuster(url: string): string {
   const parsedUrl = new URL(url)
   if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
@@ -33,31 +35,23 @@ export async function ping(url: string): Promise<number[]> {
   const timer = setTimeout(() => controller.abort(), 8000)
 
   try {
-    // Single warm-up to establish connection
-    try {
-      await singlePing(url, controller)
-    } catch {
-      // ignore warm-up errors
-    }
-
-    // Take 2 measurement samples
-    const samples: number[] = []
-    for (let i = 0; i < 2; i++) {
-      if (controller.signal.aborted) break
+    if (!warmedUrls.has(url)) {
       try {
-        const latency = await singlePing(url, controller)
-        samples.push(latency)
+        await singlePing(url, controller)
+        warmedUrls.add(url)
       } catch {
-        // skip failed sample
+        // retry warm-up on the next round
       }
     }
 
-    if (samples.length > 0) {
-      return samples
+    if (controller.signal.aborted) {
+      throw new Error('failed to ping')
     }
+
+    const latency = await singlePing(url, controller)
+    warmedUrls.add(url)
+    return [latency]
   } finally {
     clearTimeout(timer)
   }
-
-  throw new Error('failed to ping')
 }

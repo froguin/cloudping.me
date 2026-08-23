@@ -1,12 +1,7 @@
 import React from 'react'
-import Document, { Html, Main, NextScript, DocumentInitialProps, DocumentContext, Head } from 'next/document'
+import Document, { Html, Main, NextScript, Head } from 'next/document'
 
 export default class MyDocument extends Document {
-  static async getInitialProps(ctx: DocumentContext): Promise<DocumentInitialProps> {
-    const initialProps = await Document.getInitialProps(ctx)
-    return { ...initialProps }
-  }
-
   render(): JSX.Element {
     return (
       <Html lang="en">
@@ -18,23 +13,6 @@ export default class MyDocument extends Document {
           <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png" />
           <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
           <link rel="manifest" href="/site.webmanifest" />
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-          <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-            rel="stylesheet"
-          />
-          <script async src="https://www.googletagmanager.com/gtag/js?id=G-X5LN3WQTJ1"></script>
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', 'G-X5LN3WQTJ1');
-              `,
-            }}
-          />
         </Head>
         <body>
           <script
