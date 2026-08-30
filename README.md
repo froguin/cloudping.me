@@ -54,9 +54,9 @@ go run ./cli -json
 
 ## Health board
 
-`/` measures from the visitor's browser. `/health` shows the latest snapshot from GitHub Actions (every 15 minutes, typically a US runner) and is stored on the `status` branch as `latest.json`.
+`/` measures from the visitor's browser. `/health` shows snapshots from a Vercel Function. GitHub Actions only wakes it every 15 minutes, then writes `latest.json` on the `status` branch.
 
-A first snapshot is published by running the **Probe** workflow (`workflow_dispatch`). After that, the schedule keeps it updated.
+Set `PROBE_SECRET` on Vercel and the same value plus `PROBE_URL` (e.g. `https://www.cloudping.me/api/probe`) as GitHub Actions secrets.
 
 ## Based on
 

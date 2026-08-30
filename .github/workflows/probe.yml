@@ -11,20 +11,21 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: cli/go.mod
-
-      - name: Ping regions
-        working-directory: cli
+      - name: Trigger Vercel probe
         env:
-          CLOUDPING_PROBE_ID: github-actions
-          CLOUDPING_PROBE_LABEL: GitHub-hosted runner
-        run: go run . -json -c 8 > /tmp/latest.json
+          PROBE_URL: ${{ secrets.PROBE_URL }}
+          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "${PROBE_URL}"
+          test -n "${PROBE_SECRET}"
+          curl -fsS --max-time 180 -X POST "${PROBE_URL}" \
+            -H "Authorization: Bearer ${PROBE_SECRET}" \
+            -H "Accept: application/json" \
+            -o /tmp/latest.json
+          python3 -c "import json; json.load(open('/tmp/latest.json'))"
 
       - name: Publish status branch
         env:

@@ -151,7 +151,7 @@ export default function Health(props: HealthProps): JSX.Element {
   const maxLatency = reachable.length > 1 ? reachable[reachable.length - 1].ms || 0 : 0
   const siteUrl = getSiteUrl()
   const title = 'Health — Cloudping.me'
-  const description = 'Shared cloud-region reachability and latency from a fixed GitHub-hosted probe.'
+  const description = 'Shared cloud-region reachability and latency from a Vercel Function probe.'
 
   const toggleProvider = (k: string) => setSelectedProviders((v) => (v.includes(k) ? v.filter((x) => x !== k) : [...v, k]))
   const toggleGeo = (geo: string) => setSelectedGeos((v) => (v.includes(geo) ? v.filter((x) => x !== geo) : [...v, geo]))
@@ -176,7 +176,7 @@ export default function Health(props: HealthProps): JSX.Element {
             {snapshot
               ? `Last updated ${formatUpdated(snapshot.probe.at)} from ${snapshot.probe.label}. HTTP round-trip, refreshed about every 15 minutes.`
               : loadError
-                ? `No probe snapshot yet (${loadError}). Run the Probe GitHub Action to publish the status branch.`
+                ? `No probe snapshot yet (${loadError}). Run the Probe GitHub Action to trigger Vercel and publish the status branch.`
                 : 'Loading latest probe snapshot…'}
           </p>
           <div className="mb-8">
