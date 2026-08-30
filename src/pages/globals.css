@@ -127,20 +127,28 @@ h6 { @apply text-xs font-medium; color: var(--text-muted); letter-spacing: 0.04e
 .sidebar-header:hover { color: var(--text); transition: color 0.15s; }
 .sidebar-content { @apply space-y-0.5; }
 
-/* Latency Card */
+/* Rank changes use transform so live re-sort does not count as CLS */
+.latency-list {
+  position: relative;
+  min-height: 60vh;
+  --row-h: 4.5rem;
+  height: calc(var(--rows, 0) * var(--row-h));
+}
 .latency-card {
-  @apply relative overflow-hidden;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--row-h);
+  overflow: hidden;
+  contain: layout style;
+  transform: translate3d(0, calc(var(--rank, 0) * var(--row-h)), 0);
   border-bottom: 1px solid var(--border);
 }
-.latency-card:first-child {
-  border-top: 1px solid transparent;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
-}
-.latency-card:last-child { border-bottom: none; }
 .latency-card:hover { background: var(--bg-surface); }
 .latency-bar { @apply absolute inset-y-0 left-0; }
 .latency-card-inner {
-  @apply relative flex items-center justify-between px-3 sm:px-4 py-2.5;
+  @apply relative flex items-center justify-between px-3 sm:px-4 py-2.5 h-full;
   color: var(--text);
 }
 .latency-card-inner code { color: var(--text); }
@@ -157,13 +165,12 @@ h6 { @apply text-xs font-medium; color: var(--text-muted); letter-spacing: 0.04e
 /* Skeleton */
 .skeleton {
   @apply rounded-md;
-  background: linear-gradient(90deg, var(--border-subtle) 25%, var(--border) 50%, var(--border-subtle) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  background: var(--border);
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
 }
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
 }
 
 /* Mobile Filter Button */

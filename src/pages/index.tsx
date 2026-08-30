@@ -3,7 +3,7 @@ import Head from 'next/head'
 import { GetStaticPropsResult } from 'next'
 import { CloudProvider, CloudRegion, getAllCloudRegions, getAllProviders } from '@app/data'
 import { CloudProviderLogo, CountryFlag, CountryName } from '@app/components'
-import { delay, ping } from '@app/fns/time'
+import { delay, ping, whenPageIdle } from '@app/fns/time'
 import { getSiteUrl } from '../site-config'
 
 interface CloudPingProps {
@@ -310,7 +310,17 @@ function getBadgeClass(ms?: number) {
   return 'danger'
 }
 
-const LatencyCard = memo(function LatencyCard({ data, maxLatency, rank }: { data: RegionLatency; maxLatency: number; rank?: number }) {
+const LatencyCard = memo(function LatencyCard({
+  data,
+  maxLatency,
+  rank,
+  rankIndex,
+}: {
+  data: RegionLatency
+  maxLatency: number
+  rank?: number
+  rankIndex: number
+}) {
   const p50 = data.p50
   const p80 = data.p80
   const p95 = data.p95
@@ -324,7 +334,10 @@ const LatencyCard = memo(function LatencyCard({ data, maxLatency, rank }: { data
   }
   const isTop3 = rank !== undefined && rank <= 3
   return (
-    <div className={`latency-card border-b border-[color:var(--border)] last:border-b-0${isTop3 ? ` rank-${rank}` : ''}${isUnreachable ? ' opacity-50' : ''}`}>
+    <div
+      className={`latency-card${isTop3 ? ` rank-${rank}` : ''}${isUnreachable ? ' opacity-50' : ''}`}
+      style={{ ['--rank' as string]: rankIndex }}
+    >
       {p50 && !isUnreachable && (
         <div className="latency-bar" style={{ width: `${Math.min(relative, 100)}%`, background: `linear-gradient(90deg, ${getBarColor()}, transparent)` }} />
       )}
@@ -554,7 +567,9 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    runPing()
+    void whenPageIdle().then(() => {
+      if (!ct.cancel) runPing()
+    })
 
     return () => {
       ct.cancel = true
@@ -767,13 +782,24 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
                   )}
                 </div>
               </div>
-              <div className="space-y-1.5 min-h-[60vh]">
-                {sortedRegions.length === 0 ? (
+              <div
+                className="latency-list"
+                style={isLocationInitialized && sortedRegions.length > 0 ? { ['--rows' as string]: sortedRegions.length } : undefined}
+              >
+                {!isLocationInitialized ? null : sortedRegions.length === 0 ? (
                   <div className="text-center py-12 text-[color:var(--text-muted)]">
                     <p>No regions selected. Choose providers and locations above.</p>
                   </div>
                 ) : (
-                  sortedRegions.map((x, index) => <LatencyCard key={x.key} data={x} maxLatency={maxLatency} rank={x.p50 ? index + 1 : undefined} />)
+                  sortedRegions.map((x, index) => (
+                    <LatencyCard
+                      key={x.key}
+                      data={x}
+                      maxLatency={maxLatency}
+                      rank={x.p50 ? index + 1 : undefined}
+                      rankIndex={index}
+                    />
+                  ))
                 )}
               </div>
             </main>

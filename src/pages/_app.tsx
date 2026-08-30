@@ -10,21 +10,21 @@ import './globals.css'
 const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
-  display: 'swap',
+  display: 'optional',
   variable: '--font-inter',
 })
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   weight: ['500', '600', '700'],
-  display: 'swap',
+  display: 'optional',
   variable: '--font-space-grotesk',
 })
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
-  display: 'swap',
+  display: 'optional',
   variable: '--font-jetbrains-mono',
 })
 
@@ -40,8 +40,8 @@ export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {
       <SiteTelemetry />
       {gaId ? (
         <>
-          <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
-          <Script id="gtag-init" strategy="afterInteractive">
+          <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="lazyOnload" />
+          <Script id="gtag-init" strategy="lazyOnload">
             {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${gaId}');`}
           </Script>
         </>

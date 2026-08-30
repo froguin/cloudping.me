@@ -2,6 +2,20 @@ export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+export function whenPageIdle(): Promise<void> {
+  return new Promise((resolve) => {
+    const run = () => {
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(() => resolve(), { timeout: 2500 })
+      } else {
+        setTimeout(resolve, 400)
+      }
+    }
+    if (document.readyState === 'complete') run()
+    else window.addEventListener('load', run, { once: true })
+  })
+}
+
 const warmedUrls = new Set<string>()
 
 function withCacheBuster(url: string): string {
