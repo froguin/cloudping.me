@@ -79,11 +79,13 @@ export async function runProbe(concurrency = 8): Promise<ProbeSnapshot> {
     }
   })
 
+  const originId = process.env.PROBE_ORIGIN_ID
+  const originLabel = process.env.PROBE_ORIGIN_LABEL
   const region = process.env.VERCEL_REGION || 'unknown'
   return {
     probe: {
-      id: 'vercel',
-      label: `Vercel Function (${region})`,
+      id: originId || 'vercel',
+      label: originLabel || `Vercel Function (${region})`,
       at: new Date().toISOString(),
     },
     results,

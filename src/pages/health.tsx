@@ -7,7 +7,7 @@ import { SiteHeader } from '@app/components/site-header'
 import {
   MatrixSnapshot,
   ProbeColumn,
-  VERCEL_REGION_CITIES,
+  ORIGIN_CITIES,
   columnCode,
   normalizeMatrixSnapshot,
 } from '@app/fns/probe-snapshot'
@@ -85,7 +85,7 @@ function formatMs(ms: number): string {
 }
 
 function columnCity(col: ProbeColumn): string | undefined {
-  return VERCEL_REGION_CITIES[columnCode(col)]
+  return ORIGIN_CITIES[columnCode(col)]
 }
 
 export default function Health(props: HealthProps): JSX.Element {
@@ -400,7 +400,10 @@ export default function Health(props: HealthProps): JSX.Element {
               </table>
             )}
           </div>
-          <p className="matrix-footnote">All times are in milliseconds. Same-region cloud-to-cloud latency is not measured on the Hobby plan.</p>
+          <p className="matrix-footnote">
+            All times are in milliseconds. From is a named serverless origin (Vercel Function or AWS Lambda), not your browser. HTTP GET after a warmup, not ICMP.
+            Same-cloud cells (for example Lambda Seoul to AWS Seoul) can ride that vendor&apos;s backbone.
+          </p>
         </div>
       </div>
     </>

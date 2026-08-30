@@ -54,11 +54,11 @@ go run ./cli -json
 
 ## Health board
 
-`/` measures from the visitor's browser. `/health` is a To \\ From latency heatmap (cloudping.co-style colors: &lt;100 / 100–180 / &gt;180ms). Rows are cloud region ping URLs. Columns are probe origins — currently one Vercel Function region (Hobby is single-region, so this is not cloud-to-cloud).
+`/` measures from the visitor's browser. `/health` is a To \\ From latency heatmap (cloudping.co-style colors: &lt;100 / 100–180 / &gt;180ms). Rows are cloud region ping URLs. Columns are probe origins: a Vercel Function (`icn1`) and, when configured, AWS Lambda in `ap-northeast-2`. HTTP round-trip, not ICMP.
 
-GitHub Actions wakes `/api/probe` every 15 minutes and writes `latest.json` on the `status` branch.
+GitHub Actions wakes the probe URLs every 15 minutes and writes `latest.json` on the `status` branch.
 
-Set `PROBE_SECRET` on Vercel and the same value plus `PROBE_URL` (e.g. `https://www.cloudping.me/api/probe`) as GitHub Actions secrets.
+Set `PROBE_SECRET` on Vercel, the Lambda, and GitHub Actions. GitHub also needs `PROBE_URL` (Vercel `/api/probe`) and optional `PROBE_URL_AWS_ICN` (Lambda Function URL).
 
 ## Based on
 

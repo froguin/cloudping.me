@@ -11,33 +11,65 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
-      - name: Trigger Vercel probe
+      - name: Trigger probes
         env:
           PROBE_URL: ${{ secrets.PROBE_URL }}
+          PROBE_URL_AWS_ICN: ${{ secrets.PROBE_URL_AWS_ICN }}
           PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
         run: |
           set -euo pipefail
-          test -n "${PROBE_URL}"
           test -n "${PROBE_SECRET}"
-          curl -fsS --max-time 180 -X POST "${PROBE_URL}" \
-            -H "Authorization: Bearer ${PROBE_SECRET}" \
-            -H "Accept: application/json" \
-            -o /tmp/probe.json
+          urls=()
+          if [ -n "${PROBE_URL:-}" ]; then urls+=("${PROBE_URL}"); fi
+          if [ -n "${PROBE_URL_AWS_ICN:-}" ]; then urls+=("${PROBE_URL_AWS_ICN}"); fi
+          test "${#urls[@]}" -gt 0
+
+          mkdir -p /tmp/probes
+          rm -f /tmp/probes/*.json
+          i=0
+          pids=()
+          set +e
+          for url in "${urls[@]}"; do
+            curl -fsS --max-time 180 -X POST "${url}" \
+              -H "Authorization: Bearer ${PROBE_SECRET}" \
+              -H "Accept: application/json" \
+              -o "/tmp/probes/${i}.json" &
+            pids+=($!)
+            i=$((i + 1))
+          done
+          fail=0
+          for pid in "${pids[@]}"; do
+            wait "${pid}" || fail=1
+          done
+          set -e
+          test -n "$(ls -A /tmp/probes/*.json 2>/dev/null)"
           python3 - <<'PY'
-          import json
-          raw = json.load(open("/tmp/probe.json"))
-          if isinstance(raw, dict) and isinstance(raw.get("from"), dict):
-              out = raw
-          elif isinstance(raw, dict) and "probe" in raw:
-              probe = raw.get("probe") or {}
-              key = probe.get("id") or "vercel"
-              out = {"at": probe.get("at"), "from": {key: {**probe, "results": raw.get("results") or []}}}
-          else:
-              raise SystemExit("unexpected probe payload")
-          json.dump(out, open("/tmp/latest.json", "w"), separators=(",", ":"))
+          import json, glob, os
+          froms = {}
+          at = None
+          for path in sorted(glob.glob("/tmp/probes/*.json")):
+              raw = json.load(open(path))
+              if not isinstance(raw, dict):
+                  continue
+              if isinstance(raw.get("from"), dict):
+                  for key, col in raw["from"].items():
+                      if isinstance(col, dict):
+                          froms[key] = col
+                          at = col.get("at") or at
+              elif "probe" in raw:
+                  probe = raw.get("probe") or {}
+                  key = probe.get("id") or os.path.basename(path)
+                  froms[key] = {**probe, "results": raw.get("results") or []}
+                  at = probe.get("at") or at
+          if not froms:
+              raise SystemExit("no probe columns")
+          json.dump({"at": at, "from": froms}, open("/tmp/latest.json", "w"), separators=(",", ":"))
           PY
+          if [ "$fail" -ne 0 ]; then
+            echo "one or more probes failed; published $(python3 -c 'import json; print(len(json.load(open("/tmp/latest.json"))["from"]))') column(s)" >&2
+          fi
 
       - name: Publish status branch
         env:

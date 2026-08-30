@@ -68,7 +68,16 @@ export function columnCode(col: ProbeColumn): string {
   return col.id
 }
 
-export const VERCEL_REGION_CITIES: Record<string, string> = {
+export const ORIGIN_CITIES: Record<string, string> = {
+  'ap-northeast-1': 'Tokyo',
+  'ap-northeast-2': 'Seoul',
+  'ap-southeast-1': 'Singapore',
+  'eu-central-1': 'Frankfurt',
+  'us-east-1': 'N. Virginia',
+  'us-west-2': 'Oregon',
+  'asia-northeast1': 'Tokyo',
+  'asia-northeast3': 'Seoul',
+  'us-central1': 'Iowa',
   arn1: 'Stockholm',
   bom1: 'Mumbai',
   cdg1: 'Paris',
