@@ -2,31 +2,61 @@ package main
 
 import (
 	"fmt"
-	"net"
+	"io"
+	"net/http"
 	"net/url"
 	"time"
 )
 
-func ping(uri string) (time.Duration, error) {
-	u, err := url.Parse(uri)
+var httpClient = &http.Client{
+	Timeout: 8 * time.Second,
+}
+
+func withCacheBuster(rawURL string) (string, error) {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	query := parsed.Query()
+	query.Set("_cloudping", fmt.Sprintf("%d", time.Now().UnixNano()))
+	parsed.RawQuery = query.Encode()
+	return parsed.String(), nil
+}
+
+func timedGet(rawURL string) (time.Duration, error) {
+	target, err := withCacheBuster(rawURL)
 	if err != nil {
 		return 0, err
 	}
 
-	startTime := time.Now()
-	port := u.Port()
-	if port == "" {
-		if u.Scheme == "https" {
-			port = "80"
-		} else {
-			port = "443"
-		}
-	}
-
-	_, err = net.DialTimeout("tcp", fmt.Sprintf("%s:%s", u.Hostname(), port), 10*time.Second)
+	req, err := http.NewRequest(http.MethodGet, target, nil)
 	if err != nil {
 		return 0, err
 	}
+	req.Header.Set("User-Agent", "cloudping.me-cli")
 
-	return time.Now().Sub(startTime), nil
+	start := time.Now()
+	resp, err := httpClient.Do(req)
+	elapsed := time.Since(start)
+	if resp != nil {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}
+	if err != nil {
+		return 0, err
+	}
+	return elapsed, nil
+}
+
+func ping(rawURL string) (time.Duration, error) {
+	_, _ = timedGet(rawURL)
+
+	elapsed, err := timedGet(rawURL)
+	if err != nil {
+		return 0, err
+	}
+	if elapsed < 2*time.Millisecond {
+		return 0, fmt.Errorf("network error")
+	}
+	return elapsed, nil
 }
