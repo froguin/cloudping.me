@@ -24,8 +24,20 @@ jobs:
           curl -fsS --max-time 180 -X POST "${PROBE_URL}" \
             -H "Authorization: Bearer ${PROBE_SECRET}" \
             -H "Accept: application/json" \
-            -o /tmp/latest.json
-          python3 -c "import json; json.load(open('/tmp/latest.json'))"
+            -o /tmp/probe.json
+          python3 - <<'PY'
+          import json
+          raw = json.load(open("/tmp/probe.json"))
+          if isinstance(raw, dict) and isinstance(raw.get("from"), dict):
+              out = raw
+          elif isinstance(raw, dict) and "probe" in raw:
+              probe = raw.get("probe") or {}
+              key = probe.get("id") or "vercel"
+              out = {"at": probe.get("at"), "from": {key: {**probe, "results": raw.get("results") or []}}}
+          else:
+              raise SystemExit("unexpected probe payload")
+          json.dump(out, open("/tmp/latest.json", "w"), separators=(",", ":"))
+          PY
 
       - name: Publish status branch
         env:

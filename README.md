@@ -13,7 +13,7 @@ Real-time browser-based latency tester for **15 cloud providers** — including 
 - 🔍 Filter by provider and geographic location
 - 🌙 Dark / Light theme toggle
 - 🇰🇷 Korean CSPs: NAVER Cloud, Kakao Cloud, KT Cloud, NHN Cloud, iwinv
-- 📡 Shared [health board](https://www.cloudping.me/health) from a GitHub-hosted probe (not from your browser)
+- 📡 Shared [latency matrix](https://www.cloudping.me/health) from a Vercel Function probe (not from your browser)
 
 ## Cloud Providers
 
@@ -54,7 +54,9 @@ go run ./cli -json
 
 ## Health board
 
-`/` measures from the visitor's browser. `/health` shows snapshots from a Vercel Function. GitHub Actions only wakes it every 15 minutes, then writes `latest.json` on the `status` branch.
+`/` measures from the visitor's browser. `/health` is a To \\ From latency heatmap (cloudping.co-style colors: &lt;100 / 100–180 / &gt;180ms). Rows are cloud region ping URLs. Columns are probe origins — currently one Vercel Function region (Hobby is single-region, so this is not cloud-to-cloud).
+
+GitHub Actions wakes `/api/probe` every 15 minutes and writes `latest.json` on the `status` branch.
 
 Set `PROBE_SECRET` on Vercel and the same value plus `PROBE_URL` (e.g. `https://www.cloudping.me/api/probe`) as GitHub Actions secrets.
 

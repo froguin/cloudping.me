@@ -1,19 +1,7 @@
 import { getAllCloudRegions, getAllProviders } from '@app/data'
+import type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 
-export interface ProbeSnapshot {
-  probe: { id: string; label: string; at: string }
-  results: ProbeResult[]
-}
-
-export interface ProbeResult {
-  provider: string
-  region: string
-  location: string
-  country: string
-  geo: string
-  ms: number | null
-  ok: boolean
-}
+export type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 
 async function timedGet(url: string, timeoutMs: number): Promise<number> {
   const parsed = new URL(url)
