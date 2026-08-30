@@ -3,6 +3,7 @@ import Head from 'next/head'
 import { GetStaticPropsResult } from 'next'
 import { CloudProvider, CloudRegion, getAllCloudRegions, getAllProviders } from '@app/data'
 import { CloudProviderLogo, CountryFlag, CountryName } from '@app/components'
+import { SiteHeader } from '@app/components/site-header'
 import { delay, ping, whenPageIdle } from '@app/fns/time'
 import { getSiteUrl } from '../site-config'
 
@@ -629,44 +630,14 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
       </Head>
       <div className="min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-          <header className="mb-8">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">Cloudping.me</h1>
-              </div>
-              <button onClick={toggleTheme} className="theme-toggle" title="Toggle theme">
-                {theme === 'dark' ? (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                    />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                    />
-                  </svg>
-                )}
-              </button>
-            </div>
-            <p className="text-sm text-[color:var(--text-secondary)]">Measure network latency to cloud data centers worldwide. Results update continuously.</p>
-            <p className="text-xs text-[color:var(--text-muted)] mt-1">
-              Latency is measured as HTTP round-trip time from your browser. Results may vary by network conditions and do not reflect guaranteed service
-              performance.
-            </p>
-          </header>
+          <SiteHeader active="ping" theme={theme} onToggleTheme={toggleTheme} />
+          <p className="text-sm text-[color:var(--text-secondary)] -mt-6 mb-1">
+            Measure network latency to cloud data centers worldwide. Results update continuously.
+          </p>
+          <p className="text-xs text-[color:var(--text-muted)] mb-8">
+            Latency is measured as HTTP round-trip time from your browser. Results may vary by network conditions and do not reflect guaranteed service
+            performance.
+          </p>
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
               <h6 className="text-xs font-medium text-[color:var(--text-muted)] uppercase tracking-wider">Cloud Providers</h6>

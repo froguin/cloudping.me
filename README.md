@@ -13,6 +13,7 @@ Real-time browser-based latency tester for **15 cloud providers** — including 
 - 🔍 Filter by provider and geographic location
 - 🌙 Dark / Light theme toggle
 - 🇰🇷 Korean CSPs: NAVER Cloud, Kakao Cloud, KT Cloud, NHN Cloud, iwinv
+- 📡 Shared [health board](https://www.cloudping.me/health) from a GitHub-hosted probe (not from your browser)
 
 ## Cloud Providers
 
@@ -35,6 +36,7 @@ The latency tester only needs Next.js and React. Site URL, Google Analytics, and
 | `@vercel/analytics`, `@vercel/speed-insights` | omit | `optionalDependencies` + `NEXT_PUBLIC_SITE_TELEMETRY=1` |
 | `NEXT_PUBLIC_SITE_URL` | unset | Vercel env (canonical / Open Graph) |
 | `NEXT_PUBLIC_GA_ID` | unset | Vercel env |
+| `NEXT_PUBLIC_HEALTH_JSON_URL` | GitHub `status` branch default | override snapshot URL |
 
 See `.env.example`. Local clones do not send analytics.
 
@@ -47,7 +49,14 @@ go run ./cli
 go run ./cli -geo Asia
 go run ./cli -provider aws,linode
 go run ./cli -c 6
+go run ./cli -json
 ```
+
+## Health board
+
+`/` measures from the visitor's browser. `/health` shows the latest snapshot from GitHub Actions (every 15 minutes, typically a US runner) and is stored on the `status` branch as `latest.json`.
+
+A first snapshot is published by running the **Probe** workflow (`workflow_dispatch`). After that, the schedule keeps it updated.
 
 ## Based on
 

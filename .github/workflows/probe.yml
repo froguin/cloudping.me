@@ -1,0 +1,48 @@
+name: Probe
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+
+      - name: Ping regions
+        working-directory: cli
+        env:
+          CLOUDPING_PROBE_ID: github-actions
+          CLOUDPING_PROBE_LABEL: GitHub-hosted runner
+        run: go run . -json -c 8 > /tmp/latest.json
+
+      - name: Publish status branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch status "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" status-out \
+            || git clone --depth 1 "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" status-out
+          cd status-out
+          if ! git show-ref --verify --quiet refs/heads/status && ! git show-ref --verify --quiet refs/remotes/origin/status; then
+            git checkout --orphan status
+            git rm -rf . >/dev/null 2>&1 || true
+          else
+            git checkout status 2>/dev/null || git checkout -b status origin/status
+          fi
+          cp /tmp/latest.json latest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latest.json
+          git commit -m "probe $(date -u +%Y-%m-%dT%H:%M:%SZ)" || exit 0
+          git push --force origin HEAD:status

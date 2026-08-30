@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -25,6 +26,7 @@ func main() {
 	providerFlag := flag.String("provider", "", "comma-separated provider keys (default: all)")
 	geoFlag := flag.String("geo", "", "comma-separated geos, e.g. Asia,Europe (default: all)")
 	concurrency := flag.Int("c", 6, "concurrent pings")
+	jsonOut := flag.Bool("json", false, "write a probe snapshot to stdout instead of a table")
 	flag.Parse()
 
 	if *concurrency < 1 {
@@ -103,6 +105,11 @@ func main() {
 		ok = append(ok, result)
 	}
 
+	if *jsonOut {
+		writeJSON(results)
+		return
+	}
+
 	sort.Slice(ok, func(i, j int) bool {
 		return ok[i].Duration < ok[j].Duration
 	})
@@ -139,6 +146,60 @@ func main() {
 		for _, row := range failed {
 			fmt.Fprintf(os.Stderr, "  %s %s: %v\n", row.Provider.Key, row.Region.Key, row.Err)
 		}
+		os.Exit(1)
+	}
+}
+
+type probeSnapshot struct {
+	Probe struct {
+		ID    string `json:"id"`
+		Label string `json:"label"`
+		At    string `json:"at"`
+	} `json:"probe"`
+	Results []probeResult `json:"results"`
+}
+
+type probeResult struct {
+	Provider string `json:"provider"`
+	Region   string `json:"region"`
+	Location string `json:"location"`
+	Country  string `json:"country"`
+	Geo      string `json:"geo"`
+	Ms       *int   `json:"ms"`
+	Ok       bool   `json:"ok"`
+}
+
+func writeJSON(results []latencyTest) {
+	out := probeSnapshot{}
+	out.Probe.ID = "github-actions"
+	out.Probe.Label = "GitHub-hosted runner"
+	if label := os.Getenv("CLOUDPING_PROBE_LABEL"); label != "" {
+		out.Probe.Label = label
+	}
+	if id := os.Getenv("CLOUDPING_PROBE_ID"); id != "" {
+		out.Probe.ID = id
+	}
+	out.Probe.At = time.Now().UTC().Format(time.RFC3339)
+	out.Results = make([]probeResult, 0, len(results))
+	for _, row := range results {
+		item := probeResult{
+			Provider: row.Provider.Key,
+			Region:   row.Region.Key,
+			Location: row.Region.Location,
+			Country:  row.Region.Country,
+			Geo:      row.Region.Geography,
+			Ok:       row.Err == nil,
+		}
+		if row.Err == nil {
+			ms := int(row.Duration.Milliseconds())
+			item.Ms = &ms
+		}
+		out.Results = append(out.Results, item)
+	}
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(out); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to write json: %v\n", err)
 		os.Exit(1)
 	}
 }
