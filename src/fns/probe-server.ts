@@ -36,8 +36,7 @@ async function timedGet(url: string, timeoutMs: number): Promise<number> {
     })
     const elapsed = Date.now() - start
     if (res.body) await res.body.cancel().catch(() => undefined)
-    if (elapsed < 2) throw new Error('network error')
-    return elapsed
+    return Math.max(elapsed, 0)
   } finally {
     clearTimeout(timer)
   }
