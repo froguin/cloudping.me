@@ -32,7 +32,7 @@ async function timedGet(url: string, timeoutMs: number): Promise<number> {
       cache: 'no-store',
       redirect: 'follow',
       signal: controller.signal,
-      headers: { 'user-agent': 'cloudping.me-probe' },
+      headers: { 'user-agent': 'cloudping.me-probe', connection: 'close' },
     })
     const elapsed = Date.now() - start
     if (res.body) await res.body.cancel().catch(() => undefined)
