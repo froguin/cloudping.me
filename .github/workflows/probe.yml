@@ -1,9 +1,13 @@
 name: Probe
 
 on:
+  # EventBridge in ap-northeast-2 is the real 15-minute clock (workflow_dispatch).
+  # This cron is a fallback on an offset so it is not in the global :00 stampede.
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
+  repository_dispatch:
+    types: [probe]
 
 permissions:
   contents: write
