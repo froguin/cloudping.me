@@ -11,7 +11,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - name: Trigger probes
         env:
@@ -32,7 +32,7 @@ jobs:
           pids=()
           set +e
           for url in "${urls[@]}"; do
-            curl -fsS --max-time 180 -X POST "${url}" \
+            curl -fsS --max-time 270 -X POST "${url}" \
               -H "Authorization: Bearer ${PROBE_SECRET}" \
               -H "Accept: application/json" \
               -o "/tmp/probes/${i}.json" &
@@ -85,9 +85,80 @@ jobs:
           else
             git checkout status 2>/dev/null || git checkout -b status origin/status
           fi
-          cp /tmp/latest.json latest.json
+          python3 - <<'PY'
+          import json, glob, os, re
+          from datetime import datetime, timezone, timedelta
+
+          raw = json.load(open("/tmp/latest.json"))
+          at = raw.get("at") or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+          stamp = re.sub(r"[:.]", "-", at.replace("+00:00", "Z"))
+          if not stamp.endswith("Z"):
+              stamp += "Z"
+          os.makedirs("archive", exist_ok=True)
+          archive_path = os.path.join("archive", stamp + ".json")
+          json.dump(raw, open(archive_path, "w"), separators=(",", ":"))
+
+          cutoff = datetime.now(timezone.utc) - timedelta(hours=48)
+          cutoff24 = datetime.now(timezone.utc) - timedelta(hours=24)
+
+          def parse_at(name, payload):
+              t = payload.get("at")
+              if isinstance(t, str):
+                  try:
+                      return datetime.fromisoformat(t.replace("Z", "+00:00"))
+                  except ValueError:
+                      pass
+              m = re.match(r"(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})", os.path.basename(name))
+              if m:
+                  return datetime.fromisoformat(f"{m.group(1)}T{m.group(2)}:{m.group(3)}:{m.group(4)}+00:00")
+              return None
+
+          def p50(vals):
+              if not vals:
+                  return None
+              s = sorted(vals)
+              n = len(s)
+              if n % 2:
+                  return s[n // 2]
+              return int(round((s[n // 2 - 1] + s[n // 2]) / 2))
+
+          series = {}
+          for path in glob.glob("archive/*.json"):
+              try:
+                  snap = json.load(open(path))
+              except Exception:
+                  continue
+              when = parse_at(path, snap)
+              if when is None:
+                  continue
+              if when < cutoff:
+                  os.remove(path)
+                  continue
+              if when < cutoff24:
+                  continue
+              froms = snap.get("from") or {}
+              for origin, col in froms.items():
+                  if not isinstance(col, dict):
+                      continue
+                  for item in col.get("results") or []:
+                      if not item.get("ok") or item.get("ms") is None:
+                          continue
+                      key = (origin, item.get("provider"), item.get("region"))
+                      series.setdefault(key, []).append(int(item["ms"]))
+
+          froms = raw.get("from") or {}
+          for origin, col in froms.items():
+              if not isinstance(col, dict):
+                  continue
+              for item in col.get("results") or []:
+                  key = (origin, item.get("provider"), item.get("region"))
+                  vals = series.get(key) or []
+                  item["ms24h"] = p50(vals) if vals else None
+                  item["n24h"] = len(vals)
+          json.dump({"at": at, "from": froms}, open("latest.json", "w"), separators=(",", ":"))
+          PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add latest.json
+          git add latest.json archive
           git commit -m "probe $(date -u +%Y-%m-%dT%H:%M:%SZ)" || exit 0
           git push --force origin HEAD:status

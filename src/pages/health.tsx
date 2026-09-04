@@ -8,8 +8,10 @@ import {
   MatrixSnapshot,
   ProbeColumn,
   ORIGIN_CITIES,
+  ProbeResult,
   columnCode,
   normalizeMatrixSnapshot,
+  sameCloudKind,
 } from '@app/fns/probe-snapshot'
 import { getHealthJsonUrl, getSiteUrl } from '../site-config'
 
@@ -108,6 +110,7 @@ export default function Health(props: HealthProps): JSX.Element {
   const [selectedKeys, setSelectedKeys] = useState(catalog.map((r) => r.key))
   const [filterOpen, setFilterOpen] = useState(false)
   const [filterQuery, setFilterQuery] = useState('')
+  const [metric, setMetric] = useState<'latest' | 'p24'>('latest')
 
   useEffect(() => {
     const saved = localStorage.getItem('theme')
@@ -161,13 +164,20 @@ export default function Health(props: HealthProps): JSX.Element {
   }, [snapshot])
 
   const lookup = useMemo(() => {
-    const map = new Map<string, { ms: number | null; ok: boolean }>()
+    const map = new Map<string, ProbeResult>()
     for (const col of columns) {
       for (const item of col.results) {
-        map.set(`${col.id}|${item.provider}|${item.region}`, { ms: item.ms, ok: item.ok })
+        map.set(`${col.id}|${item.provider}|${item.region}`, item)
       }
     }
     return map
+  }, [columns])
+
+  const has24h = useMemo(() => {
+    for (const col of columns) {
+      if (col.results.some((r) => r.ms24h != null)) return true
+    }
+    return false
   }, [columns])
 
   const scoped = useMemo(
@@ -227,7 +237,7 @@ export default function Health(props: HealthProps): JSX.Element {
             <h2 className="matrix-title">Cloud Region Latency Matrix</h2>
             <p className="text-sm text-[color:var(--text-secondary)]">
               To = cloud region ping URL. From = probe origin
-              {fromLabel ? ` · ${fromLabel}` : ''}. HTTP round-trip, not ICMP, not cloud-to-cloud.
+              {fromLabel ? ` · ${fromLabel}` : ''}. HTTP P50 after warmup, not ICMP.
             </p>
             <p className="text-xs text-[color:var(--text-muted)]">
               {snapshot
@@ -285,7 +295,18 @@ export default function Health(props: HealthProps): JSX.Element {
 
           <div className="matrix-toolbar">
             <div className="matrix-toolbar-left">
-              <span className="matrix-chip is-on">Latest</span>
+              <button type="button" className={`matrix-chip ${metric === 'latest' ? 'is-on' : ''}`} onClick={() => setMetric('latest')}>
+                Latest P50
+              </button>
+              <button
+                type="button"
+                className={`matrix-chip ${metric === 'p24' ? 'is-on' : ''}`}
+                onClick={() => setMetric('p24')}
+                disabled={!has24h}
+                title={has24h ? 'Median of per-run P50s over the last 24 hours' : '24h archive not populated yet'}
+              >
+                24h P50
+              </button>
               <button type="button" className="matrix-chip" onClick={() => setFilterOpen((v) => !v)}>
                 Filter Regions {rows.length}/{scoped.length}
               </button>
@@ -350,6 +371,7 @@ export default function Health(props: HealthProps): JSX.Element {
                       <th key={col.id} title={col.label}>
                         <span className="matrix-from-code">{columnCode(col)}</span>
                         {columnCity(col) ? <span className="matrix-from-city">{columnCity(col)}</span> : null}
+                        <span className="matrix-from-city">{formatUpdated(col.at)}</span>
                       </th>
                     ))}
                   </tr>
@@ -380,15 +402,31 @@ export default function Health(props: HealthProps): JSX.Element {
                           </td>
                           {columns.map((col) => {
                             const cell = lookup.get(`${col.id}|${row.provider.key}|${row.region.key}`)
-                            const band = cell ? latencyBand(cell.ms, cell.ok) : 'empty'
-                            const label = !cell
-                              ? 'no sample'
-                              : !cell.ok || cell.ms == null
-                                ? 'unreachable'
-                                : `${formatMs(cell.ms)} from ${columnCode(col)} to ${row.region.key}`
+                            const kind = sameCloudKind(col, row.provider.key)
+                            const displayMs =
+                              metric === 'p24' ? cell?.ms24h ?? cell?.ms ?? null : cell?.ms ?? null
+                            const displayOk = metric === 'p24' ? cell?.ms24h != null || Boolean(cell?.ok && cell.ms != null) : Boolean(cell?.ok && cell.ms != null)
+                            const band = cell ? latencyBand(displayMs, displayOk && displayMs != null) : 'empty'
+                            const failText = cell?.error === 'timeout' ? 'timeout' : cell?.error === 'network' ? 'network' : 'unreachable'
+                            const parts = [
+                              !cell
+                                ? 'no sample'
+                                : displayMs == null
+                                  ? failText
+                                  : `${formatMs(displayMs)} ${metric === 'p24' ? '24h P50' : 'latest P50'} from ${columnCode(col)} to ${row.region.key}`,
+                            ]
+                            if (cell?.ms != null) parts.push(`latest ${formatMs(cell.ms)}`)
+                            if (cell?.ms24h != null) parts.push(`24h ${formatMs(cell.ms24h)} n=${cell.n24h ?? '?'}`)
+                            if (cell?.samples) parts.push(`${cell.samples} samples`)
+                            if (kind === 'on-net') parts.push('same-cloud backbone')
+                            if (kind === 'adjacent') parts.push('AWS-adjacent origin')
                             return (
-                              <td key={col.id} className={`matrix-cell ${band}`} title={label}>
-                                {!cell ? '—' : !cell.ok || cell.ms == null ? '—' : formatMs(cell.ms)}
+                              <td
+                                key={col.id}
+                                className={`matrix-cell ${band}${kind === 'on-net' ? ' on-net' : kind === 'adjacent' ? ' adjacent' : ''}`}
+                                title={parts.join(' · ')}
+                              >
+                                {displayMs == null ? '—' : formatMs(displayMs)}
                               </td>
                             )
                           })}
@@ -401,8 +439,8 @@ export default function Health(props: HealthProps): JSX.Element {
             )}
           </div>
           <p className="matrix-footnote">
-            All times are in milliseconds. From is a named serverless origin (Vercel Function or AWS Lambda), not your browser. HTTP GET after a warmup, not ICMP.
-            Same-cloud cells (for example Lambda Seoul to AWS Seoul) can ride that vendor&apos;s backbone.
+            Latest is the P50 of five HTTP GETs after one warmup (64KB body cap). 24h P50 is the median of those per-run P50s.
+            Corner mark = same-cloud or AWS-adjacent path, not public internet. China endpoints use a shorter timeout.
           </p>
         </div>
       </div>

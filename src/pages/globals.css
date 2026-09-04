@@ -279,11 +279,12 @@ code,
   color: var(--text-muted);
 }
 .matrix-chip.is-on,
-.matrix-chip:hover {
+.matrix-chip:hover:not(:disabled) {
   border-color: var(--pill-active-border);
   background: var(--pill-active-bg);
   color: var(--pill-active-text);
 }
+.matrix-chip:disabled { opacity: 0.4; cursor: not-allowed; }
 .matrix-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
 .matrix-legend-label { font-size: 11px; color: var(--text-muted); }
 .matrix-swatch {
@@ -421,10 +422,35 @@ code,
   .matrix-to-location { display: none; }
 }
 .matrix-cell {
+  position: relative;
   text-align: center;
   font-variant-numeric: tabular-nums;
   font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
   min-width: 4.75rem;
+}
+.matrix-cell.on-net::after,
+.matrix-cell.adjacent::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: 5px solid transparent;
+}
+.matrix-cell.on-net::after {
+  border-top-color: rgba(0, 0, 0, 0.45);
+  border-right-color: rgba(0, 0, 0, 0.45);
+}
+.matrix-cell.adjacent::after {
+  border-top-color: rgba(0, 0, 0, 0.22);
+  border-right-color: rgba(0, 0, 0, 0.22);
+}
+[data-theme="dark"] .matrix-cell.on-net::after {
+  border-top-color: rgba(255, 255, 255, 0.55);
+  border-right-color: rgba(255, 255, 255, 0.55);
+}
+[data-theme="dark"] .matrix-cell.adjacent::after {
+  border-top-color: rgba(255, 255, 255, 0.28);
+  border-right-color: rgba(255, 255, 255, 0.28);
 }
 .matrix-footnote {
   margin-top: 0.75rem;

@@ -6,6 +6,10 @@ export interface ProbeResult {
   geo: string
   ms: number | null
   ok: boolean
+  samples?: number
+  error?: 'timeout' | 'network'
+  ms24h?: number | null
+  n24h?: number
 }
 
 export interface ProbeColumn {
@@ -59,6 +63,23 @@ export function normalizeMatrixSnapshot(data: unknown): MatrixSnapshot | null {
     return { at: col.at, from: { [col.id]: col } }
   }
 
+  return null
+}
+
+export function originVendor(col: ProbeColumn): 'aws' | 'gcp' | 'azure' | 'vercel' | null {
+  if (col.id.startsWith('aws-')) return 'aws'
+  if (col.id.startsWith('gcp-')) return 'gcp'
+  if (col.id.startsWith('azure-')) return 'azure'
+  if (col.id === 'vercel' || col.id.startsWith('vercel')) return 'vercel'
+  return null
+}
+
+export function sameCloudKind(col: ProbeColumn, toProvider: string): 'on-net' | 'adjacent' | null {
+  const vendor = originVendor(col)
+  if (vendor === 'aws' && toProvider === 'aws') return 'on-net'
+  if (vendor === 'vercel' && toProvider === 'aws') return 'adjacent'
+  if (vendor === 'gcp' && toProvider === 'gcp') return 'on-net'
+  if (vendor === 'azure' && toProvider === 'azure') return 'on-net'
   return null
 }
 
