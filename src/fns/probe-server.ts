@@ -3,6 +3,7 @@ import type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 
 export type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 
+const MAX_BODY_BYTES = 64 * 1024
 const SAMPLE_COUNT = 5
 const MIN_SAMPLES = 3
 const DEFAULT_TIMEOUT_MS = 5000
@@ -20,6 +21,25 @@ function median(values: number[]): number {
   return Math.round((sorted[mid - 1] + sorted[mid]) / 2)
 }
 
+async function drainAfterClock(res: Response): Promise<void> {
+  const body = res.body
+  if (!body) {
+    await res.arrayBuffer().catch(() => undefined)
+    return
+  }
+  const reader = body.getReader()
+  let n = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) return
+    n += value?.byteLength || 0
+    if (n >= MAX_BODY_BYTES) {
+      await reader.cancel().catch(() => undefined)
+      return
+    }
+  }
+}
+
 async function timedGet(url: string, timeoutMs: number): Promise<number> {
   const parsed = new URL(url)
   parsed.searchParams.set('_cloudping', `${Date.now()}-${Math.random().toString(36).slice(2)}`)
@@ -32,10 +52,11 @@ async function timedGet(url: string, timeoutMs: number): Promise<number> {
       cache: 'no-store',
       redirect: 'follow',
       signal: controller.signal,
-      headers: { 'user-agent': 'cloudping.me-probe', connection: 'close' },
+      headers: { 'user-agent': 'cloudping.me-probe' },
     })
     const elapsed = Date.now() - start
-    if (res.body) await res.body.cancel().catch(() => undefined)
+    clearTimeout(timer)
+    await drainAfterClock(res)
     return Math.max(elapsed, 0)
   } finally {
     clearTimeout(timer)
