@@ -54,7 +54,7 @@ go run ./cli -json
 
 ## Health board
 
-`/` measures from the visitor's browser. `/health` is a To \\ From latency heatmap (cloudping.co-style colors: &lt;100 / 100–180 / &gt;180ms). Rows are cloud region ping URLs. Columns are probe origins: a Vercel Function (`icn1`) and, when configured, AWS Lambda in `ap-northeast-2`. Each cell is the P50 of five HTTP GETs after a warmup.
+`/` measures from the visitor's browser. `/health` is a To \\ From latency heatmap (cloudping.co-style colors: &lt;100 / 100–180 / &gt;180ms). Rows are cloud region ping URLs. Columns are probe origins: a Vercel Function (`icn1`) and, when configured, AWS Lambda in `ap-northeast-2`. Each cell is the P50 of five HTTP GETs after a warmup, timed to response headers.
 
 GitHub Actions wakes the probe URLs every 15 minutes and writes `latest.json` plus `archive/` snapshots on the `status` branch (about 48 hours retained) so the board can show a 24h P50.
 

@@ -17,7 +17,10 @@ export interface ProbeColumn {
   label: string
   at: string
   results: ProbeResult[]
+  stale?: boolean
 }
+
+export const MIN_N24H = 8
 
 /** Single-origin payload returned by /api/probe */
 export interface ProbeSnapshot {
@@ -40,7 +43,7 @@ function asColumn(value: unknown): ProbeColumn | null {
   const id = typeof value.id === 'string' && value.id ? value.id : 'probe'
   const label = typeof value.label === 'string' && value.label ? value.label : id
   const at = typeof value.at === 'string' && value.at ? value.at : new Date(0).toISOString()
-  return { id, label, at, results: value.results as ProbeResult[] }
+  return { id, label, at, results: value.results as ProbeResult[], stale: value.stale === true }
 }
 
 export function normalizeMatrixSnapshot(data: unknown): MatrixSnapshot | null {
@@ -74,7 +77,9 @@ export function originVendor(col: ProbeColumn): 'aws' | 'gcp' | 'azure' | 'verce
   return null
 }
 
-export function sameCloudKind(col: ProbeColumn, toProvider: string): 'on-net' | 'adjacent' | null {
+export function sameCloudKind(col: ProbeColumn, toProvider: string, toLocation: string): 'on-net' | 'adjacent' | null {
+  const originCity = ORIGIN_CITIES[columnCode(col)]
+  if (!originCity || originCity !== toLocation) return null
   const vendor = originVendor(col)
   if (vendor === 'aws' && toProvider === 'aws') return 'on-net'
   if (vendor === 'vercel' && toProvider === 'aws') return 'adjacent'

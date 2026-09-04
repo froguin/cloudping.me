@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: probe
+  cancel-in-progress: false
+
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -90,6 +94,19 @@ jobs:
           from datetime import datetime, timezone, timedelta
 
           raw = json.load(open("/tmp/latest.json"))
+          froms = raw.get("from") or {}
+          if os.path.isfile("latest.json"):
+              try:
+                  prev = json.load(open("latest.json"))
+                  prev_froms = prev.get("from") or {}
+              except Exception:
+                  prev_froms = {}
+              for key, col in prev_froms.items():
+                  if key not in froms and isinstance(col, dict) and col.get("results"):
+                      carried = dict(col)
+                      carried["stale"] = True
+                      froms[key] = carried
+              raw["from"] = froms
           at = raw.get("at") or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
           stamp = re.sub(r"[:.]", "-", at.replace("+00:00", "Z"))
           if not stamp.endswith("Z"):

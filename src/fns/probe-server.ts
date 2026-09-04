@@ -3,8 +3,8 @@ import type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 
 export type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 
-const MAX_BODY_BYTES = 64 * 1024
 const SAMPLE_COUNT = 5
+const MIN_SAMPLES = 3
 const DEFAULT_TIMEOUT_MS = 5000
 const CHINA_TIMEOUT_MS = 2000
 
@@ -18,25 +18,6 @@ function median(values: number[]): number {
   const mid = Math.floor(sorted.length / 2)
   if (sorted.length % 2) return sorted[mid]
   return Math.round((sorted[mid - 1] + sorted[mid]) / 2)
-}
-
-async function drainBody(res: Response): Promise<void> {
-  const body = res.body
-  if (!body) {
-    await res.arrayBuffer().catch(() => undefined)
-    return
-  }
-  const reader = body.getReader()
-  let n = 0
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) return
-    n += value?.byteLength || 0
-    if (n >= MAX_BODY_BYTES) {
-      await reader.cancel().catch(() => undefined)
-      return
-    }
-  }
 }
 
 async function timedGet(url: string, timeoutMs: number): Promise<number> {
@@ -53,8 +34,8 @@ async function timedGet(url: string, timeoutMs: number): Promise<number> {
       signal: controller.signal,
       headers: { 'user-agent': 'cloudping.me-probe' },
     })
-    await drainBody(res)
     const elapsed = Date.now() - start
+    if (res.body) await res.body.cancel().catch(() => undefined)
     if (elapsed < 2) throw new Error('network error')
     return elapsed
   } finally {
@@ -83,7 +64,7 @@ async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number;
       lastError = errorKind(err)
     }
   }
-  if (samples.length === 0) return { error: lastError }
+  if (samples.length < MIN_SAMPLES) return { error: lastError }
   return { ms: median(samples), samples: samples.length }
 }
 

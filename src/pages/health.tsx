@@ -11,6 +11,7 @@ import {
   ProbeResult,
   columnCode,
   normalizeMatrixSnapshot,
+  MIN_N24H,
   sameCloudKind,
 } from '@app/fns/probe-snapshot'
 import { getHealthJsonUrl, getSiteUrl } from '../site-config'
@@ -174,10 +175,13 @@ export default function Health(props: HealthProps): JSX.Element {
   }, [columns])
 
   const has24h = useMemo(() => {
+    let maxN = 0
     for (const col of columns) {
-      if (col.results.some((r) => r.ms24h != null)) return true
+      for (const r of col.results) {
+        if ((r.n24h || 0) > maxN) maxN = r.n24h || 0
+      }
     }
-    return false
+    return maxN >= MIN_N24H
   }, [columns])
 
   const scoped = useMemo(
@@ -303,7 +307,7 @@ export default function Health(props: HealthProps): JSX.Element {
                 className={`matrix-chip ${metric === 'p24' ? 'is-on' : ''}`}
                 onClick={() => setMetric('p24')}
                 disabled={!has24h}
-                title={has24h ? 'Median of per-run P50s over the last 24 hours' : '24h archive not populated yet'}
+                title={has24h ? 'Median of per-run P50s over the last 24 hours' : `Need about ${MIN_N24H} runs (~2 hours) before 24h P50`}
               >
                 24h P50
               </button>
@@ -371,7 +375,7 @@ export default function Health(props: HealthProps): JSX.Element {
                       <th key={col.id} title={col.label}>
                         <span className="matrix-from-code">{columnCode(col)}</span>
                         {columnCity(col) ? <span className="matrix-from-city">{columnCity(col)}</span> : null}
-                        <span className="matrix-from-city">{formatUpdated(col.at)}</span>
+                        <span className="matrix-from-city">{col.stale ? `stale · ${formatUpdated(col.at)}` : formatUpdated(col.at)}</span>
                       </th>
                     ))}
                   </tr>
@@ -402,7 +406,7 @@ export default function Health(props: HealthProps): JSX.Element {
                           </td>
                           {columns.map((col) => {
                             const cell = lookup.get(`${col.id}|${row.provider.key}|${row.region.key}`)
-                            const kind = sameCloudKind(col, row.provider.key)
+                            const kind = sameCloudKind(col, row.provider.key, row.region.location)
                             const displayMs =
                               metric === 'p24' ? cell?.ms24h ?? cell?.ms ?? null : cell?.ms ?? null
                             const displayOk = metric === 'p24' ? cell?.ms24h != null || Boolean(cell?.ok && cell.ms != null) : Boolean(cell?.ok && cell.ms != null)
@@ -439,8 +443,8 @@ export default function Health(props: HealthProps): JSX.Element {
             )}
           </div>
           <p className="matrix-footnote">
-            Latest is the P50 of five HTTP GETs after one warmup (64KB body cap). 24h P50 is the median of those per-run P50s.
-            Corner mark = same-cloud or AWS-adjacent path, not public internet. China endpoints use a shorter timeout.
+            Latest is the P50 of five HTTP GETs after warmup, timed to response headers (not body download). 24h P50 needs about 8 runs.
+            Corner mark = same metro and same cloud (or Vercel as AWS-adjacent in Seoul), not every AWS row.
           </p>
         </div>
       </div>
