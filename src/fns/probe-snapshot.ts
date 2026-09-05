@@ -44,8 +44,11 @@ function asColumn(value: unknown): ProbeColumn | null {
   const id = typeof value.id === 'string' && value.id ? value.id : 'probe'
   const label = typeof value.label === 'string' && value.label ? value.label : id
   const at = typeof value.at === 'string' && value.at ? value.at : new Date(0).toISOString()
-  const durationMs = typeof value.durationMs === 'number' && Number.isFinite(value.durationMs) ? value.durationMs : undefined
-  return { id, label, at, results: value.results as ProbeResult[], durationMs, stale: value.stale === true }
+  const col: ProbeColumn = { id, label, at, results: value.results as ProbeResult[], stale: value.stale === true }
+  if (typeof value.durationMs === 'number' && Number.isFinite(value.durationMs)) {
+    col.durationMs = value.durationMs
+  }
+  return col
 }
 
 export function normalizeMatrixSnapshot(data: unknown): MatrixSnapshot | null {
