@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "status": false
+    }
+  },
   "headers": [
     {
       "source": "/images/:path*",
