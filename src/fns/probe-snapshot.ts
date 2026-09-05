@@ -17,6 +17,7 @@ export interface ProbeColumn {
   label: string
   at: string
   results: ProbeResult[]
+  durationMs?: number
   stale?: boolean
 }
 
@@ -24,7 +25,7 @@ export const MIN_N24H = 8
 
 /** Single-origin payload returned by /api/probe */
 export interface ProbeSnapshot {
-  probe: { id: string; label: string; at: string }
+  probe: { id: string; label: string; at: string; durationMs?: number }
   results: ProbeResult[]
 }
 
@@ -43,7 +44,8 @@ function asColumn(value: unknown): ProbeColumn | null {
   const id = typeof value.id === 'string' && value.id ? value.id : 'probe'
   const label = typeof value.label === 'string' && value.label ? value.label : id
   const at = typeof value.at === 'string' && value.at ? value.at : new Date(0).toISOString()
-  return { id, label, at, results: value.results as ProbeResult[], stale: value.stale === true }
+  const durationMs = typeof value.durationMs === 'number' && Number.isFinite(value.durationMs) ? value.durationMs : undefined
+  return { id, label, at, results: value.results as ProbeResult[], durationMs, stale: value.stale === true }
 }
 
 export function normalizeMatrixSnapshot(data: unknown): MatrixSnapshot | null {

@@ -104,6 +104,7 @@ async function mapPool<T, R>(items: T[], concurrency: number, worker: (item: T) 
 }
 
 export async function runProbe(concurrency = 8): Promise<ProbeSnapshot> {
+  const started = Date.now()
   const providers = getAllProviders()
   const regions = getAllCloudRegions()
   const jobs: { provider: string; region: (typeof regions)[string][number] }[] = []
@@ -138,6 +139,7 @@ export async function runProbe(concurrency = 8): Promise<ProbeSnapshot> {
       id: originId || 'vercel',
       label: originLabel || `Vercel Function (${region})`,
       at: new Date().toISOString(),
+      durationMs: Date.now() - started,
     },
     results,
   }

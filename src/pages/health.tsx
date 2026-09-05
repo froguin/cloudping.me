@@ -76,6 +76,19 @@ function formatUpdated(iso: string): string {
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`
 }
 
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${Math.max(0, Math.round(ms))}ms`
+  const s = Math.round(ms / 1000)
+  if (s < 60) return `${s}s`
+  return `${Math.floor(s / 60)}m ${s % 60}s`
+}
+
+function columnSubtitle(col: ProbeColumn): string {
+  const when = col.stale ? `stale · ${formatUpdated(col.at)}` : formatUpdated(col.at)
+  if (typeof col.durationMs !== 'number') return when
+  return `${when} · ${formatDuration(col.durationMs)}`
+}
+
 function latencyBand(ms: number | null, ok: boolean): 'fast' | 'mid' | 'slow' | 'fail' | 'empty' {
   if (!ok || ms == null) return 'fail'
   if (ms < 100) return 'fast'
@@ -375,7 +388,7 @@ export default function Health(props: HealthProps): JSX.Element {
                       <th key={col.id} title={col.label}>
                         <span className="matrix-from-code">{columnCode(col)}</span>
                         {columnCity(col) ? <span className="matrix-from-city">{columnCity(col)}</span> : null}
-                        <span className="matrix-from-city">{col.stale ? `stale · ${formatUpdated(col.at)}` : formatUpdated(col.at)}</span>
+                        <span className="matrix-from-city">{columnSubtitle(col)}</span>
                       </th>
                     ))}
                   </tr>
