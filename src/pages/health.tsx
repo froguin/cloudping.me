@@ -145,7 +145,14 @@ export default function Health(props: HealthProps): JSX.Element {
     if (isFresh) return
 
     let cancelled = false
-    const url = `${getHealthJsonUrl()}?t=${Math.floor(Date.now() / 60000)}`
+    let url = getHealthJsonUrl()
+    try {
+      const parsed = new URL(url, typeof window !== 'undefined' ? window.location.origin : undefined)
+      parsed.searchParams.set('t', String(Math.floor(Date.now() / 60000)))
+      url = parsed.toString()
+    } catch {
+      url = url.includes('?') ? `${url}&t=${Math.floor(Date.now() / 60000)}` : `${url}?t=${Math.floor(Date.now() / 60000)}`
+    }
     fetch(url, { cache: 'no-store' })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
