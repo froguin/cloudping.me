@@ -140,8 +140,13 @@ export default function Health(props: HealthProps): JSX.Element {
   }, [])
 
   useEffect(() => {
+    const initialAt = props.initialSnapshot?.at ? new Date(props.initialSnapshot.at).getTime() : 0
+    const isFresh = Number.isFinite(initialAt) && initialAt > 0 && Date.now() - initialAt < 10 * 60 * 1000
+    if (isFresh) return
+
     let cancelled = false
-    fetch(getHealthJsonUrl(), { cache: 'no-store' })
+    const url = `${getHealthJsonUrl()}?t=${Math.floor(Date.now() / 60000)}`
+    fetch(url, { cache: 'no-store' })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
@@ -159,7 +164,7 @@ export default function Health(props: HealthProps): JSX.Element {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [props.initialSnapshot])
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'

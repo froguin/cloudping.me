@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return
   }
 
-  const snapshot = await runProbe(8)
+  const snapshot = await runProbe(24)
   res.setHeader('Cache-Control', 'no-store')
   res.status(200).json(snapshot)
 }

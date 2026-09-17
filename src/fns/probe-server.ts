@@ -103,7 +103,7 @@ async function mapPool<T, R>(items: T[], concurrency: number, worker: (item: T) 
   return out
 }
 
-export async function runProbe(concurrency = 8): Promise<ProbeSnapshot> {
+export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
   const started = Date.now()
   const providers = getAllProviders()
   const regions = getAllCloudRegions()

@@ -24,6 +24,6 @@ export async function handler(event: FunctionUrlEvent) {
   if (!authorized(auth)) {
     return json(401, { error: 'unauthorized' })
   }
-  const snapshot = await runProbe(8)
+  const snapshot = await runProbe(24)
   return json(200, snapshot)
 }

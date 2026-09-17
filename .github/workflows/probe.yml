@@ -2,9 +2,9 @@ name: Probe
 
 on:
   # EventBridge in ap-northeast-2 is the real 15-minute clock (workflow_dispatch).
-  # This cron is a fallback on an offset so it is not in the global :00 stampede.
+  # Fallback cron runs once an hour so it does not overlap with the EventBridge clock.
   schedule:
-    - cron: '7,22,37,52 * * * *'
+    - cron: '17 * * * *'
   workflow_dispatch:
   repository_dispatch:
     types: [probe]
@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: probe
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   probe:
@@ -29,6 +29,27 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${PROBE_SECRET}"
+
+          # If triggered by scheduled cron, skip if a probe was published within the last 10 minutes.
+          if [ "${GITHUB_EVENT_NAME}" = "schedule" ]; then
+            last_age=$(curl -fsS --max-time 10 "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/status/latest.json" 2>/dev/null | python3 -c '
+import sys, json, datetime
+try:
+    data = json.load(sys.stdin)
+    at_str = data.get("at")
+    if at_str:
+        dt = datetime.datetime.fromisoformat(at_str.replace("Z", "+00:00"))
+        age = (datetime.datetime.now(datetime.timezone.utc) - dt).total_seconds()
+        print(int(age))
+except Exception:
+    pass
+' || echo "")
+            if [ -n "${last_age}" ] && [ "${last_age}" -lt 600 ]; then
+              echo "A probe was published ${last_age}s ago (< 600s). Skipping redundant scheduled run."
+              exit 0
+            fi
+          fi
+
           urls=()
           if [ -n "${PROBE_URL:-}" ]; then urls+=("${PROBE_URL}"); fi
           if [ -n "${PROBE_URL_AWS_ICN:-}" ]; then urls+=("${PROBE_URL_AWS_ICN}"); fi
@@ -40,7 +61,7 @@ jobs:
           pids=()
           set +e
           for url in "${urls[@]}"; do
-            curl -fsS --max-time 270 -X POST "${url}" \
+            curl -fsS --max-time 180 -X POST "${url}" \
               -H "Authorization: Bearer ${PROBE_SECRET}" \
               -H "Accept: application/json" \
               -o "/tmp/probes/${i}.json" &
@@ -94,7 +115,7 @@ jobs:
             git checkout status 2>/dev/null || git checkout -b status origin/status
           fi
           python3 - <<'PY'
-          import json, glob, os, re
+          import json, glob, os, re, shutil
           from datetime import datetime, timezone, timedelta
 
           raw = json.load(open("/tmp/latest.json"))
@@ -112,15 +133,11 @@ jobs:
                       froms[key] = carried
               raw["from"] = froms
           at = raw.get("at") or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-          stamp = re.sub(r"[:.]", "-", at.replace("+00:00", "Z"))
-          if not stamp.endswith("Z"):
-              stamp += "Z"
-          os.makedirs("archive", exist_ok=True)
-          archive_path = os.path.join("archive", stamp + ".json")
-          json.dump(raw, open(archive_path, "w"), separators=(",", ":"))
 
-          cutoff = datetime.now(timezone.utc) - timedelta(hours=48)
-          cutoff24 = datetime.now(timezone.utc) - timedelta(hours=24)
+          now_dt = datetime.now(timezone.utc)
+          cutoff24 = now_dt - timedelta(hours=24)
+          cutoff24_ts = int(cutoff24.timestamp())
+          now_ts = int(now_dt.timestamp())
 
           def parse_at(name, payload):
               t = payload.get("at")
@@ -143,45 +160,71 @@ jobs:
                   return s[n // 2]
               return int(round((s[n // 2 - 1] + s[n // 2]) / 2))
 
-          series = {}
-          for path in glob.glob("archive/*.json"):
+          # Load existing history or migrate from legacy archive/*.json
+          history = {}
+          if os.path.isfile("history.json"):
               try:
-                  snap = json.load(open(path))
+                  history = json.load(open("history.json"))
               except Exception:
-                  continue
-              when = parse_at(path, snap)
-              if when is None:
-                  continue
-              if when < cutoff:
-                  os.remove(path)
-                  continue
-              if when < cutoff24:
-                  continue
-              froms = snap.get("from") or {}
-              for origin, col in froms.items():
-                  if not isinstance(col, dict):
+                  history = {}
+          elif os.path.isdir("archive"):
+              for path in sorted(glob.glob("archive/*.json")):
+                  try:
+                      snap = json.load(open(path))
+                  except Exception:
                       continue
-                  for item in col.get("results") or []:
-                      if not item.get("ok") or item.get("ms") is None:
+                  when = parse_at(path, snap)
+                  if when is None or when < cutoff24:
+                      continue
+                  when_ts = int(when.timestamp())
+                  for origin, col in (snap.get("from") or {}).items():
+                      if not isinstance(col, dict):
                           continue
-                      key = (origin, item.get("provider"), item.get("region"))
-                      series.setdefault(key, []).append(int(item["ms"]))
+                      for item in col.get("results") or []:
+                          if not item.get("ok") or item.get("ms") is None:
+                              continue
+                          key = f"{origin}:{item.get('provider')}:{item.get('region')}"
+                          history.setdefault(key, []).append([when_ts, int(item["ms"])])
 
-          froms = raw.get("from") or {}
+          # Retain only entries within the last 24 hours
+          cleaned_history = {}
+          for key, samples in history.items():
+              if not isinstance(samples, list):
+                  continue
+              kept = [s for s in samples if isinstance(s, list) and len(s) == 2 and s[0] >= cutoff24_ts]
+              if kept:
+                  cleaned_history[key] = kept
+          history = cleaned_history
+
+          # Append current round of probe results
           for origin, col in froms.items():
               if not isinstance(col, dict):
                   continue
               for item in col.get("results") or []:
-                  key = (origin, item.get("provider"), item.get("region"))
-                  vals = series.get(key) or []
+                  if not item.get("ok") or item.get("ms") is None:
+                      continue
+                  key = f"{origin}:{item.get('provider')}:{item.get('region')}"
+                  history.setdefault(key, []).append([now_ts, int(item["ms"])])
+
+          # Calculate ms24h (P50) and n24h for each result
+          for origin, col in froms.items():
+              if not isinstance(col, dict):
+                  continue
+              for item in col.get("results") or []:
+                  key = f"{origin}:{item.get('provider')}:{item.get('region')}"
+                  samples = history.get(key) or []
+                  vals = [s[1] for s in samples]
                   item["ms24h"] = p50(vals) if vals else None
                   item["n24h"] = len(vals)
+
           json.dump({"at": at, "from": froms}, open("latest.json", "w"), separators=(",", ":"))
+          json.dump(history, open("history.json", "w"), separators=(",", ":"))
+          shutil.rmtree("archive", ignore_errors=True)
           PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --orphan status-publish
           git rm -rf --cached . >/dev/null 2>&1 || true
-          git add latest.json archive
+          git add latest.json history.json
           git commit -m "probe $(date -u +%Y-%m-%dT%H:%M:%SZ)" || exit 0
           git push --force origin HEAD:status
