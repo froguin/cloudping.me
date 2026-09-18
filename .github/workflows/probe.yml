@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: probe
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   probe:
@@ -34,17 +34,17 @@ jobs:
           # If triggered by scheduled cron, skip if a probe was published within the last 10 minutes.
           if [ "${GITHUB_EVENT_NAME}" = "schedule" ]; then
             last_age=$(curl -fsS --max-time 10 "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/status/latest.json" 2>/dev/null | python3 -c '
-import sys, json, datetime
-try:
-    data = json.load(sys.stdin)
-    at_str = data.get("at")
-    if at_str:
-        dt = datetime.datetime.fromisoformat(at_str.replace("Z", "+00:00"))
-        age = (datetime.datetime.now(datetime.timezone.utc) - dt).total_seconds()
-        print(int(age))
-except Exception:
-    pass
-' || echo "")
+          import sys, json, datetime
+          try:
+              data = json.load(sys.stdin)
+              at_str = data.get("at")
+              if at_str:
+                  dt = datetime.datetime.fromisoformat(at_str.replace("Z", "+00:00"))
+                  age = (datetime.datetime.now(datetime.timezone.utc) - dt).total_seconds()
+                  print(int(age))
+          except Exception:
+              pass
+          ' || echo "")
             if [ -n "${last_age}" ] && [ "${last_age}" -lt 600 ]; then
               echo "A probe was published ${last_age}s ago (< 600s). Skipping redundant scheduled run."
               echo "skip=true" >> "${GITHUB_OUTPUT}"
@@ -205,9 +205,9 @@ except Exception:
                   cleaned_history.setdefault(normalized_key, []).extend(kept)
           history = cleaned_history
 
-          # Append current round of probe results
+          # Append current round of probe results (skip stale carried-forward columns)
           for origin, col in froms.items():
-              if not isinstance(col, dict):
+              if not isinstance(col, dict) or col.get("stale"):
                   continue
               for item in col.get("results") or []:
                   if not item.get("ok") or item.get("ms") is None:
