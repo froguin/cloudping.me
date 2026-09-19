@@ -334,6 +334,7 @@ const LatencyCard = memo(function LatencyCard({
     return 'rgba(239, 68, 68, 0.18)'
   }
   const isTop3 = rank !== undefined && rank <= 3
+  const isAboveFold = rankIndex < 6
   return (
     <div
       className={`latency-card${isTop3 ? ` rank-${rank}` : ''}${isUnreachable ? ' opacity-50' : ''}`}
@@ -352,7 +353,12 @@ const LatencyCard = memo(function LatencyCard({
             {isTop3 ? RANK_MEDALS[rank! - 1] : rank}
           </div>
           <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-            <CloudProviderLogo width={20} providerKey={data.provider.key} providerName={data.provider.display_name} />
+            <CloudProviderLogo
+              width={20}
+              providerKey={data.provider.key}
+              providerName={data.provider.display_name}
+              loading={isAboveFold ? 'eager' : undefined}
+            />
           </div>
           <div className="min-w-0 flex-1">
             {/* Top line: region code (+ provider on sm) + mobile badges */}
@@ -379,7 +385,7 @@ const LatencyCard = memo(function LatencyCard({
             </div>
             {/* Bottom line: flag + location */}
             <div className="flex items-center gap-1.5 text-xs">
-              <CountryFlag width={12} countryCode={data.region.country} />
+              <CountryFlag width={12} countryCode={data.region.country} loading={isAboveFold ? 'eager' : undefined} />
               <span className="truncate">{data.region.location}</span>
             </div>
           </div>
