@@ -131,16 +131,42 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     return { ...base, ms: out.ms, ok: true, samples: out.samples }
   })
 
-  const originId = process.env.PROBE_ORIGIN_ID
-  const originLabel = process.env.PROBE_ORIGIN_LABEL
-  const region = process.env.VERCEL_REGION || 'unknown'
+  const origin = resolveOrigin()
   return {
     probe: {
-      id: originId || 'vercel',
-      label: originLabel || `Vercel Function (${region})`,
+      id: origin.id,
+      label: origin.label,
       at: new Date().toISOString(),
       durationMs: Date.now() - started,
     },
     results,
   }
+}
+
+/**
+ * Decide the probe's origin id/label. The id becomes the /health column key, so
+ * two origins that share an id silently overwrite each other when the workflow
+ * merges their snapshots. Explicit PROBE_ORIGIN_ID/LABEL win; otherwise we derive
+ * a distinct id from the runtime so a Vercel Function and an AWS Lambda never
+ * collide even when the operator forgets to set them.
+ */
+function resolveOrigin(): { id: string; label: string } {
+  const explicitId = process.env.PROBE_ORIGIN_ID
+  const explicitLabel = process.env.PROBE_ORIGIN_LABEL
+  if (explicitId) {
+    return { id: explicitId, label: explicitLabel || explicitId }
+  }
+
+  // AWS Lambda always sets these; Vercel does not.
+  const lambdaName = process.env.AWS_LAMBDA_FUNCTION_NAME
+  if (lambdaName) {
+    const awsRegion = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'unknown'
+    return {
+      id: explicitId || `aws-${awsRegion}`,
+      label: explicitLabel || `AWS Lambda (${awsRegion})`,
+    }
+  }
+
+  const vercelRegion = process.env.VERCEL_REGION || 'unknown'
+  return { id: 'vercel', label: explicitLabel || `Vercel Function (${vercelRegion})` }
 }
