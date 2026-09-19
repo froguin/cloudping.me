@@ -182,9 +182,21 @@ jobs:
                   prev_froms = {}
               for key, col in prev_froms.items():
                   if key not in froms and isinstance(col, dict) and col.get("results"):
-                      carried = dict(col)
-                      carried["stale"] = True
-                      froms[key] = carried
+                      # Carry a missing origin forward as stale so a transient failure
+                      # keeps its last values -- but only briefly. An origin removed on
+                      # purpose (or down for >1h) ages out instead of lingering forever.
+                      col_at = col.get("at")
+                      keep = False
+                      if isinstance(col_at, str):
+                          try:
+                              col_dt = datetime.fromisoformat(col_at.replace("Z", "+00:00"))
+                              keep = (datetime.now(timezone.utc) - col_dt) < timedelta(hours=1)
+                          except ValueError:
+                              keep = False
+                      if keep:
+                          carried = dict(col)
+                          carried["stale"] = True
+                          froms[key] = carried
               raw["from"] = froms
           at = raw.get("at") or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
