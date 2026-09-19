@@ -1,11 +1,10 @@
 import React from 'react'
 import Document, { Html, Main, NextScript, Head } from 'next/document'
-import { fontVariables } from '../site-fonts'
 
 export default class MyDocument extends Document {
   render(): JSX.Element {
     return (
-      <Html lang="en" className={fontVariables}>
+      <Html lang="en">
         <Head>
           <meta name="referrer" content="same-origin" />
           <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
