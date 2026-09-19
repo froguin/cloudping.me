@@ -162,7 +162,7 @@ function resolveOrigin(): { id: string; label: string } {
   if (lambdaName) {
     const awsRegion = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'unknown'
     return {
-      id: explicitId || `aws-${awsRegion}`,
+      id: `aws-${awsRegion}`,
       label: explicitLabel || `AWS Lambda (${awsRegion})`,
     }
   }
