@@ -6,6 +6,11 @@ on:
   schedule:
     - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
+    inputs:
+      force_blob:
+        description: 'Bypass the Blob cadence gate and upload latest.json now (validation/debug)'
+        type: boolean
+        default: false
   repository_dispatch:
     types: [probe]
 
@@ -258,6 +263,7 @@ jobs:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
           BLOB_BASE_URL: aejnjhuwc4zeyko2.public.blob.vercel-storage.com
           BLOB_MIN_INTERVAL_SEC: '1680'
+          FORCE_BLOB: ${{ github.event.inputs.force_blob }}
         run: |
           set -euo pipefail
           if [ -z "${BLOB_READ_WRITE_TOKEN:-}" ]; then
@@ -268,16 +274,21 @@ jobs:
 
           # Cadence gate: skip if the blob was last written less than BLOB_MIN_INTERVAL_SEC ago.
           # Use Last-Modified (actual store write time), not CDN Age (cache-dependent).
-          lastmod=$(curl -fsS -I --max-time 10 "https://${BLOB_BASE_URL}/latest.json" 2>/dev/null \
-            | tr -d '\r' | awk -F': ' 'tolower($1)=="last-modified"{ $1=""; sub(/^ /,""); print }')
-          if [ -n "${lastmod:-}" ]; then
-            mod_ts=$(date -u -d "${lastmod}" +%s 2>/dev/null || echo "")
-            now_ts=$(date -u +%s)
-            if [ -n "${mod_ts}" ]; then
-              age=$(( now_ts - mod_ts ))
-              if [ "${age}" -lt "${BLOB_MIN_INTERVAL_SEC}" ]; then
-                echo "Blob latest.json was written ${age}s ago (< ${BLOB_MIN_INTERVAL_SEC}s); skipping to stay within free tier."
-                exit 0
+          # A manual force_blob=true dispatch bypasses the gate for validation/debugging.
+          if [ "${FORCE_BLOB:-false}" = "true" ]; then
+            echo "force_blob=true; bypassing cadence gate."
+          else
+            lastmod=$(curl -fsS -I --max-time 10 "https://${BLOB_BASE_URL}/latest.json" 2>/dev/null \
+              | tr -d '\r' | awk -F': ' 'tolower($1)=="last-modified"{ $1=""; sub(/^ /,""); print }')
+            if [ -n "${lastmod:-}" ]; then
+              mod_ts=$(date -u -d "${lastmod}" +%s 2>/dev/null || echo "")
+              now_ts=$(date -u +%s)
+              if [ -n "${mod_ts}" ]; then
+                age=$(( now_ts - mod_ts ))
+                if [ "${age}" -lt "${BLOB_MIN_INTERVAL_SEC}" ]; then
+                  echo "Blob latest.json was written ${age}s ago (< ${BLOB_MIN_INTERVAL_SEC}s); skipping to stay within free tier."
+                  exit 0
+                fi
               fi
             fi
           fi
