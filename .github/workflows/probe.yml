@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write   # for GitHub OIDC -> AWS IAM role (invoking US/EU/SG probe Lambdas)
 
 concurrency:
   group: probe
@@ -26,12 +27,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ vars.AWS_PROBE_ROLE_ARN != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PROBE_ROLE_ARN }}
+          aws-region: us-east-1
+
       - name: Trigger probes
         id: trigger
         env:
           PROBE_URL: ${{ secrets.PROBE_URL }}
           PROBE_URL_AWS_ICN: ${{ secrets.PROBE_URL_AWS_ICN }}
           PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
+          # Space-separated "region" entries; each is invoked via `aws lambda invoke`
+          # (function name fixed to cloudping-probe). Empty = skip Lambda invokes.
+          AWS_PROBE_REGIONS: ${{ vars.AWS_PROBE_REGIONS }}
+          AWS_PROBE_ROLE_ARN: ${{ vars.AWS_PROBE_ROLE_ARN }}
         run: |
           set -euo pipefail
           test -n "${PROBE_SECRET}"
@@ -60,7 +72,6 @@ jobs:
           urls=()
           if [ -n "${PROBE_URL:-}" ]; then urls+=("${PROBE_URL}"); fi
           if [ -n "${PROBE_URL_AWS_ICN:-}" ]; then urls+=("${PROBE_URL_AWS_ICN}"); fi
-          test "${#urls[@]}" -gt 0
 
           mkdir -p /tmp/probes
           rm -f /tmp/probes/*.json
@@ -75,6 +86,37 @@ jobs:
             pids+=($!)
             i=$((i + 1))
           done
+
+          # Additional AWS-region origins invoked directly via the AWS API (OIDC role),
+          # so they need no public Function URL. `aws lambda invoke` returns the handler's
+          # {statusCode, body} envelope; we extract the JSON body into the same probes dir.
+          # PROBE_SECRET is injected via json.dumps (not string interpolation) so quotes/
+          # backslashes in the secret can't corrupt the payload. Each subshell returns a
+          # real exit status (invoke/parse failure => non-zero) so `wait` can count it.
+          if [ -n "${AWS_PROBE_REGIONS:-}" ] && [ -n "${AWS_PROBE_ROLE_ARN:-}" ]; then
+            payload="$(PROBE_SECRET="${PROBE_SECRET}" python3 -c 'import json,os; print(json.dumps({"requestContext":{"http":{"method":"POST"}},"headers":{"authorization":"Bearer "+os.environ["PROBE_SECRET"]}}))')"
+            for region in ${AWS_PROBE_REGIONS}; do
+              (
+                status=0
+                out="/tmp/probes/aws-${region}.env.json"
+                if aws lambda invoke --region "${region}" --function-name cloudping-probe \
+                  --cli-read-timeout 300 --cli-connect-timeout 10 \
+                  --cli-binary-format raw-in-base64-out \
+                  --payload "${payload}" \
+                  "${out}" >/dev/null 2>&1; then
+                  OUT="${out}" REGION="${region}" python3 -c 'import json,os,sys; env=json.load(open(os.environ["OUT"])); body=env.get("body"); sys.exit(1) if (env.get("statusCode")!=200 or not body) else json.dump(json.loads(body), open("/tmp/probes/aws-"+os.environ["REGION"]+".json","w"))' || { echo "aws invoke ${region}: bad response" >&2; status=1; }
+                else
+                  echo "aws invoke ${region}: failed" >&2
+                  status=1
+                fi
+                rm -f "${out}"
+                exit "${status}"
+              ) &
+              pids+=($!)
+            done
+          fi
+
+          test "${#pids[@]}" -gt 0 || { echo "no probe origins configured" >&2; set -e; exit 1; }
           fail=0
           for pid in "${pids[@]}"; do
             wait "${pid}" || fail=1
