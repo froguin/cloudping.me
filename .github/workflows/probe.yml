@@ -244,3 +244,54 @@ jobs:
           git add latest.json history.json vercel.json
           git commit -m "probe $(date -u +%Y-%m-%dT%H:%M:%SZ)" || exit 0
           git push --force origin HEAD:status
+          cp latest.json /tmp/latest.json
+
+      # Mirror latest.json to Vercel Blob (primary read path for /health).
+      # git status branch stays as the rollback backup. Uploading only latest.json
+      # (one put/run) and gating to ~30-minute cadence keeps us within Blob's free
+      # 2,000 advanced-operations/month (30 min => ~1,440/month). EventBridge/cron
+      # still fire every 15 min; we simply skip the upload when the existing blob is
+      # younger than the cadence window.
+      - name: Mirror latest.json to Vercel Blob
+        if: steps.trigger.outputs.skip != 'true'
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          BLOB_BASE_URL: aejnjhuwc4zeyko2.public.blob.vercel-storage.com
+          BLOB_MIN_INTERVAL_SEC: '1680'
+        run: |
+          set -euo pipefail
+          if [ -z "${BLOB_READ_WRITE_TOKEN:-}" ]; then
+            echo "BLOB_READ_WRITE_TOKEN not set; skipping Blob mirror (git status branch still published)."
+            exit 0
+          fi
+          test -f /tmp/latest.json || { echo "no /tmp/latest.json; nothing to mirror"; exit 0; }
+
+          # Cadence gate: skip if the blob was last written less than BLOB_MIN_INTERVAL_SEC ago.
+          # Use Last-Modified (actual store write time), not CDN Age (cache-dependent).
+          lastmod=$(curl -fsS -I --max-time 10 "https://${BLOB_BASE_URL}/latest.json" 2>/dev/null \
+            | tr -d '\r' | awk -F': ' 'tolower($1)=="last-modified"{ $1=""; sub(/^ /,""); print }')
+          if [ -n "${lastmod:-}" ]; then
+            mod_ts=$(date -u -d "${lastmod}" +%s 2>/dev/null || echo "")
+            now_ts=$(date -u +%s)
+            if [ -n "${mod_ts}" ]; then
+              age=$(( now_ts - mod_ts ))
+              if [ "${age}" -lt "${BLOB_MIN_INTERVAL_SEC}" ]; then
+                echo "Blob latest.json was written ${age}s ago (< ${BLOB_MIN_INTERVAL_SEC}s); skipping to stay within free tier."
+                exit 0
+              fi
+            fi
+          fi
+
+          npm install --no-save --no-audit --no-fund @vercel/blob >/dev/null 2>&1
+          node -e '
+          const { put } = require("@vercel/blob");
+          const fs = require("fs");
+          put("latest.json", fs.readFileSync("/tmp/latest.json"), {
+            access: "public",
+            addRandomSuffix: false,
+            allowOverwrite: true,
+            cacheControlMaxAge: 60,
+            contentType: "application/json",
+          }).then((r) => console.log("Mirrored to Blob:", r.url))
+            .catch((e) => { console.error(e); process.exit(1); });
+          '
