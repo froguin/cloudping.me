@@ -16,9 +16,14 @@ import {
 } from '@app/fns/probe-snapshot'
 import { getHealthJsonUrl, getSiteUrl } from '../site-config'
 
+// The matrix only reads these four region fields. Shipping the full CloudRegion
+// (with ping_url ~19KB and display_name ~10KB across 301 regions) blows the page
+// data past Next.js's 128KB warning threshold, so props carry a slimmed shape.
+type HealthRegion = Pick<CloudRegion, 'key' | 'country' | 'location' | 'geo'>
+
 interface HealthProps {
   providers: CloudProvider[]
-  regions: Record<string, CloudRegion[]>
+  regions: Record<string, HealthRegion[]>
   geos: Record<string, string[]>
   initialSnapshot: MatrixSnapshot | null
 }
@@ -26,7 +31,7 @@ interface HealthProps {
 interface CatalogRow {
   key: string
   provider: CloudProvider
-  region: CloudRegion
+  region: HealthRegion
 }
 
 async function loadSnapshot(): Promise<MatrixSnapshot | null> {
@@ -45,8 +50,16 @@ async function loadSnapshot(): Promise<MatrixSnapshot | null> {
 
 export async function getStaticProps(): Promise<GetStaticPropsResult<HealthProps>> {
   const providers = getAllProviders()
-  const regions = getAllCloudRegions()
+  const fullRegions = getAllCloudRegions()
   const initialSnapshot = await loadSnapshot()
+
+  // Slim each region to only the fields the matrix renders, dropping ping_url and
+  // display_name so the serialized page data stays under Next.js's 128KB threshold.
+  const regions: Record<string, HealthRegion[]> = {}
+  for (const [key, list] of Object.entries(fullRegions)) {
+    regions[key] = list.map((r) => ({ key: r.key, country: r.country, location: r.location, geo: r.geo }))
+  }
+
   return {
     props: {
       providers,
