@@ -229,11 +229,18 @@ jobs:
           json.dump({"at": at, "from": froms}, open("latest.json", "w"), separators=(",", ":"))
           json.dump(history, open("history.json", "w"), separators=(",", ":"))
           shutil.rmtree("archive", ignore_errors=True)
+          # Vercel reads git.deploymentEnabled from the vercel.json on the *pushed* branch.
+          # The status branch is orphaned (no vercel.json from main), so without this file
+          # Vercel defaults to enabled and creates a (then-canceled) deployment record for
+          # every push -- and canceled records still count against Hobby's 100 deploys/day.
+          # Ship a vercel.json here that disables auto-deployments for all branches so Vercel
+          # never creates a record for status-branch pushes.
+          json.dump({"git": {"deploymentEnabled": False}}, open("vercel.json", "w"), separators=(",", ":"))
           PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --orphan status-publish
           git rm -rf --cached . >/dev/null 2>&1 || true
-          git add latest.json history.json
+          git add latest.json history.json vercel.json
           git commit -m "probe $(date -u +%Y-%m-%dT%H:%M:%SZ)" || exit 0
           git push --force origin HEAD:status
