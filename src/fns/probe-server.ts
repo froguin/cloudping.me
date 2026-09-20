@@ -6,6 +6,7 @@ export type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 const MAX_BODY_BYTES = 64 * 1024
 const SAMPLE_COUNT = 5
 const MIN_SAMPLES = 3
+const WARMUP_COUNT = 2
 const DEFAULT_TIMEOUT_MS = 5000
 const CHINA_TIMEOUT_MS = 2000
 
@@ -69,10 +70,16 @@ function errorKind(err: unknown): 'timeout' | 'network' {
 }
 
 async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number; samples: number } | { error: 'timeout' | 'network' }> {
-  try {
-    await timedGet(url, timeoutMs)
-  } catch (err) {
-    return { error: errorKind(err) }
+  // Warm up the connection (DNS, TLS session, and the target's own cold start)
+  // with throwaway requests so the timed samples reflect steady-state latency
+  // rather than first-hit cost. Warmup failures are ignored; the measured loop
+  // below decides success.
+  for (let i = 0; i < WARMUP_COUNT; i++) {
+    try {
+      await timedGet(url, timeoutMs)
+    } catch {
+      /* ignore warmup failures */
+    }
   }
 
   const samples: number[] = []
