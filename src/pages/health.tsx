@@ -297,10 +297,7 @@ export default function Health(props: HealthProps): JSX.Element {
   }, [columns])
 
   const scoped = useMemo(
-    () =>
-      catalog.filter(
-        (row) => selectedProviders.includes(row.provider.key) && selectedGeos.includes(row.region.geo)
-      ),
+    () => catalog.filter((row) => selectedProviders.includes(row.provider.key) && selectedGeos.includes(row.region.geo)),
     [catalog, selectedProviders, selectedGeos]
   )
 
@@ -321,7 +318,7 @@ export default function Health(props: HealthProps): JSX.Element {
   const siteUrl = getSiteUrl()
   const title = 'Health — Cloudping.me'
   const description =
-    'Shared cloud-region latency matrix probed from AWS, GCP, and Azure regions. HTTP round-trip, not measured from your browser.'
+    'Shared cloud-region latency matrix probed from AWS, GCP, and Azure regions. Latest values show the fastest successful HTTP round-trip after warmup; 24h values are median per-run results.'
 
   const toggleProvider = (k: string) => setSelectedProviders((v) => (v.includes(k) ? v.filter((x) => x !== k) : [...v, k]))
   const toggleGeo = (geo: string) => setSelectedGeos((v) => (v.includes(geo) ? v.filter((x) => x !== geo) : [...v, geo]))
@@ -365,7 +362,7 @@ export default function Health(props: HealthProps): JSX.Element {
             <h2 className="matrix-title">Cloud Region Latency Matrix</h2>
             <p className="text-sm text-[color:var(--text-secondary)]">
               Rows = target cloud regions. Columns = probe origins
-              {columns.length ? ` (${columns.length})` : ''}. Median HTTP round-trip after warmup — not ICMP ping.
+              {columns.length ? ` (${columns.length})` : ''}. Fastest successful HTTP round-trip after warmup — not ICMP ping.
             </p>
             <p className="text-xs text-[color:var(--text-muted)]">
               {snapshot
@@ -383,9 +380,7 @@ export default function Health(props: HealthProps): JSX.Element {
               <span className="matrix-from-filter-label">To (target regions)</span>
               <button
                 type="button"
-                onClick={() =>
-                  setSelectedProviders(selectedProviders.length === props.providers.length ? [] : props.providers.map((p) => p.key))
-                }
+                onClick={() => setSelectedProviders(selectedProviders.length === props.providers.length ? [] : props.providers.map((p) => p.key))}
                 className="text-xs text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)] transition-colors"
               >
                 {selectedProviders.length === props.providers.length ? 'Deselect all' : 'Select all'}
@@ -446,12 +441,7 @@ export default function Health(props: HealthProps): JSX.Element {
               {fromContinents.map((c) => {
                 const on = selectedFromContinents === null || selectedFromContinents.includes(c)
                 return (
-                  <button
-                    key={`fc-${c}`}
-                    type="button"
-                    onClick={() => toggleFromContinent(c)}
-                    className={`provider-pill ${on ? 'active' : ''}`}
-                  >
+                  <button key={`fc-${c}`} type="button" onClick={() => toggleFromContinent(c)} className={`provider-pill ${on ? 'active' : ''}`}>
                     {c}
                   </button>
                 )
@@ -462,14 +452,14 @@ export default function Health(props: HealthProps): JSX.Element {
           <div className="matrix-toolbar">
             <div className="matrix-toolbar-left">
               <button type="button" className={`matrix-chip ${metric === 'latest' ? 'is-on' : ''}`} onClick={() => setMetric('latest')}>
-                Latest P50
+                Latest min
               </button>
               <button
                 type="button"
                 className={`matrix-chip ${metric === 'p24' ? 'is-on' : ''}`}
                 onClick={() => setMetric('p24')}
                 disabled={!has24h}
-                title={has24h ? 'Median of per-run P50s over the last 24 hours' : `Need about ${MIN_N24H} runs (~2 hours) before 24h P50`}
+                title={has24h ? 'Median of per-run values over the last 24 hours' : `Need about ${MIN_N24H} runs (~2 hours) before 24h P50`}
               >
                 24h P50
               </button>
@@ -521,18 +511,16 @@ export default function Health(props: HealthProps): JSX.Element {
             {rows.length === 0 || visibleColumns.length === 0 ? (
               <div className="text-center py-12 text-[color:var(--text-muted)]">
                 <p>
-                  {snapshot
-                    ? 'No regions match the current filters.'
-                    : loadError
-                      ? 'Waiting for the first probe snapshot.'
-                      : 'Loading latest probe snapshot…'}
+                  {snapshot ? 'No regions match the current filters.' : loadError ? 'Waiting for the first probe snapshot.' : 'Loading latest probe snapshot…'}
                 </p>
               </div>
             ) : (
               <table className="matrix-table">
                 <thead>
                   <tr>
-                    <th className="matrix-corner" rowSpan={2}>To \ From</th>
+                    <th className="matrix-corner" rowSpan={2}>
+                      To \ From
+                    </th>
                     {(() => {
                       // Continent group header row spanning each run of same-continent columns.
                       const groups: { continent: string; span: number }[] = []
@@ -555,9 +543,7 @@ export default function Health(props: HealthProps): JSX.Element {
                       return (
                         <th key={col.id} title={`${col.label} · ${columnSubtitle(col)}`}>
                           <span className="matrix-from-head">
-                            {vendor && vendor !== 'vercel' ? (
-                              <CloudProviderLogo width={13} providerKey={vendor} providerName={vendor.toUpperCase()} />
-                            ) : null}
+                            {vendor && vendor !== 'vercel' ? <CloudProviderLogo width={13} providerKey={vendor} providerName={vendor.toUpperCase()} /> : null}
                             <span className="matrix-from-code">{columnCity(col) ?? columnCode(col)}</span>
                           </span>
                           {col.stale ? <span className="matrix-from-stale">stale</span> : null}
@@ -593,9 +579,9 @@ export default function Health(props: HealthProps): JSX.Element {
                           {visibleColumns.map((col) => {
                             const cell = lookup.get(`${col.id}|${row.provider.key}|${row.region.key}`)
                             const kind = sameCloudKind(col, row.provider.key, row.region.location)
-                            const displayMs =
-                              metric === 'p24' ? cell?.ms24h ?? cell?.ms ?? null : cell?.ms ?? null
-                            const displayOk = metric === 'p24' ? cell?.ms24h != null || Boolean(cell?.ok && cell.ms != null) : Boolean(cell?.ok && cell.ms != null)
+                            const displayMs = metric === 'p24' ? (cell?.ms24h ?? cell?.ms ?? null) : (cell?.ms ?? null)
+                            const displayOk =
+                              metric === 'p24' ? cell?.ms24h != null || Boolean(cell?.ok && cell.ms != null) : Boolean(cell?.ok && cell.ms != null)
                             const band = cell ? latencyBand(displayMs, displayOk && displayMs != null) : 'empty'
                             const failText = cell?.error === 'timeout' ? 'timeout' : cell?.error === 'network' ? 'network' : 'unreachable'
                             const parts = [
@@ -603,17 +589,12 @@ export default function Health(props: HealthProps): JSX.Element {
                                 ? 'no sample'
                                 : displayMs == null
                                   ? failText
-                                  : `${formatMs(displayMs)} ${metric === 'p24' ? '24h P50' : 'latest P50'} from ${columnCode(col)} to ${row.region.key}`,
+                                  : `${formatMs(displayMs)} ${metric === 'p24' ? '24h P50' : 'latest min'} from ${columnCode(col)} to ${row.region.key}`,
                             ]
                             if (cell?.ms != null) parts.push(`latest ${formatMs(cell.ms)}`)
                             if (cell?.ms24h != null) parts.push(`24h ${formatMs(cell.ms24h)} n=${cell.n24h ?? '?'}`)
                             if (cell?.samples) parts.push(`${cell.samples} samples`)
-                            const markTip =
-                              kind === 'on-net'
-                                ? 'same-cloud backbone'
-                                : kind === 'adjacent'
-                                  ? 'AWS-adjacent origin'
-                                  : null
+                            const markTip = kind === 'on-net' ? 'same-cloud backbone' : kind === 'adjacent' ? 'AWS-adjacent origin' : null
                             return (
                               <td
                                 key={col.id}
@@ -637,13 +618,7 @@ export default function Health(props: HealthProps): JSX.Element {
                                 }
                               >
                                 {displayMs == null ? '—' : formatMs(displayMs)}
-                                {markTip ? (
-                                  <span
-                                    className="matrix-mark"
-                                    data-tip={markTip}
-                                    aria-label={markTip}
-                                  />
-                                ) : null}
+                                {markTip ? <span className="matrix-mark" data-tip={markTip} aria-label={markTip} /> : null}
                               </td>
                             )
                           })}
@@ -656,8 +631,8 @@ export default function Health(props: HealthProps): JSX.Element {
             )}
           </div>
           <p className="matrix-footnote">
-            Latest = median of a few HTTP GETs (to response headers, after warmup); 24h P50 builds up over the first hours.
-            Click a cell for history; hover the ◥ corner mark for same-metro details.
+            Latest min = the fastest of up to 4 successful HTTP GETs to response headers after 2 warmups (at least 3 successes); 24h P50 is the median of
+            per-run values and may include older probe behavior. Click a cell for history; hover the ◥ corner mark for same-metro details.
           </p>
         </div>
         {selectedCell ? (
