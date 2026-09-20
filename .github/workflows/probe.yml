@@ -63,6 +63,9 @@ jobs:
           # X-Probe-Secret header. Empty = skip GCP invokes.
           GCP_PROBE_URLS: ${{ vars.GCP_PROBE_URLS }}
           GCP_PROBE_SA: ${{ vars.GCP_PROBE_SA }}
+          # Space-separated Azure App Service (F1) URLs. Public apps invoked with
+          # PROBE_SECRET Bearer (no OIDC needed). Empty = skip Azure invokes.
+          AZURE_PROBE_URLS: ${{ vars.AZURE_PROBE_URLS }}
         run: |
           set -euo pipefail
           test -n "${PROBE_SECRET}"
@@ -169,6 +172,27 @@ jobs:
                   -H "Accept: application/json" \
                   -o "/tmp/probes/gcp-${safe}.json"; then
                   echo "gcp invoke ${url}: failed" >&2
+                  status=1
+                fi
+                exit "${status}"
+              ) &
+              pids+=($!)
+            done
+          fi
+
+          # Azure App Service (F1) origins. F1 web apps are public, so auth is
+          # purely app-level: send PROBE_SECRET as Authorization: Bearer (same as
+          # the AWS Seoul Function URL path). No OIDC/identity token needed.
+          if [ -n "${AZURE_PROBE_URLS:-}" ]; then
+            for url in ${AZURE_PROBE_URLS}; do
+              (
+                status=0
+                safe="$(printf '%s' "${url}" | tr -c 'A-Za-z0-9' '_')"
+                if ! curl -fsS --max-time 270 -X POST "${url}" \
+                  -H "Authorization: Bearer ${PROBE_SECRET}" \
+                  -H "Accept: application/json" \
+                  -o "/tmp/probes/azure-${safe}.json"; then
+                  echo "azure invoke ${url}: failed" >&2
                   status=1
                 fi
                 exit "${status}"

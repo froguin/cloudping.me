@@ -177,6 +177,17 @@ function resolveOrigin(): { id: string; label: string } {
     }
   }
 
+  // Azure App Service sets WEBSITE_SITE_NAME. REGION_NAME holds the display
+  // region (e.g. "Australia East"); PROBE_ORIGIN_ID is set explicitly at deploy
+  // time, so this is just a safety net.
+  if (process.env.WEBSITE_SITE_NAME) {
+    const azureRegion = (process.env.REGION_NAME || 'unknown').replace(/\s+/g, '').toLowerCase()
+    return {
+      id: `azure-${azureRegion}`,
+      label: explicitLabel || `Azure App Service (${azureRegion})`,
+    }
+  }
+
   const vercelRegion = process.env.VERCEL_REGION || 'unknown'
   return { id: 'vercel', label: explicitLabel || `Vercel Function (${vercelRegion})` }
 }
