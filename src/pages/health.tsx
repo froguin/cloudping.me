@@ -364,8 +364,8 @@ export default function Health(props: HealthProps): JSX.Element {
           <div className="flex flex-col gap-1 mb-6">
             <h2 className="matrix-title">Cloud Region Latency Matrix</h2>
             <p className="text-sm text-[color:var(--text-secondary)]">
-              To = cloud region ping URL. From = probe origin
-              {columns.length ? ` (${columns.length} regions)` : ''}. HTTP P50 after warmup, not ICMP.
+              Rows = target cloud regions. Columns = probe origins
+              {columns.length ? ` (${columns.length})` : ''}. Median HTTP round-trip after warmup — not ICMP ping.
             </p>
             <p className="text-xs text-[color:var(--text-muted)]">
               {snapshot
@@ -656,10 +656,8 @@ export default function Health(props: HealthProps): JSX.Element {
             )}
           </div>
           <p className="matrix-footnote">
-            Latest is the P50 of five HTTP GETs after warmup, timed to response headers (not body download). 24h P50 builds up
-            over the first several hours of runs. The ◥ corner mark (hover it for details) means the probe origin shares the
-            target&rsquo;s metro: solid = same metro <em>and</em> same cloud (provider backbone), faint = same metro on an
-            AWS-adjacent origin.
+            Latest = median of a few HTTP GETs (to response headers, after warmup); 24h P50 builds up over the first hours.
+            Click a cell for history; hover the ◥ corner mark for same-metro details.
           </p>
         </div>
         {selectedCell ? (
