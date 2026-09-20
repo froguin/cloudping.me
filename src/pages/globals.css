@@ -418,6 +418,18 @@ code,
 }
 .matrix-from-code { display: block; font-family: var(--font-jetbrains-mono), ui-monospace, monospace; color: var(--text); }
 .matrix-from-city { display: block; font-size: 10px; font-weight: 400; color: var(--text-muted); }
+.matrix-from-stale {
+  display: block;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--warn, #d08700);
+}
+/* Compact From column headers: only the CSP logo + city (or code) show; the
+   full label + timestamp + duration live in the th title tooltip. */
+.matrix-table thead th { padding: 0.24rem 0.4rem; font-size: 11px; }
+.matrix-from-head .matrix-from-code { font-size: 11px; }
 /* Continent group header (top row) + per-origin head with CSP logo (second row). */
 .matrix-from-continent {
   font-size: 10px;

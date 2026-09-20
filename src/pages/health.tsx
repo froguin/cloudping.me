@@ -448,15 +448,14 @@ export default function Health(props: HealthProps): JSX.Element {
                     {columns.map((col) => {
                       const vendor = originVendor(col)
                       return (
-                        <th key={col.id} title={col.label}>
+                        <th key={col.id} title={`${col.label} · ${columnSubtitle(col)}`}>
                           <span className="matrix-from-head">
                             {vendor && vendor !== 'vercel' ? (
                               <CloudProviderLogo width={13} providerKey={vendor} providerName={vendor.toUpperCase()} />
                             ) : null}
-                            <span className="matrix-from-code">{columnCode(col)}</span>
+                            <span className="matrix-from-code">{columnCity(col) ?? columnCode(col)}</span>
                           </span>
-                          {columnCity(col) ? <span className="matrix-from-city">{columnCity(col)}</span> : null}
-                          <span className="matrix-from-city">{columnSubtitle(col)}</span>
+                          {col.stale ? <span className="matrix-from-stale">stale</span> : null}
                         </th>
                       )
                     })}
