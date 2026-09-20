@@ -1,0 +1,87 @@
+name: Deploy GCP
+
+# Build the probe image in the GitHub Actions runner and deploy it to every GCP
+# Cloud Run region. Doing the build in Actions (not GCP Cloud Build) sidesteps the
+# no-billing project's regional build-quota block entirely, so any region works.
+# Public repo → Actions minutes are free. Matches the AWS/Azure deploy pattern:
+# one place (.github/workflows), keyless WIF auth, path-filtered.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cloudrun/**'
+      - 'src/fns/**'
+      - 'src/data/**'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write   # GitHub OIDC → GCP Workload Identity Federation
+
+concurrency:
+  group: deploy-gcp
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROJECT_ID: froguin3
+      # Artifact Registry storage is same price in every region (free <0.5GB), so
+      # the AR region is arbitrary; asia-northeast3 colocates with a Cloud Run origin.
+      AR_REGION: asia-northeast3
+      REPO: cloud-run-source-deploy
+      SERVICE: cloudping-probe
+      GCP_RUN_REGIONS: ${{ vars.GCP_RUN_REGIONS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (WIF, keyless)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_PROBE_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Bundle server (esbuild, Node 24)
+        run: |
+          set -euo pipefail
+          npx --yes esbuild cloudrun/server.ts \
+            --bundle --platform=node --target=node24 --format=cjs \
+            --alias:@app/data="$(pwd)/src/data" \
+            --outfile=cloudrun/server.js
+
+      - name: Build & push image to Artifact Registry
+        run: |
+          set -euo pipefail
+          IMAGE="${AR_REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/${SERVICE}"
+          gcloud auth configure-docker "${AR_REGION}-docker.pkg.dev" --quiet
+          # Ensure the AR repo exists (idempotent).
+          gcloud artifacts repositories describe "${REPO}" --location="${AR_REGION}" >/dev/null 2>&1 \
+            || gcloud artifacts repositories create "${REPO}" --repository-format=docker --location="${AR_REGION}" --quiet
+          docker build -t "${IMAGE}:${GITHUB_SHA}" -t "${IMAGE}:latest" cloudrun
+          docker push "${IMAGE}:${GITHUB_SHA}"
+          docker push "${IMAGE}:latest"
+          echo "IMAGE=${IMAGE}:${GITHUB_SHA}" >> "${GITHUB_ENV}"
+
+      - name: Deploy image to all Cloud Run regions
+        env:
+          PROBE_SECRET: ${{ secrets.PROBE_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "${PROBE_SECRET}"
+          for region in ${GCP_RUN_REGIONS}; do
+            echo "=== deploy ${region} ==="
+            gcloud run deploy "${SERVICE}" \
+              --image "${IMAGE}" \
+              --region "${region}" \
+              --no-allow-unauthenticated \
+              --cpu 0.5 --memory 512Mi --timeout 300 \
+              --min-instances 0 --max-instances 1 \
+              --set-env-vars "PROBE_SECRET=${PROBE_SECRET},PROBE_ORIGIN_ID=gcp-${region},PROBE_ORIGIN_LABEL=GCP Cloud Run (${region})" \
+              --quiet
+          done
