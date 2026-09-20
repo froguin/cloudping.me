@@ -167,6 +167,16 @@ function resolveOrigin(): { id: string; label: string } {
     }
   }
 
+  // GCP Cloud Run sets K_SERVICE. The region isn't in the env, so PROBE_ORIGIN_ID
+  // should be set at deploy time; GCP_REGION is a convenience fallback.
+  if (process.env.K_SERVICE) {
+    const gcpRegion = process.env.GCP_REGION || 'unknown'
+    return {
+      id: `gcp-${gcpRegion}`,
+      label: explicitLabel || `GCP Cloud Run (${gcpRegion})`,
+    }
+  }
+
   const vercelRegion = process.env.VERCEL_REGION || 'unknown'
   return { id: 'vercel', label: explicitLabel || `Vercel Function (${vercelRegion})` }
 }

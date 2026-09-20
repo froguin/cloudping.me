@@ -23,7 +23,7 @@ FUNCTION_NAME="cloudping-probe"
 ROLE_ARN="${ROLE_ARN:-arn:aws:iam::090451331601:role/cloudping-probe-lambda}"
 RUNTIME="nodejs20.x"
 ARCH="arm64"
-MEM="512"
+MEM="256"
 TIMEOUT="300"
 HANDLER="index.handler"
 

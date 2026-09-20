@@ -34,6 +34,20 @@ jobs:
           role-to-assume: ${{ vars.AWS_PROBE_ROLE_ARN }}
           aws-region: us-east-1
 
+      # Keyless GCP auth via Workload Identity Federation (mirrors the AWS OIDC role).
+      # Exports GOOGLE_APPLICATION_CREDENTIALS so `gcloud auth print-identity-token`
+      # can mint per-service ID tokens for the private Cloud Run origins.
+      - name: Configure GCP credentials (OIDC/WIF)
+        if: ${{ vars.GCP_PROBE_PROVIDER != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_PROBE_PROVIDER }}
+          service_account: ${{ vars.GCP_PROBE_SA }}
+
+      - name: Set up gcloud
+        if: ${{ vars.GCP_PROBE_PROVIDER != '' }}
+        uses: google-github-actions/setup-gcloud@v2
+
       - name: Trigger probes
         id: trigger
         env:
@@ -44,6 +58,10 @@ jobs:
           # (function name fixed to cloudping-probe). Empty = skip Lambda invokes.
           AWS_PROBE_REGIONS: ${{ vars.AWS_PROBE_REGIONS }}
           AWS_PROBE_ROLE_ARN: ${{ vars.AWS_PROBE_ROLE_ARN }}
+          # Space-separated private Cloud Run service URLs. Each is invoked with a
+          # per-service Google ID token (Cloud Run IAM) plus the app secret in the
+          # X-Probe-Secret header. Empty = skip GCP invokes.
+          GCP_PROBE_URLS: ${{ vars.GCP_PROBE_URLS }}
         run: |
           set -euo pipefail
           test -n "${PROBE_SECRET}"
@@ -110,6 +128,32 @@ jobs:
                   status=1
                 fi
                 rm -f "${out}"
+                exit "${status}"
+              ) &
+              pids+=($!)
+            done
+          fi
+
+          # Private Cloud Run origins invoked with a per-service Google ID token
+          # (audience must equal the service URL) for Cloud Run IAM, plus the app
+          # secret on X-Probe-Secret so it doesn't collide with the ID token that
+          # Cloud Run forwards on Authorization. Each subshell returns a real exit
+          # status so `wait` can count failures. Snapshot lands in the same dir and
+          # is normalized by the merge step below via its embedded probe.id.
+          if [ -n "${GCP_PROBE_URLS:-}" ]; then
+            for url in ${GCP_PROBE_URLS}; do
+              (
+                status=0
+                idtok="$(gcloud auth print-identity-token --audiences="${url}" 2>/dev/null)" || { echo "gcp id-token ${url}: failed" >&2; exit 1; }
+                safe="$(printf '%s' "${url}" | tr -c 'A-Za-z0-9' '_')"
+                if ! curl -fsS --max-time 270 -X POST "${url}" \
+                  -H "Authorization: Bearer ${idtok}" \
+                  -H "X-Probe-Secret: ${PROBE_SECRET}" \
+                  -H "Accept: application/json" \
+                  -o "/tmp/probes/gcp-${safe}.json"; then
+                  echo "gcp invoke ${url}: failed" >&2
+                  status=1
+                fi
                 exit "${status}"
               ) &
               pids+=($!)
