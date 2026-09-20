@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Head from 'next/head'
 import { GetStaticPropsResult } from 'next'
 import { CloudProvider, CloudRegion, getAllCloudRegions, getAllProviders } from '@app/data'
@@ -19,6 +19,7 @@ import {
   originContinent,
   ORIGIN_CONTINENT_ORDER,
 } from '@app/fns/probe-snapshot'
+import { detectClientGeo } from '@app/fns/client-geo'
 import { getHealthJsonUrl, getSiteUrl } from '../site-config'
 
 // The matrix only reads these four region fields. Shipping the full CloudRegion
@@ -146,6 +147,9 @@ export default function Health(props: HealthProps): JSX.Element {
   // From-column (probe origin) filters: by CSP vendor and by continent.
   const [selectedFromVendors, setSelectedFromVendors] = useState<string[] | null>(null)
   const [selectedFromContinents, setSelectedFromContinents] = useState<string[] | null>(null)
+  // Default the From-continent filter to the visitor's own continent once, on
+  // first client render (like the home page's "From you"). Users can widen it.
+  const fromGeoInitialized = useRef(false)
   // Clicked cell → per-cell latency history panel.
   const [selectedCell, setSelectedCell] = useState<{
     origin: string
@@ -259,6 +263,18 @@ export default function Health(props: HealthProps): JSX.Element {
     for (const col of columns) set.add(originContinent(col))
     return ORIGIN_CONTINENT_ORDER.filter((c) => set.has(c))
   }, [columns])
+
+  // On first load, narrow the From filter to the visitor's continent if we have
+  // origins there. Runs once; leaves the filter alone if detection misses.
+  useEffect(() => {
+    if (fromGeoInitialized.current) return
+    if (fromContinents.length === 0) return
+    fromGeoInitialized.current = true
+    const geo = detectClientGeo(new Set(fromContinents))
+    if (geo && fromContinents.includes(geo)) {
+      setSelectedFromContinents([geo])
+    }
+  }, [fromContinents])
 
   // Apply From-column filters (null = show all). Row filters are separate.
   const visibleColumns = useMemo(() => {
