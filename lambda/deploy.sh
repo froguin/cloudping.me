@@ -21,7 +21,7 @@ set -euo pipefail
 
 FUNCTION_NAME="cloudping-probe"
 ROLE_ARN="${ROLE_ARN:-arn:aws:iam::090451331601:role/cloudping-probe-lambda}"
-RUNTIME="nodejs20.x"
+RUNTIME="nodejs24.x"
 ARCH="arm64"
 MEM="256"
 TIMEOUT="300"
@@ -39,7 +39,7 @@ trap 'rm -rf "${build_dir}"' EXIT
 
 echo "Bundling handler with esbuild..."
 npx --yes esbuild "${repo_root}/lambda/handler.ts" \
-  --bundle --platform=node --target=node20 --format=cjs \
+  --bundle --platform=node --target=node24 --format=cjs \
   --alias:@app/data="${repo_root}/src/data" \
   --outfile="${build_dir}/index.js" >/dev/null
 
@@ -72,6 +72,19 @@ for region in "$@"; do
   fi
 
   # Ensure a public Function URL exists (app-level Bearer auth via PROBE_SECRET).
+  # Invoke-only regions (listed in NO_URL_REGIONS) are reached via `aws lambda invoke`
+  # from GitHub Actions (OIDC role) and must NOT expose a public URL. Only regions
+  # that genuinely need a Function URL (e.g. the EventBridge/PROBE_URL_* path) get one.
+  # Set NO_URL_REGIONS to a space-separated list; defaults to the current invoke-only set.
+  NO_URL_REGIONS="${NO_URL_REGIONS:-us-east-1 eu-central-1 ap-southeast-1 us-west-2 sa-east-1}"
+  if printf '%s\n' ${NO_URL_REGIONS} | grep -qx "${region}"; then
+    # Remove any stale URL/permission so re-running this script can't re-expose it.
+    aws lambda delete-function-url-config --region "${region}" --function-name "${FUNCTION_NAME}" >/dev/null 2>&1 || true
+    aws lambda remove-permission --region "${region}" --function-name "${FUNCTION_NAME}" \
+      --statement-id FunctionURLAllowPublicAccess >/dev/null 2>&1 || true
+    echo "Invoke-only (no Function URL)."
+    continue
+  fi
   if ! aws lambda get-function-url-config --region "${region}" --function-name "${FUNCTION_NAME}" >/dev/null 2>&1; then
     aws lambda create-function-url-config --region "${region}" --function-name "${FUNCTION_NAME}" \
       --auth-type NONE >/dev/null

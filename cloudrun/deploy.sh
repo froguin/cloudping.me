@@ -19,7 +19,7 @@ trap 'rm -rf "${build_dir}"' EXIT
 
 echo "Bundling server with esbuild..."
 npx --yes esbuild "${repo_root}/cloudrun/server.ts" \
-  --bundle --platform=node --target=node20 --format=cjs \
+  --bundle --platform=node --target=node24 --format=cjs \
   --alias:@app/data="${repo_root}/src/data" \
   --outfile="${build_dir}/server.js" >/dev/null
 cp "${repo_root}/cloudrun/Dockerfile" "${build_dir}/Dockerfile"
