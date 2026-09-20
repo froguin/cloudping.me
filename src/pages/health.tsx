@@ -4,6 +4,7 @@ import { GetStaticPropsResult } from 'next'
 import { CloudProvider, CloudRegion, getAllCloudRegions, getAllProviders } from '@app/data'
 import { CloudProviderLogo } from '@app/components'
 import { SiteHeader } from '@app/components/site-header'
+import { HistoryPanel } from '@app/components/history-panel'
 import {
   MatrixSnapshot,
   ProbeColumn,
@@ -145,6 +146,14 @@ export default function Health(props: HealthProps): JSX.Element {
   // From-column (probe origin) filters: by CSP vendor and by continent.
   const [selectedFromVendors, setSelectedFromVendors] = useState<string[] | null>(null)
   const [selectedFromContinents, setSelectedFromContinents] = useState<string[] | null>(null)
+  // Clicked cell → per-cell latency history panel.
+  const [selectedCell, setSelectedCell] = useState<{
+    origin: string
+    originLabel: string
+    provider: string
+    region: string
+    targetLabel: string
+  } | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('theme')
@@ -584,8 +593,20 @@ export default function Health(props: HealthProps): JSX.Element {
                             return (
                               <td
                                 key={col.id}
-                                className={`matrix-cell ${band}${kind === 'on-net' ? ' on-net' : kind === 'adjacent' ? ' adjacent' : ''}`}
-                                title={parts.join(' · ')}
+                                className={`matrix-cell ${band}${kind === 'on-net' ? ' on-net' : kind === 'adjacent' ? ' adjacent' : ''}${cell ? ' clickable' : ''}`}
+                                title={cell ? `${parts.join(' · ')} · click for history` : parts.join(' · ')}
+                                onClick={
+                                  cell
+                                    ? () =>
+                                        setSelectedCell({
+                                          origin: col.id,
+                                          originLabel: `${columnCode(col)}${columnCity(col) ? ` (${columnCity(col)})` : ''}`,
+                                          provider: row.provider.key,
+                                          region: row.region.key,
+                                          targetLabel: `${row.provider.display_name} ${row.region.key}`,
+                                        })
+                                    : undefined
+                                }
                               >
                                 {displayMs == null ? '—' : formatMs(displayMs)}
                               </td>
@@ -604,6 +625,16 @@ export default function Health(props: HealthProps): JSX.Element {
             over the first several hours of runs. Corner mark = probe origin in the same metro and same cloud as the target row.
           </p>
         </div>
+        {selectedCell ? (
+          <HistoryPanel
+            origin={selectedCell.origin}
+            originLabel={selectedCell.originLabel}
+            provider={selectedCell.provider}
+            region={selectedCell.region}
+            targetLabel={selectedCell.targetLabel}
+            onClose={() => setSelectedCell(null)}
+          />
+        ) : null}
       </div>
     </>
   )
