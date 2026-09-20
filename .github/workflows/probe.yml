@@ -4,7 +4,7 @@ on:
   # EventBridge in ap-northeast-2 is the real 15-minute clock (workflow_dispatch).
   # Fallback cron runs on an offset so it provides a 15-minute safety net if EventBridge stops.
   schedule:
-    - cron: '7,22,37,52 * * * *'
+    - cron: '7,37 * * * *'
   workflow_dispatch:
     inputs:
       force_blob:
@@ -84,8 +84,8 @@ jobs:
           except Exception:
               pass
           ' || echo "")
-            if [ -n "${last_age}" ] && [ "${last_age}" -lt 600 ]; then
-              echo "A probe was published ${last_age}s ago (< 600s). Skipping redundant scheduled run."
+            if [ -n "${last_age}" ] && [ "${last_age}" -lt 1500 ]; then
+              echo "A probe was published ${last_age}s ago (< 1500s). Skipping redundant scheduled run."
               echo "skip=true" >> "${GITHUB_OUTPUT}"
               exit 0
             fi
