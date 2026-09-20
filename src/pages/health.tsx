@@ -608,11 +608,11 @@ export default function Health(props: HealthProps): JSX.Element {
                             if (cell?.ms != null) parts.push(`latest ${formatMs(cell.ms)}`)
                             if (cell?.ms24h != null) parts.push(`24h ${formatMs(cell.ms24h)} n=${cell.n24h ?? '?'}`)
                             if (cell?.samples) parts.push(`${cell.samples} samples`)
-                            const markTitle =
+                            const markTip =
                               kind === 'on-net'
-                                ? 'Same-cloud backbone: this probe origin is in the same metro AND same cloud as the target region.'
+                                ? 'same-cloud backbone'
                                 : kind === 'adjacent'
-                                  ? 'AWS-adjacent origin: this probe origin is in the same metro as the target (AWS-based origin near a non-AWS target).'
+                                  ? 'AWS-adjacent origin'
                                   : null
                             return (
                               <td
@@ -637,11 +637,11 @@ export default function Health(props: HealthProps): JSX.Element {
                                 }
                               >
                                 {displayMs == null ? '—' : formatMs(displayMs)}
-                                {markTitle ? (
+                                {markTip ? (
                                   <span
                                     className="matrix-mark"
-                                    title={markTitle}
-                                    aria-label={markTitle}
+                                    data-tip={markTip}
+                                    aria-label={markTip}
                                   />
                                 ) : null}
                               </td>

@@ -15,8 +15,8 @@ export interface HistoryPanelProps {
   onClose: () => void
 }
 
-const CHART_W = 520
-const CHART_H = 120
+const CHART_W = 640
+const CHART_H = 140
 const PAD_L = 40
 const PAD_R = 12
 const PAD_T = 12
@@ -57,10 +57,7 @@ function LatencyChart({
 
   const model = useMemo(() => {
     if (points.length === 0) return null
-    const ts = points.map((p) => p.t)
     const ms = points.map((p) => p.ms)
-    const tMin = Math.min(...ts)
-    const tMax = Math.max(...ts)
     let msMin = Math.min(...ms)
     let msMax = Math.max(...ms)
     if (msMin === msMax) {
@@ -68,7 +65,13 @@ function LatencyChart({
       msMin = Math.max(0, msMin - 5)
       msMax = msMax + 5
     }
-    const spanT = tMax - tMin || 1
+    // Fixed x timeline: always span the full window (now-24h..now or now-7d..now)
+    // so a partially-filled series reads as "still accumulating" rather than
+    // being stretched to fill the axis.
+    const windowSec = mode === '24h' ? 24 * 3600 : 7 * 86400
+    const tMax = Math.floor(Date.now() / 1000)
+    const tMin = tMax - windowSec
+    const spanT = windowSec
     const spanMs = msMax - msMin || 1
     const scale: Scale = {
       x: (t) => PAD_L + ((t - tMin) / spanT) * (CHART_W - PAD_L - PAD_R),
@@ -77,18 +80,20 @@ function LatencyChart({
     const d = points
       .map((p, i) => `${i === 0 ? 'M' : 'L'}${scale.x(p.t).toFixed(1)},${scale.y(p.ms).toFixed(1)}`)
       .join(' ')
-    const area = `${d} L${scale.x(tMax).toFixed(1)},${(CHART_H - PAD_B).toFixed(1)} L${scale.x(tMin).toFixed(
-      1
-    )},${(CHART_H - PAD_B).toFixed(1)} Z`
-    // Up to 4 evenly spaced x ticks + 3 y gridlines.
-    const xTickCount = Math.min(4, points.length)
-    const xTicks = Array.from({ length: xTickCount }, (_, k) => {
-      const idx = xTickCount === 1 ? 0 : Math.round((k / (xTickCount - 1)) * (points.length - 1))
-      return points[idx]
-    })
+    // Area fills only under the drawn data span, not the whole (possibly empty) window.
+    const firstX = scale.x(points[0].t)
+    const lastX = scale.x(points[points.length - 1].t)
+    const area = `${d} L${lastX.toFixed(1)},${(CHART_H - PAD_B).toFixed(1)} L${firstX.toFixed(1)},${(
+      CHART_H - PAD_B
+    ).toFixed(1)} Z`
+    // Fixed x ticks across the window (equal time intervals, not data-driven).
+    const xTickCount = 4
+    const xTicks = Array.from({ length: xTickCount }, (_, k) => ({
+      t: tMin + Math.round((k / (xTickCount - 1)) * windowSec),
+    }))
     const yTicks = [msMin, (msMin + msMax) / 2, msMax]
     return { scale, d, area, tMin, tMax, msMin, msMax, xTicks, yTicks }
-  }, [points])
+  }, [points, mode])
 
   if (!model || points.length === 0) {
     return (
