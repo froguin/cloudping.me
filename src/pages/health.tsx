@@ -592,8 +592,8 @@ export default function Health(props: HealthProps): JSX.Element {
                             if (cell?.ms != null) parts.push(`latest ${formatMs(cell.ms)}`)
                             if (cell?.ms24h != null) parts.push(`24h ${formatMs(cell.ms24h)} n=${cell.n24h ?? '?'}`)
                             if (cell?.samples) parts.push(`${cell.samples} samples`)
-                            if (kind === 'on-net') parts.push('same-cloud backbone')
-                            if (kind === 'adjacent') parts.push('AWS-adjacent origin')
+                            if (kind === 'on-net') parts.push('◤ same-cloud backbone (same metro & cloud)')
+                            if (kind === 'adjacent') parts.push('◤ AWS-adjacent origin (same metro)')
                             return (
                               <td
                                 key={col.id}
@@ -630,7 +630,8 @@ export default function Health(props: HealthProps): JSX.Element {
           </div>
           <p className="matrix-footnote">
             Latest is the P50 of five HTTP GETs after warmup, timed to response headers (not body download). 24h P50 builds up
-            over the first several hours of runs. Corner mark = probe origin in the same metro and same cloud as the target row.
+            over the first several hours of runs. Corner mark ◤ = probe origin shares the target&rsquo;s metro: a solid mark means
+            same metro <em>and</em> same cloud (on the provider backbone), a faint mark means same metro on an AWS-adjacent origin.
           </p>
         </div>
         {selectedCell ? (
