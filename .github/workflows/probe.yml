@@ -446,40 +446,52 @@ jobs:
             .catch((e) => { console.error(e); process.exit(1); });
           '
 
-      # Daily history archive on Blob: keep one snapshot per day for 7 days as
-      # history-YYYY-MM-DD.json, without bloating the git status branch. Writes
-      # only the FIRST run of each UTC day (checks if today's archive exists), so
-      # this adds ~30 Blob writes/month. Old archives (>7 days) are deleted.
-      - name: Archive daily snapshot to Vercel Blob
+      # 2-hour bucketed history archive on Blob (see the step below for details):
+      # one snapshot per 2h UTC bucket, retained 7 days, without bloating git.
+      # 2-hour bucketed history archive on Blob: one snapshot per 2h UTC bucket,
+      # retained 7 days (=> up to 84 points), giving the 7-day chart a dense
+      # trend line without bloating the git status branch or the free tier.
+      # Each bucket is written only once (first run that lands in it) => ~12
+      # puts/day (~360/month). Pruning runs list() only once per UTC day (in the
+      # 00:00 bucket) to conserve advanced ops; del() is free. Free tier: 2,000
+      # advanced ops/month.
+      - name: Archive 2h snapshot to Vercel Blob
         if: steps.trigger.outputs.skip != 'true'
         env:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
           BLOB_BASE_URL: aejnjhuwc4zeyko2.public.blob.vercel-storage.com
           RETAIN_DAYS: '7'
+          BUCKET_HOURS: '2'
         run: |
           set -euo pipefail
           if [ -z "${BLOB_READ_WRITE_TOKEN:-}" ]; then
-            echo "BLOB_READ_WRITE_TOKEN not set; skipping daily archive."
+            echo "BLOB_READ_WRITE_TOKEN not set; skipping bucket archive."
             exit 0
           fi
           test -f /tmp/latest.json || { echo "no /tmp/latest.json; nothing to archive"; exit 0; }
 
-          today="$(date -u +%Y-%m-%d)"
-          # Skip if today's archive already exists (one snapshot per UTC day).
-          if curl -fsS -I --max-time 10 "https://${BLOB_BASE_URL}/history-${today}.json" >/dev/null 2>&1; then
-            echo "history-${today}.json already exists; skipping (one archive/day)."
+          # Bucket key: history-YYYY-MM-DDTHH.json (HH = 2h bucket start: 00,02,..,22).
+          date_part="$(date -u +%Y-%m-%d)"
+          hour="$(date -u +%H)"
+          bucket_h=$(( (10#${hour} / ${BUCKET_HOURS}) * ${BUCKET_HOURS} ))
+          bucket_hh="$(printf '%02d' "${bucket_h}")"
+          bucket="${date_part}T${bucket_hh}"
+
+          # Skip if this bucket already exists (one snapshot per 2h bucket).
+          if curl -fsS -I --max-time 10 "https://${BLOB_BASE_URL}/history-${bucket}.json" >/dev/null 2>&1; then
+            echo "history-${bucket}.json already exists; skipping (one archive/bucket)."
             exit 0
           fi
 
           npm install --no-save --no-audit --no-fund @vercel/blob >/dev/null 2>&1
-          TODAY="${today}" RETAIN_DAYS="${RETAIN_DAYS}" node -e '
+          BUCKET="${bucket}" BUCKET_HH="${bucket_hh}" RETAIN_DAYS="${RETAIN_DAYS}" node -e '
           const { put, list, del } = require("@vercel/blob");
           const fs = require("fs");
-          const today = process.env.TODAY;
+          const bucket = process.env.BUCKET;
+          const bucketHH = process.env.BUCKET_HH;
           const retain = parseInt(process.env.RETAIN_DAYS, 10);
           (async () => {
-            // Write today’s snapshot.
-            const r = await put(`history-${today}.json`, fs.readFileSync("/tmp/latest.json"), {
+            const r = await put(`history-${bucket}.json`, fs.readFileSync("/tmp/latest.json"), {
               access: "public",
               addRandomSuffix: false,
               allowOverwrite: true,
@@ -487,16 +499,22 @@ jobs:
               contentType: "application/json",
             });
             console.log("Archived:", r.url);
-            // Prune archives older than retain days.
+            // Prune once per UTC day (only the 00 bucket) to save advanced ops.
+            if (bucketHH !== "00") {
+              console.log("Not the 00 bucket; skipping prune.");
+              return;
+            }
             const cutoff = new Date(Date.now() - retain * 86400000);
             const { blobs } = await list({ prefix: "history-" });
             for (const b of blobs) {
-              const m = /history-(\d{4}-\d{2}-\d{2})\.json$/.exec(b.pathname);
+              const m = /history-(\d{4}-\d{2}-\d{2})(?:T(\d{2}))?\.json$/.exec(b.pathname);
               if (!m) continue;
-              if (new Date(m[1] + "T00:00:00Z") < cutoff) {
+              const when = new Date(`${m[1]}T${m[2] || "00"}:00:00Z`);
+              if (when < cutoff) {
                 await del(b.url);
                 console.log("Pruned:", b.pathname);
               }
             }
           })().catch((e) => { console.error(e); process.exit(1); });
           '
+

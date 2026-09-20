@@ -74,17 +74,6 @@ function blobBase(): string | null {
   }
 }
 
-/** UTC yyyy-mm-dd for the last `days` days (most recent first). */
-function recentDates(days: number): string[] {
-  const out: string[] = []
-  const now = Date.now()
-  for (let i = 0; i < days; i++) {
-    const d = new Date(now - i * 86400000)
-    out.push(d.toISOString().slice(0, 10))
-  }
-  return out
-}
-
 /**
  * Fetch the 24h intraday series for a cell from the status-branch history.json.
  * Throws on transport/parse failure; returns [] when the cell has no samples.
@@ -105,11 +94,31 @@ export async function fetchIntraday(
     .sort((a, b) => a.t - b.t)
 }
 
+/** UTC 2-hour bucket keys (YYYY-MM-DDTHH) for the last `days` days, oldest→newest. */
+function recentBucketKeys(days: number, bucketHours = 2): string[] {
+  const out: string[] = []
+  const now = Date.now()
+  const stepMs = bucketHours * 3600_000
+  const start = now - days * 86_400_000
+  // Align start to a bucket boundary.
+  let t = Math.floor(start / stepMs) * stepMs
+  for (; t <= now; t += stepMs) {
+    const d = new Date(t)
+    const yyyy = d.getUTCFullYear()
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0')
+    const dd = String(d.getUTCDate()).padStart(2, '0')
+    const hh = String(d.getUTCHours()).padStart(2, '0')
+    out.push(`${yyyy}-${mm}-${dd}T${hh}`)
+  }
+  return out
+}
+
 /**
- * Fetch up to `days` daily archive snapshots and extract one latency point per
- * day for the selected cell. Missing days (no archive yet) are simply skipped —
- * a 404 for a given day is expected, not an error. Other transport failures for
- * individual days are tolerated so one bad day can't blank the whole series.
+ * Fetch the 7-day trend for a cell from 2-hour bucket snapshots on Blob
+ * (history-YYYY-MM-DDTHH.json, up to ~84 buckets). Each existing bucket
+ * contributes one point (the matrix snapshot taken in that 2h window). Missing
+ * buckets (no archive yet) are skipped — a 404 is expected, not an error.
+ * force-cache keeps repeat clicks cheap and cache HITs off the Blob quota.
  */
 export async function fetchDaily(
   origin: string,
@@ -122,10 +131,10 @@ export async function fetchDaily(
   if (!base) return []
   const points: HistoryPoint[] = []
   await Promise.all(
-    recentDates(days).map(async (date) => {
+    recentBucketKeys(days).map(async (bucket) => {
       try {
-        const res = await fetch(`${base}/history-${date}.json`, { cache: 'force-cache', signal })
-        if (!res.ok) return // no archive for this day yet
+        const res = await fetch(`${base}/history-${bucket}.json`, { cache: 'force-cache', signal })
+        if (!res.ok) return // no archive for this bucket yet
         const snap = (await res.json()) as {
           from?: Record<string, { results?: { provider: string; region: string; ms: number | null; ok?: boolean }[] }>
         }
@@ -133,10 +142,11 @@ export async function fetchDaily(
         if (!col?.results) return
         const hit = col.results.find((r) => r.provider === provider && r.region === region)
         if (hit && hit.ms != null && hit.ok !== false) {
-          points.push({ t: Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 1000), ms: hit.ms })
+          // Bucket timestamp = UTC start of the 2h window.
+          points.push({ t: Math.floor(new Date(`${bucket}:00:00Z`).getTime() / 1000), ms: hit.ms })
         }
       } catch {
-        /* tolerate a single day's failure */
+        /* tolerate a single bucket's failure */
       }
     })
   )

@@ -369,7 +369,7 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
             ) : null}
             <div className="history-section-label">Last 24h</div>
             <LatencyChart points={data?.intraday ?? []} mode="24h" label="Last 24 hours" />
-            <div className="history-section-label">Last 7 days (daily)</div>
+            <div className="history-section-label">Last 7 days</div>
             <LatencyChart points={data?.daily ?? []} mode="7d" label="Last 7 days" />
           </>
         )}
