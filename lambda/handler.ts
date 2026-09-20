@@ -29,12 +29,14 @@ export async function handler(event: FunctionUrlEvent) {
   // the code. Lowering the fan-out concurrency here reduces how many TLS/socket
   // callbacks contend on the small (256MB ≈ 0.15 vCPU) Lambda's event loop at once,
   // which is the leading suspect for the wall-clock inflation. Tunable via env so
-  // the value can be A/B'd without a redeploy; defaults to 12 (down from 24) — a
-  // middle ground that curbs the jitter while limiting how much the round's
-  // duration (billed) grows, since lower concurrency overlaps fewer I/O waits.
-  // Only AWS goes through this handler, so GCP/Azure keep runProbe's default of 24.
+  // the value can be A/B'd without a redeploy; defaults to 8 (down from 24). At
+  // 12 the AWS-origin near-cell jitter dropped a lot but ~50ms remained, and the
+  // round's durationMs stayed ~60s (I/O-bound, so concurrency barely moves it) —
+  // so lowering to 8 costs little duration/GB-seconds while further easing the
+  // event-loop contention. Only AWS goes through this handler, so GCP/Azure keep
+  // runProbe's default of 24.
   const parsed = Number(process.env.PROBE_CONCURRENCY)
-  const concurrency = Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 12
+  const concurrency = Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 8
   const snapshot = await runProbe(concurrency)
   // Cheap diagnostic (no extra requests): share of cells that failed this round.
   // Shorter timeouts + fewer samples can raise failures, making the survivors look
