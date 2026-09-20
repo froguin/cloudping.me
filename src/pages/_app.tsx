@@ -13,21 +13,26 @@ import './globals.css'
 const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
-  display: 'optional',
+  // 'swap' (not 'optional') so the webfont always applies once it loads. Under
+  // 'optional', Windows visitors who don't have Inter cached kept the fallback
+  // (Segoe UI) permanently when Inter didn't arrive within ~100ms — i.e. they
+  // never saw Inter. next/font auto-injects size-adjust/ascent metrics for the
+  // fallback, so the swap-in stays near-CLS-free.
+  display: 'swap',
   variable: '--font-inter',
 })
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   weight: ['500', '600', '700'],
-  display: 'optional',
+  display: 'swap',
   variable: '--font-space-grotesk',
 })
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
-  display: 'optional',
+  display: 'swap',
   variable: '--font-jetbrains-mono',
 })
 
