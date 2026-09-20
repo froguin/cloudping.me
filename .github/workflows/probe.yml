@@ -163,12 +163,14 @@ jobs:
                 fi
                 if [ -z "${idtok}" ]; then echo "gcp id-token ${url}: failed" >&2; exit 1; fi
                 safe="$(printf '%s' "${url}" | tr -c 'A-Za-z0-9' '_')"
-                if ! curl -fsS --max-time 270 -X POST "${url}" \
+                http="$(curl -sS --max-time 270 -X POST "${url}" \
                   -H "Authorization: Bearer ${idtok}" \
                   -H "X-Probe-Secret: ${PROBE_SECRET}" \
                   -H "Accept: application/json" \
-                  -o "/tmp/probes/gcp-${safe}.json"; then
-                  echo "gcp invoke ${url}: failed" >&2
+                  -o "/tmp/probes/gcp-${safe}.json" -w '%{http_code}' 2>/dev/null || echo "000")"
+                if [ "${http}" != "200" ]; then
+                  echo "gcp invoke ${url}: http=${http} body=$(head -c 120 /tmp/probes/gcp-${safe}.json 2>/dev/null | tr -d '\n')" >&2
+                  rm -f "/tmp/probes/gcp-${safe}.json"
                   status=1
                 fi
                 exit "${status}"
