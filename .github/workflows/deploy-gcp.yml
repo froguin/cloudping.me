@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      PROJECT_ID: froguin3
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
       # Artifact Registry storage is same price in every region (free <0.5GB), so
       # the AR region is arbitrary; asia-northeast3 colocates with a Cloud Run origin.
       AR_REGION: asia-northeast3

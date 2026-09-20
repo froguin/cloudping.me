@@ -20,7 +20,13 @@
 set -euo pipefail
 
 FUNCTION_NAME="cloudping-probe"
-ROLE_ARN="${ROLE_ARN:-arn:aws:iam::090451331601:role/cloudping-probe-lambda}"
+# Role ARN: pass ROLE_ARN to override. Otherwise derive it from the caller's
+# account (via STS) so the account ID isn't hardcoded in this public repo.
+LAMBDA_ROLE_NAME="${LAMBDA_ROLE_NAME:-cloudping-probe-lambda}"
+if [ -z "${ROLE_ARN:-}" ]; then
+  _acct="$(aws sts get-caller-identity --query Account --output text 2>/dev/null)"
+  ROLE_ARN="arn:aws:iam::${_acct}:role/${LAMBDA_ROLE_NAME}"
+fi
 RUNTIME="nodejs24.x"
 ARCH="arm64"
 MEM="256"
