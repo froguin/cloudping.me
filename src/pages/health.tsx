@@ -116,7 +116,7 @@ function latencyBand(ms: number | null, ok: boolean): 'fast' | 'mid' | 'slow' | 
 }
 
 function formatMs(ms: number): string {
-  return Number.isInteger(ms) ? `${ms}ms` : `${ms.toFixed(2)}ms`
+  return `${Math.round(ms)}ms`
 }
 
 function columnCity(col: ProbeColumn): string | undefined {

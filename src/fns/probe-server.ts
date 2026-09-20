@@ -110,7 +110,9 @@ async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number;
   if (samples.length < MIN_SAMPLES) return { error: lastError }
   // Queueing and event-loop stalls add delay. The minimum estimates the least
   // congested HTTP round trip, still including target processing (not raw RTT).
-  return { ms: Math.round(Math.min(...samples) * 100) / 100, samples: samples.length }
+  // Report whole milliseconds — sub-ms precision isn't meaningful for these paths
+  // and keeps the /health table clean.
+  return { ms: Math.round(Math.min(...samples)), samples: samples.length }
 }
 
 async function mapPool<T, R>(items: T[], concurrency: number, worker: (item: T) => Promise<R>): Promise<R[]> {
