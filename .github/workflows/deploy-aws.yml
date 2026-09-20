@@ -1,0 +1,75 @@
+name: Deploy AWS Lambda probes
+
+# Auto-deploys lambda/handler.ts to all 13 Lambda regions on push to main.
+# Bundles with esbuild (same as lambda/deploy.sh) and updates function code
+# only -- env vars (PROBE_SECRET) and Function URL config are never touched
+# here, so they're preserved exactly as set by lambda/deploy.sh.
+#
+# Auth is OIDC via the existing GitHub OIDC provider (same one probe.yml
+# already uses for cloudping-probe-invoker), assuming a separate
+# cloudping-deployer role trusted only for
+# `repo:froguin/cloudping.me:ref:refs/heads/main`, scoped to
+# lambda:UpdateFunctionCode/GetFunction(Configuration) on the 13
+# cloudping-probe function ARNs only.
+#
+# Public repo -> GitHub Actions minutes are free regardless of run time.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lambda/**'
+      - 'src/fns/**'
+      - 'src/data/**'
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false
+
+env:
+  LAMBDA_REGIONS: >-
+    us-east-1 us-east-2 us-west-2 ca-central-1 eu-west-1 eu-central-1
+    ap-northeast-1 ap-northeast-2 ap-southeast-1 ap-southeast-2 sa-east-1
+    af-south-1 me-central-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Bundle handler with esbuild
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          npx --yes esbuild lambda/handler.ts \
+            --bundle --platform=node --target=node24 --format=cjs \
+            --alias:@app/data="$(pwd)/src/data" \
+            --outfile=build/index.js
+          (cd build && zip -qr function.zip index.js)
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::090451331601:role/cloudping-deployer
+          aws-region: us-east-1
+
+      - name: Deploy to each Lambda region
+        run: |
+          set -euo pipefail
+          for region in ${LAMBDA_REGIONS}; do
+            echo "=== ${region} ==="
+            aws lambda update-function-code --region "${region}" --function-name cloudping-probe \
+              --zip-file fileb://build/function.zip --architectures arm64 >/dev/null
+            aws lambda wait function-updated --region "${region}" --function-name cloudping-probe
+          done
