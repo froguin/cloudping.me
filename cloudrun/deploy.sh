@@ -5,30 +5,74 @@
 # min-instances 0, ~256MB-equivalent (512Mi / 0.5 vCPU is Cloud Run's floor for
 # reliable cold starts). Each region self-labels via PROBE_ORIGIN_ID=gcp-<region>.
 #
+# BUILD-ONCE, DEPLOY-EVERYWHERE: a no-billing GCP project can only run Cloud Build
+# in a limited set of regions ("unable to run builds in this region"). So we build
+# the image exactly once (in BUILD_REGION, or reuse an existing image) and every
+# region deploys that same prebuilt image via --image. This sidesteps per-region
+# build quota entirely and guarantees all GCP origins run identical bytes.
+#
+# BUILD_REGION defaults to europe-west1: among the build-capable regions on this
+# no-billing project it has the cheapest Artifact Registry storage ($0.020/GB,
+# the lowest tier — US regions can't build here). The image is tiny (~100MB) so
+# the absolute cost is negligible, but this keeps the artifact in the cheapest spot.
+#
 # Prereqs: gcloud auth, PROBE_SECRET exported, project set.
-# Usage: PROBE_SECRET=xxx ./cloudrun/deploy.sh asia-northeast3 southamerica-east1
+# Usage:   PROBE_SECRET=xxx ./cloudrun/deploy.sh asia-northeast3 us-west1 ...
+#   BUILD_REGION=europe-west1     # region used for the one-time build (default)
+#   REBUILD=1                     # force a fresh build even if an image exists
 set -euo pipefail
 
 SERVICE="cloudping-probe"
+BUILD_REGION="${BUILD_REGION:-europe-west1}"
 : "${PROBE_SECRET:?export PROBE_SECRET first}"
 if [ "$#" -eq 0 ]; then echo "usage: PROBE_SECRET=xxx $0 <region> [region ...]" >&2; exit 1; fi
 
+project="$(gcloud config get-value project 2>/dev/null)"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-build_dir="$(mktemp -d)"
-trap 'rm -rf "${build_dir}"' EXIT
 
-echo "Bundling server with esbuild..."
-npx --yes esbuild "${repo_root}/cloudrun/server.ts" \
-  --bundle --platform=node --target=node24 --format=cjs \
-  --alias:@app/data="${repo_root}/src/data" \
-  --outfile="${build_dir}/server.js" >/dev/null
-cp "${repo_root}/cloudrun/Dockerfile" "${build_dir}/Dockerfile"
+# The image lives in the BUILD_REGION Artifact Registry repo that Cloud Run's
+# source deploys create (cloud-run-source-deploy). All regions can pull it.
+IMAGE="${BUILD_REGION}-docker.pkg.dev/${project}/cloud-run-source-deploy/${SERVICE}:latest"
+
+image_exists() {
+  gcloud artifacts docker images describe "${IMAGE}" >/dev/null 2>&1
+}
+
+build_image() {
+  local build_dir
+  build_dir="$(mktemp -d)"
+  trap 'rm -rf "${build_dir}"' RETURN
+  echo "Bundling server with esbuild..."
+  npx --yes esbuild "${repo_root}/cloudrun/server.ts" \
+    --bundle --platform=node --target=node24 --format=cjs \
+    --alias:@app/data="${repo_root}/src/data" \
+    --outfile="${build_dir}/server.js" >/dev/null
+  cp "${repo_root}/cloudrun/Dockerfile" "${build_dir}/Dockerfile"
+  echo "Building the shared image once in ${BUILD_REGION} (source build)..."
+  # A source deploy in the build region both builds+pushes the image and creates
+  # the cloud-run-source-deploy repo. We then reuse IMAGE for every region.
+  gcloud run deploy "${SERVICE}" \
+    --source "${build_dir}" \
+    --region "${BUILD_REGION}" \
+    --no-allow-unauthenticated \
+    --cpu 0.5 --memory 512Mi --timeout 300 \
+    --min-instances 0 --max-instances 1 \
+    --set-env-vars "PROBE_SECRET=${PROBE_SECRET},PROBE_ORIGIN_ID=gcp-${BUILD_REGION},PROBE_ORIGIN_LABEL=GCP Cloud Run (${BUILD_REGION})" \
+    --quiet
+}
+
+# Build once (or reuse). REBUILD=1 forces a fresh build.
+if [ "${REBUILD:-0}" = "1" ] || ! image_exists; then
+  build_image
+else
+  echo "Reusing existing shared image: ${IMAGE}"
+fi
 
 for region in "$@"; do
   echo ""
   echo "=== ${region} ==="
   gcloud run deploy "${SERVICE}" \
-    --source "${build_dir}" \
+    --image "${IMAGE}" \
     --region "${region}" \
     --no-allow-unauthenticated \
     --cpu 0.5 --memory 512Mi --timeout 300 \
@@ -38,3 +82,6 @@ for region in "$@"; do
   url="$(gcloud run services describe "${SERVICE}" --region "${region}" --format='value(status.url)')"
   echo "Service URL: ${url}"
 done
+
+echo ""
+echo "All GCP regions deployed from the single shared image: ${IMAGE}"
