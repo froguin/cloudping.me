@@ -296,7 +296,6 @@ export default function Health(props: HealthProps): JSX.Element {
   const title = 'Health — Cloudping.me'
   const description =
     'Shared cloud-region latency matrix probed from AWS, GCP, and Azure regions. HTTP round-trip, not measured from your browser.'
-  const fromLabel = columns.map((col) => `${columnCode(col)}${columnCity(col) ? ` (${columnCity(col)})` : ''}`).join(', ')
 
   const toggleProvider = (k: string) => setSelectedProviders((v) => (v.includes(k) ? v.filter((x) => x !== k) : [...v, k]))
   const toggleGeo = (geo: string) => setSelectedGeos((v) => (v.includes(geo) ? v.filter((x) => x !== geo) : [...v, geo]))
@@ -340,7 +339,7 @@ export default function Health(props: HealthProps): JSX.Element {
             <h2 className="matrix-title">Cloud Region Latency Matrix</h2>
             <p className="text-sm text-[color:var(--text-secondary)]">
               To = cloud region ping URL. From = probe origin
-              {fromLabel ? ` · ${fromLabel}` : ''}. HTTP P50 after warmup, not ICMP.
+              {columns.length ? ` (${columns.length} regions)` : ''}. HTTP P50 after warmup, not ICMP.
             </p>
             <p className="text-xs text-[color:var(--text-muted)]">
               {snapshot
@@ -351,9 +350,11 @@ export default function Health(props: HealthProps): JSX.Element {
             </p>
           </div>
 
-          <div className="mb-5">
-            <div className="flex items-center justify-between mb-3">
-              <h6 className="text-xs font-medium text-[color:var(--text-muted)] uppercase tracking-wider">To (target regions) · Cloud Providers</h6>
+          {/* To-row (target region) filters: CSP vendor + continent, grouped in one
+              labeled box that mirrors the From box below. */}
+          <div className="matrix-to-filter">
+            <div className="matrix-to-filter-head">
+              <span className="matrix-from-filter-label">To (target regions)</span>
               <button
                 type="button"
                 onClick={() =>
@@ -382,18 +383,17 @@ export default function Health(props: HealthProps): JSX.Element {
                 )
               })}
             </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mb-5">
-            {GEO_ORDER.map((geo) => {
-              if (!props.geos[geo]) return null
-              const on = selectedGeos.includes(geo)
-              return (
-                <button key={geo} type="button" onClick={() => toggleGeo(geo)} className={`provider-pill ${on ? 'active' : ''}`}>
-                  {geo}
-                </button>
-              )
-            })}
+            <div className="matrix-to-filter-geos">
+              {GEO_ORDER.map((geo) => {
+                if (!props.geos[geo]) return null
+                const on = selectedGeos.includes(geo)
+                return (
+                  <button key={geo} type="button" onClick={() => toggleGeo(geo)} className={`provider-pill ${on ? 'active' : ''}`}>
+                    {geo}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           {/* From-column (probe origin) filters — visually separated from the To/row

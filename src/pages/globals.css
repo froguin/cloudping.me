@@ -417,6 +417,27 @@ code,
   font-size: 12px;
 }
 .matrix-from-code { display: block; font-family: var(--font-jetbrains-mono), ui-monospace, monospace; color: var(--text); }
+/* To-row filter box — mirrors the From box for a symmetric, labeled layout. */
+.matrix-to-filter {
+  margin-bottom: 0.9rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.matrix-to-filter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.matrix-to-filter-geos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border);
+}
 /* From-column filter box — bordered + labeled so it doesn't blend with the
    To/row provider+geo pills above it. */
 .matrix-from-filter {
