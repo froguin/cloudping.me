@@ -216,3 +216,13 @@ export const ORIGIN_CONTINENT_ORDER = [
 export function originContinent(col: ProbeColumn): string {
   return ORIGIN_CONTINENTS[columnCode(col)] || 'Other'
 }
+
+/**
+ * CSP display rank for ordering From columns within a continent: aws → gcp →
+ * azure → vercel → others. Lower sorts first.
+ */
+export function originVendorRank(col: ProbeColumn): number {
+  const order: Record<string, number> = { aws: 0, gcp: 1, azure: 2, vercel: 3 }
+  const vendor = originVendor(col)
+  return vendor ? order[vendor] ?? 9 : 9
+}

@@ -14,6 +14,7 @@ import {
   MIN_N24H,
   sameCloudKind,
   originVendor,
+  originVendorRank,
   originContinent,
   ORIGIN_CONTINENT_ORDER,
 } from '@app/fns/probe-snapshot'
@@ -198,8 +199,8 @@ export default function Health(props: HealthProps): JSX.Element {
 
   const columns = useMemo(() => {
     if (!snapshot) return [] as ProbeColumn[]
-    // Order From columns by continent (ORIGIN_CONTINENT_ORDER), then by city/code,
-    // so geographically related origins sit together instead of alphabetically.
+    // Order From columns by continent, then CSP (aws → gcp → azure → vercel),
+    // then by city/code, so related origins group geographically and by cloud.
     const continentRank = (col: ProbeColumn) => {
       const idx = ORIGIN_CONTINENT_ORDER.indexOf(originContinent(col))
       return idx === -1 ? ORIGIN_CONTINENT_ORDER.length : idx
@@ -208,6 +209,9 @@ export default function Health(props: HealthProps): JSX.Element {
       const ca = continentRank(a)
       const cb = continentRank(b)
       if (ca !== cb) return ca - cb
+      const va = originVendorRank(a)
+      const vb = originVendorRank(b)
+      if (va !== vb) return va - vb
       const la = (ORIGIN_CITIES[columnCode(a)] || columnCode(a)).toLowerCase()
       const lb = (ORIGIN_CITIES[columnCode(b)] || columnCode(b)).toLowerCase()
       if (la !== lb) return la < lb ? -1 : 1
