@@ -592,8 +592,12 @@ export default function Health(props: HealthProps): JSX.Element {
                             if (cell?.ms != null) parts.push(`latest ${formatMs(cell.ms)}`)
                             if (cell?.ms24h != null) parts.push(`24h ${formatMs(cell.ms24h)} n=${cell.n24h ?? '?'}`)
                             if (cell?.samples) parts.push(`${cell.samples} samples`)
-                            if (kind === 'on-net') parts.push('◤ same-cloud backbone (same metro & cloud)')
-                            if (kind === 'adjacent') parts.push('◤ AWS-adjacent origin (same metro)')
+                            const markTitle =
+                              kind === 'on-net'
+                                ? 'Same-cloud backbone: this probe origin is in the same metro AND same cloud as the target region.'
+                                : kind === 'adjacent'
+                                  ? 'AWS-adjacent origin: this probe origin is in the same metro as the target (AWS-based origin near a non-AWS target).'
+                                  : null
                             return (
                               <td
                                 key={col.id}
@@ -617,6 +621,13 @@ export default function Health(props: HealthProps): JSX.Element {
                                 }
                               >
                                 {displayMs == null ? '—' : formatMs(displayMs)}
+                                {markTitle ? (
+                                  <span
+                                    className="matrix-mark"
+                                    title={markTitle}
+                                    aria-label={markTitle}
+                                  />
+                                ) : null}
                               </td>
                             )
                           })}
@@ -630,8 +641,9 @@ export default function Health(props: HealthProps): JSX.Element {
           </div>
           <p className="matrix-footnote">
             Latest is the P50 of five HTTP GETs after warmup, timed to response headers (not body download). 24h P50 builds up
-            over the first several hours of runs. Corner mark ◤ = probe origin shares the target&rsquo;s metro: a solid mark means
-            same metro <em>and</em> same cloud (on the provider backbone), a faint mark means same metro on an AWS-adjacent origin.
+            over the first several hours of runs. The ◥ corner mark (hover it for details) means the probe origin shares the
+            target&rsquo;s metro: solid = same metro <em>and</em> same cloud (provider backbone), faint = same metro on an
+            AWS-adjacent origin.
           </p>
         </div>
         {selectedCell ? (

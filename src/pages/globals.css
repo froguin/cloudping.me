@@ -511,27 +511,30 @@ code,
   font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
   min-width: 4.75rem;
 }
-.matrix-cell.on-net::after,
-.matrix-cell.adjacent::after {
+.matrix-cell.on-net .matrix-mark,
+.matrix-cell.adjacent .matrix-mark {
   content: '';
   position: absolute;
   top: 0;
   right: 0;
+  width: 0;
+  height: 0;
   border: 5px solid transparent;
+  cursor: help;
 }
-.matrix-cell.on-net::after {
+.matrix-cell.on-net .matrix-mark {
   border-top-color: rgba(0, 0, 0, 0.45);
   border-right-color: rgba(0, 0, 0, 0.45);
 }
-.matrix-cell.adjacent::after {
+.matrix-cell.adjacent .matrix-mark {
   border-top-color: rgba(0, 0, 0, 0.22);
   border-right-color: rgba(0, 0, 0, 0.22);
 }
-[data-theme="dark"] .matrix-cell.on-net::after {
+[data-theme="dark"] .matrix-cell.on-net .matrix-mark {
   border-top-color: rgba(255, 255, 255, 0.55);
   border-right-color: rgba(255, 255, 255, 0.55);
 }
-[data-theme="dark"] .matrix-cell.adjacent::after {
+[data-theme="dark"] .matrix-cell.adjacent .matrix-mark {
   border-top-color: rgba(255, 255, 255, 0.28);
   border-right-color: rgba(255, 255, 255, 0.28);
 }
