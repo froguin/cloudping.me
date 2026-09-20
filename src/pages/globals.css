@@ -769,6 +769,52 @@ code,
   margin-bottom: 0.4rem;
 }
 
+/* Section header with an inline precision toggle (7-day chart). */
+.history-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+}
+.history-section-head .history-section-label {
+  margin: 0;
+}
+.history-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.history-toggle button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0.55rem;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.history-toggle button + button {
+  border-left: 1px solid var(--border);
+}
+.history-toggle button:hover {
+  color: var(--text);
+}
+.history-toggle button.is-on {
+  background: var(--text);
+  color: var(--bg);
+}
+.history-toggle button:focus-visible {
+  outline: 2px solid var(--pill-active-border);
+  outline-offset: -2px;
+}
+
 /* Chart */
 .history-chart-wrap {
   position: relative;

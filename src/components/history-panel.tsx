@@ -39,6 +39,29 @@ function fmtTick(unixSec: number, mode: '24h' | '7d'): string {
 }
 
 /**
+ * Downsample a fine series to one point per UTC day, using the day's median
+ * (P50) as the representative value and midday (12:00Z) as the plotted time.
+ * Used for the 7-day chart's "Daily" precision toggle — no refetch needed.
+ */
+function toDaily(points: HistoryPoint[]): HistoryPoint[] {
+  const byDay = new Map<string, number[]>()
+  for (const p of points) {
+    const day = new Date(p.t * 1000).toISOString().slice(0, 10)
+    const arr = byDay.get(day)
+    if (arr) arr.push(p.ms)
+    else byDay.set(day, [p.ms])
+  }
+  const out: HistoryPoint[] = []
+  for (const [day, vals] of byDay) {
+    const s = [...vals].sort((a, b) => a - b)
+    const p50 = s[Math.floor(s.length / 2)]
+    // Plot at 12:00Z so the point sits in the middle of its day.
+    out.push({ t: Math.floor(new Date(`${day}T12:00:00Z`).getTime() / 1000), ms: p50 })
+  }
+  return out.sort((a, b) => a.t - b.t)
+}
+
+/**
  * Dependency-free SVG latency chart with x-axis time/date ticks, a hover
  * crosshair, and an inline value read-out. `mode` picks the tick format:
  * clock time for the 24h series, calendar date for the 7-day series.
@@ -248,6 +271,7 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
   const [data, setData] = useState<CellHistory | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [weekPrecision, setWeekPrecision] = useState<'daily' | '2h'>('daily')
   const closeRef = useRef<HTMLButtonElement>(null)
   const modalRef = useRef<HTMLDivElement>(null)
 
@@ -369,8 +393,34 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
             ) : null}
             <div className="history-section-label">Last 24h</div>
             <LatencyChart points={data?.intraday ?? []} mode="24h" label="Last 24 hours" />
-            <div className="history-section-label">Last 7 days</div>
-            <LatencyChart points={data?.daily ?? []} mode="7d" label="Last 7 days" />
+            <div className="history-section-head">
+              <span className="history-section-label">Last 7 days</span>
+              <div className="history-toggle" role="group" aria-label="7-day precision">
+                <button
+                  type="button"
+                  className={weekPrecision === 'daily' ? 'is-on' : ''}
+                  aria-pressed={weekPrecision === 'daily'}
+                  onClick={() => setWeekPrecision('daily')}
+                >
+                  Daily
+                </button>
+                <button
+                  type="button"
+                  className={weekPrecision === '2h' ? 'is-on' : ''}
+                  aria-pressed={weekPrecision === '2h'}
+                  onClick={() => setWeekPrecision('2h')}
+                >
+                  2h
+                </button>
+              </div>
+            </div>
+            <LatencyChart
+              points={
+                weekPrecision === 'daily' ? toDaily(data?.daily ?? []) : data?.daily ?? []
+              }
+              mode="7d"
+              label={weekPrecision === 'daily' ? 'Last 7 days (daily P50)' : 'Last 7 days (2h)'}
+            />
           </>
         )}
       </div>
