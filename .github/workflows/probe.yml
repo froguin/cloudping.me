@@ -4,7 +4,7 @@ on:
   # EventBridge in ap-northeast-2 is the real 15-minute clock (workflow_dispatch).
   # Fallback cron runs on an offset so it provides a 15-minute safety net if EventBridge stops.
   schedule:
-    - cron: '0,30 * * * *'
+    - cron: '7,37 * * * *'
   workflow_dispatch:
     inputs:
       force_blob:
