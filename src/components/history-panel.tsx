@@ -129,6 +129,8 @@ function LatencyChart({
             <span className="history-readout-ms">{Math.round(hp.ms)}ms</span>
             <span className="history-readout-t">{fmtTick(hp.t, mode)}</span>
           </>
+        ) : points.length <= 1 ? (
+          <span className="history-readout-hint">still accumulating — one point so far</span>
         ) : (
           <span className="history-readout-hint">hover for values</span>
         )}
@@ -356,7 +358,7 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
                   <span className="history-stat-k">max</span> {stats.max}ms
                 </span>
                 <span className="history-stat">
-                  {stats.n} <span className="history-stat-k">samples</span>
+                  <span className="history-stat-k">samples</span> {stats.n}
                 </span>
               </div>
             ) : null}
