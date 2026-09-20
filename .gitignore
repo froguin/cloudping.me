@@ -35,3 +35,17 @@ yarn-error.log*
 .vercel
 .env*
 !.env.example
+
+# terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+
+# Terraform local secrets & state (HCP holds state; secrets via HCP vars or local TF_VAR_*)
+infra/terraform/*.tfvars
+infra/terraform/*.auto.tfvars
+infra/terraform/.terraform/
+infra/terraform/crash.log
