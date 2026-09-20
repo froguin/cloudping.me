@@ -1,0 +1,79 @@
+# Cloud Build config: build the probe image once, deploy to all GCP Cloud Run
+# regions. Triggered by pushes to main (via a Cloud Build GitHub trigger), so
+# GitHub Actions minutes are never spent on GCP deploys — GCP builds itself.
+#
+# No-billing projects can only run Cloud Build in a limited set of regions, so we
+# build a single image in europe-west1 (cheapest build-capable Artifact Registry)
+# and every region deploys that same prebuilt image via --image. Identical bytes
+# across regions, one build.
+#
+# Substitutions:
+#   _PROBE_SECRET  — app bearer secret (set on the trigger, not committed)
+#   _BUILD_REGION  — region for the one-time build + image storage (europe-west1)
+#   _REGIONS       — space-separated Cloud Run regions to deploy
+
+substitutions:
+  _BUILD_REGION: europe-west1
+  _REGIONS: 'europe-west1 asia-northeast1 asia-northeast3 asia-south1 southamerica-east1 us-west1'
+  _PROBE_SECRET: ''
+
+steps:
+  # 1) Bundle the server with esbuild (Node 24 target) inside a node image.
+  - id: bundle
+    name: node:24-slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        npx --yes esbuild cloudrun/server.ts \
+          --bundle --platform=node --target=node24 --format=cjs \
+          --alias:@app/data="$(pwd)/src/data" \
+          --outfile=cloudrun/server.js
+        # server.js sits next to the Dockerfile for the image build.
+
+  # 2) Build the image once and push to the build-region Artifact Registry.
+  #    TAG is $SHORT_SHA when triggered by a commit; falls back to "latest" for
+  #    manual `gcloud builds submit` runs (SHORT_SHA is empty there).
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    dir: cloudrun
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        TAG="$${SHORT_SHA:-latest}"
+        REPO="${_BUILD_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/cloudping-probe"
+        docker build -t "$${REPO}:$${TAG}" -t "$${REPO}:latest" .
+        docker push --all-tags "$${REPO}"
+
+  # 3) Deploy the SAME image to every region (no per-region build).
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        TAG="$${SHORT_SHA:-latest}"
+        IMAGE="${_BUILD_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/cloudping-probe:$${TAG}"
+        for region in ${_REGIONS}; do
+          echo "=== deploy ${region} ==="
+          gcloud run deploy cloudping-probe \
+            --image "$${IMAGE}" \
+            --region "$${region}" \
+            --no-allow-unauthenticated \
+            --cpu 0.5 --memory 512Mi --timeout 300 \
+            --min-instances 0 --max-instances 1 \
+            --set-env-vars "PROBE_SECRET=${_PROBE_SECRET},PROBE_ORIGIN_ID=gcp-$${region},PROBE_ORIGIN_LABEL=GCP Cloud Run ($${region})" \
+            --quiet
+        done
+
+images:
+  - ${_BUILD_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/cloudping-probe:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s
