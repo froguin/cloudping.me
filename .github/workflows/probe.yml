@@ -142,10 +142,26 @@ jobs:
           # status so `wait` can count failures. Snapshot lands in the same dir and
           # is normalized by the merge step below via its embedded probe.id.
           if [ -n "${GCP_PROBE_URLS:-}" ]; then
+            # ADC in CI is the invoker SA (via WIF). Mint per-service ID tokens by
+            # calling the IAM Credentials generateIdToken API on the SA itself
+            # (SA holds serviceAccountTokenCreator on itself). audience = service URL
+            # so Cloud Run IAM accepts it; the token identity is the SA, which holds
+            # run.invoker. The app secret rides on X-Probe-Secret so it doesn't
+            # collide with the ID token Cloud Run forwards on Authorization.
+            access_tok="$(gcloud auth print-access-token 2>/dev/null || true)"
             for url in ${GCP_PROBE_URLS}; do
               (
                 status=0
-                idtok="$(gcloud auth print-identity-token --impersonate-service-account="${GCP_PROBE_SA}" --audiences="${url}" --include-email 2>/dev/null)" || { echo "gcp id-token ${url}: failed" >&2; exit 1; }
+                idtok=""
+                if [ -n "${access_tok}" ]; then
+                  idtok="$(curl -fsS --max-time 20 -X POST \
+                    "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${GCP_PROBE_SA}:generateIdToken" \
+                    -H "Authorization: Bearer ${access_tok}" \
+                    -H "Content-Type: application/json" \
+                    -d "$(URL="${url}" python3 -c 'import json,os; print(json.dumps({"audience":os.environ["URL"],"includeEmail":True}))')" \
+                    2>/dev/null | python3 -c 'import sys,json; print(json.load(sys.stdin).get("token",""))' 2>/dev/null || true)"
+                fi
+                if [ -z "${idtok}" ]; then echo "gcp id-token ${url}: failed" >&2; exit 1; fi
                 safe="$(printf '%s' "${url}" | tr -c 'A-Za-z0-9' '_')"
                 if ! curl -fsS --max-time 270 -X POST "${url}" \
                   -H "Authorization: Bearer ${idtok}" \
