@@ -347,20 +347,16 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
               <div className="history-stats" aria-label="Last 24 hours summary">
                 <span className="history-stat-range">24h</span>
                 <span className="history-stat">
-                  <span className="history-stat-k">min</span>
-                  <span className="history-stat-v">{stats.min}ms</span>
+                  <span className="history-stat-k">min</span> {stats.min}ms
                 </span>
                 <span className="history-stat">
-                  <span className="history-stat-k">p50</span>
-                  <span className="history-stat-v">{stats.p50}ms</span>
+                  <span className="history-stat-k">p50</span> {stats.p50}ms
                 </span>
                 <span className="history-stat">
-                  <span className="history-stat-k">max</span>
-                  <span className="history-stat-v">{stats.max}ms</span>
+                  <span className="history-stat-k">max</span> {stats.max}ms
                 </span>
                 <span className="history-stat">
-                  <span className="history-stat-k">samples</span>
-                  <span className="history-stat-v">{stats.n}</span>
+                  {stats.n} <span className="history-stat-k">samples</span>
                 </span>
               </div>
             ) : null}
