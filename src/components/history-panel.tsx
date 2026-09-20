@@ -200,29 +200,38 @@ function LatencyChart({
 
 /** Provider logo + optional country flag chip used on each side of the header. */
 function Endpoint({
+  role,
   vendor,
   vendorName,
   countryCode,
   code,
   sub,
 }: {
+  role: string
   vendor: string | null
   vendorName: string
   countryCode?: string
   code: string
   sub?: string
 }): JSX.Element {
+  // No vercel.svg asset exists; mirror the main matrix which hides it.
+  const showLogo = vendor && vendor !== 'vercel'
   return (
     <div className="history-endpoint">
-      <div className="history-endpoint-icons">
-        {vendor ? <CloudProviderLogo providerKey={vendor} providerName={vendorName} width={22} /> : null}
-        {countryCode ? (
-          <CountryFlag countryCode={countryCode} width={18} />
-        ) : null}
-      </div>
-      <div className="history-endpoint-text">
-        <span className="history-endpoint-code">{code}</span>
-        {sub ? <span className="history-endpoint-sub">{sub}</span> : null}
+      <span className="history-endpoint-role">{role}</span>
+      <div className="history-endpoint-body">
+        <div className="history-endpoint-icons">
+          {showLogo ? (
+            <span className="history-logo-chip">
+              <CloudProviderLogo providerKey={vendor as string} providerName={vendorName} width={20} />
+            </span>
+          ) : null}
+          {countryCode ? <CountryFlag countryCode={countryCode} width={18} /> : null}
+        </div>
+        <div className="history-endpoint-text">
+          <span className="history-endpoint-code">{code}</span>
+          {sub ? <span className="history-endpoint-sub">{sub}</span> : null}
+        </div>
       </div>
     </div>
   )
@@ -277,7 +286,9 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
   }, [props])
 
   const stats = useMemo(() => {
-    const all = [...(data?.intraday ?? []), ...(data?.daily ?? [])].map((p) => p.ms)
+    // Stats reflect the 24h intraday samples only — mixing them with the
+    // 7-day daily aggregates would skew the percentile.
+    const all = (data?.intraday ?? []).map((p) => p.ms)
     if (all.length === 0) return null
     const s = [...all].sort((a, b) => a - b)
     const p50 = s[Math.floor(s.length / 2)]
@@ -301,6 +312,7 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
         <div className="history-head">
           <div className="history-route">
             <Endpoint
+              role="From (probe)"
               vendor={props.originVendor}
               vendorName={originVendorName}
               code={props.originCode}
@@ -308,6 +320,7 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
             />
             <span className="history-arrow" aria-hidden="true">→</span>
             <Endpoint
+              role="To (target)"
               vendor={props.provider}
               vendorName={props.providerName}
               countryCode={props.regionCountry}
@@ -318,9 +331,6 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
           <button ref={closeRef} type="button" className="history-close" onClick={props.onClose} aria-label="Close">
             ✕
           </button>
-        </div>
-        <div className="history-sub">
-          Probe from {props.originCode} → {props.providerName} {props.region} · latency history
         </div>
 
         {loading ? (
@@ -334,7 +344,8 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
         ) : (
           <>
             {stats ? (
-              <div className="history-stats">
+              <div className="history-stats" aria-label="Last 24 hours summary">
+                <span className="history-stat-range">24h</span>
                 <span className="history-stat">
                   <span className="history-stat-k">min</span>
                   <span className="history-stat-v">{stats.min}ms</span>
