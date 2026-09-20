@@ -62,6 +62,7 @@ jobs:
           # per-service Google ID token (Cloud Run IAM) plus the app secret in the
           # X-Probe-Secret header. Empty = skip GCP invokes.
           GCP_PROBE_URLS: ${{ vars.GCP_PROBE_URLS }}
+          GCP_PROBE_SA: ${{ vars.GCP_PROBE_SA }}
         run: |
           set -euo pipefail
           test -n "${PROBE_SECRET}"
@@ -144,7 +145,7 @@ jobs:
             for url in ${GCP_PROBE_URLS}; do
               (
                 status=0
-                idtok="$(gcloud auth print-identity-token --audiences="${url}" 2>/dev/null)" || { echo "gcp id-token ${url}: failed" >&2; exit 1; }
+                idtok="$(gcloud auth print-identity-token --impersonate-service-account="${GCP_PROBE_SA}" --audiences="${url}" --include-email 2>/dev/null)" || { echo "gcp id-token ${url}: failed" >&2; exit 1; }
                 safe="$(printf '%s' "${url}" | tr -c 'A-Za-z0-9' '_')"
                 if ! curl -fsS --max-time 270 -X POST "${url}" \
                   -H "Authorization: Bearer ${idtok}" \
