@@ -417,6 +417,38 @@ code,
   font-size: 12px;
 }
 .matrix-from-code { display: block; font-family: var(--font-jetbrains-mono), ui-monospace, monospace; color: var(--text); }
+/* From-column filter box — bordered + labeled so it doesn't blend with the
+   To/row provider+geo pills above it. */
+.matrix-from-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+.matrix-from-filter-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.matrix-from-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.matrix-from-filter-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 0.2rem;
+}
 .matrix-from-city { display: block; font-size: 10px; font-weight: 400; color: var(--text-muted); }
 .matrix-from-stale {
   display: block;

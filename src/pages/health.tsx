@@ -142,6 +142,9 @@ export default function Health(props: HealthProps): JSX.Element {
   const [filterOpen, setFilterOpen] = useState(false)
   const [filterQuery, setFilterQuery] = useState('')
   const [metric, setMetric] = useState<'latest' | 'p24'>('latest')
+  // From-column (probe origin) filters: by CSP vendor and by continent.
+  const [selectedFromVendors, setSelectedFromVendors] = useState<string[] | null>(null)
+  const [selectedFromContinents, setSelectedFromContinents] = useState<string[] | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('theme')
@@ -231,6 +234,32 @@ export default function Health(props: HealthProps): JSX.Element {
     return map
   }, [columns])
 
+  // Which CSP vendors / continents actually appear among the From columns.
+  const fromVendors = useMemo(() => {
+    const set = new Set<string>()
+    for (const col of columns) {
+      const v = originVendor(col)
+      if (v) set.add(v)
+    }
+    return ['aws', 'gcp', 'azure', 'vercel'].filter((v) => set.has(v))
+  }, [columns])
+
+  const fromContinents = useMemo(() => {
+    const set = new Set<string>()
+    for (const col of columns) set.add(originContinent(col))
+    return ORIGIN_CONTINENT_ORDER.filter((c) => set.has(c))
+  }, [columns])
+
+  // Apply From-column filters (null = show all). Row filters are separate.
+  const visibleColumns = useMemo(() => {
+    return columns.filter((col) => {
+      const v = originVendor(col)
+      if (selectedFromVendors && !(v && selectedFromVendors.includes(v))) return false
+      if (selectedFromContinents && !selectedFromContinents.includes(originContinent(col))) return false
+      return true
+    })
+  }, [columns, selectedFromVendors, selectedFromContinents])
+
   const has24h = useMemo(() => {
     let maxN = 0
     for (const col of columns) {
@@ -271,6 +300,19 @@ export default function Health(props: HealthProps): JSX.Element {
 
   const toggleProvider = (k: string) => setSelectedProviders((v) => (v.includes(k) ? v.filter((x) => x !== k) : [...v, k]))
   const toggleGeo = (geo: string) => setSelectedGeos((v) => (v.includes(geo) ? v.filter((x) => x !== geo) : [...v, geo]))
+  // From-column filters. null means "all"; toggling narrows to an explicit set.
+  const toggleFromVendor = (v: string) =>
+    setSelectedFromVendors((cur) => {
+      const base = cur ?? fromVendors
+      const next = base.includes(v) ? base.filter((x) => x !== v) : [...base, v]
+      return next.length === fromVendors.length ? null : next
+    })
+  const toggleFromContinent = (c: string) =>
+    setSelectedFromContinents((cur) => {
+      const base = cur ?? fromContinents
+      const next = base.includes(c) ? base.filter((x) => x !== c) : [...base, c]
+      return next.length === fromContinents.length ? null : next
+    })
   const toggleRegion = (key: string) => setSelectedKeys((v) => (v.includes(key) ? v.filter((x) => x !== key) : [...v, key]))
 
   const setScopedKeys = (on: boolean) => {
@@ -311,7 +353,7 @@ export default function Health(props: HealthProps): JSX.Element {
 
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
-              <h6 className="text-xs font-medium text-[color:var(--text-muted)] uppercase tracking-wider">Cloud Providers</h6>
+              <h6 className="text-xs font-medium text-[color:var(--text-muted)] uppercase tracking-wider">To (target regions) · Cloud Providers</h6>
               <button
                 type="button"
                 onClick={() =>
@@ -352,6 +394,43 @@ export default function Health(props: HealthProps): JSX.Element {
                 </button>
               )
             })}
+          </div>
+
+          {/* From-column (probe origin) filters — visually separated from the To/row
+              filters above via a bordered box and an explicit "From" label. */}
+          <div className="matrix-from-filter">
+            <span className="matrix-from-filter-label">From (probe origins)</span>
+            <div className="matrix-from-filter-pills">
+              {fromVendors.map((v) => {
+                const on = selectedFromVendors === null || selectedFromVendors.includes(v)
+                return (
+                  <button
+                    key={`fv-${v}`}
+                    type="button"
+                    onClick={() => toggleFromVendor(v)}
+                    className={`provider-pill flex-shrink-0 ${on ? 'active' : ''}`}
+                    title={`${v.toUpperCase()} origins`}
+                  >
+                    {v !== 'vercel' ? <CloudProviderLogo width={14} providerKey={v} providerName={v.toUpperCase()} /> : null}
+                    <span>{v.toUpperCase()}</span>
+                  </button>
+                )
+              })}
+              <span className="matrix-from-filter-sep" aria-hidden="true" />
+              {fromContinents.map((c) => {
+                const on = selectedFromContinents === null || selectedFromContinents.includes(c)
+                return (
+                  <button
+                    key={`fc-${c}`}
+                    type="button"
+                    onClick={() => toggleFromContinent(c)}
+                    className={`provider-pill ${on ? 'active' : ''}`}
+                  >
+                    {c}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           <div className="matrix-toolbar">
@@ -413,7 +492,7 @@ export default function Health(props: HealthProps): JSX.Element {
           ) : null}
 
           <div className="matrix-scroll">
-            {rows.length === 0 || columns.length === 0 ? (
+            {rows.length === 0 || visibleColumns.length === 0 ? (
               <div className="text-center py-12 text-[color:var(--text-muted)]">
                 <p>
                   {snapshot
@@ -431,7 +510,7 @@ export default function Health(props: HealthProps): JSX.Element {
                     {(() => {
                       // Continent group header row spanning each run of same-continent columns.
                       const groups: { continent: string; span: number }[] = []
-                      for (const col of columns) {
+                      for (const col of visibleColumns) {
                         const c = originContinent(col)
                         const last = groups[groups.length - 1]
                         if (last && last.continent === c) last.span += 1
@@ -445,7 +524,7 @@ export default function Health(props: HealthProps): JSX.Element {
                     })()}
                   </tr>
                   <tr>
-                    {columns.map((col) => {
+                    {visibleColumns.map((col) => {
                       const vendor = originVendor(col)
                       return (
                         <th key={col.id} title={`${col.label} · ${columnSubtitle(col)}`}>
@@ -475,7 +554,7 @@ export default function Health(props: HealthProps): JSX.Element {
                                 <span>{row.provider.display_name}</span>
                               </div>
                             </td>
-                            {columns.map((col) => (
+                            {visibleColumns.map((col) => (
                               <td key={col.id} className="matrix-group-fill" />
                             ))}
                           </tr>
@@ -485,7 +564,7 @@ export default function Health(props: HealthProps): JSX.Element {
                             <code>{row.region.key}</code>
                             <span className="matrix-to-location">{row.region.location}</span>
                           </td>
-                          {columns.map((col) => {
+                          {visibleColumns.map((col) => {
                             const cell = lookup.get(`${col.id}|${row.provider.key}|${row.region.key}`)
                             const kind = sameCloudKind(col, row.provider.key, row.region.location)
                             const displayMs =
