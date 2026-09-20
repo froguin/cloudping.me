@@ -149,10 +149,14 @@ export default function Health(props: HealthProps): JSX.Element {
   // Clicked cell → per-cell latency history panel.
   const [selectedCell, setSelectedCell] = useState<{
     origin: string
-    originLabel: string
+    originVendor: string | null
+    originCode: string
+    originCity?: string
     provider: string
+    providerName: string
     region: string
-    targetLabel: string
+    regionLocation: string
+    regionCountry: string
   } | null>(null)
 
   useEffect(() => {
@@ -600,10 +604,14 @@ export default function Health(props: HealthProps): JSX.Element {
                                     ? () =>
                                         setSelectedCell({
                                           origin: col.id,
-                                          originLabel: `${columnCode(col)}${columnCity(col) ? ` (${columnCity(col)})` : ''}`,
+                                          originVendor: originVendor(col),
+                                          originCode: columnCode(col),
+                                          originCity: columnCity(col),
                                           provider: row.provider.key,
+                                          providerName: row.provider.display_name,
                                           region: row.region.key,
-                                          targetLabel: `${row.provider.display_name} ${row.region.key}`,
+                                          regionLocation: row.region.location,
+                                          regionCountry: row.region.country,
                                         })
                                     : undefined
                                 }
@@ -628,10 +636,14 @@ export default function Health(props: HealthProps): JSX.Element {
         {selectedCell ? (
           <HistoryPanel
             origin={selectedCell.origin}
-            originLabel={selectedCell.originLabel}
+            originVendor={selectedCell.originVendor}
+            originCode={selectedCell.originCode}
+            originCity={selectedCell.originCity}
             provider={selectedCell.provider}
+            providerName={selectedCell.providerName}
             region={selectedCell.region}
-            targetLabel={selectedCell.targetLabel}
+            regionLocation={selectedCell.regionLocation}
+            regionCountry={selectedCell.regionCountry}
             onClose={() => setSelectedCell(null)}
           />
         ) : null}
