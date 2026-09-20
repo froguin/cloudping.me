@@ -100,15 +100,30 @@ export function columnCode(col: ProbeColumn): string {
 }
 
 export const ORIGIN_CITIES: Record<string, string> = {
+  // AWS Lambda regions
   'ap-northeast-1': 'Tokyo',
   'ap-northeast-2': 'Seoul',
   'ap-southeast-1': 'Singapore',
   'eu-central-1': 'Frankfurt',
   'us-east-1': 'N. Virginia',
   'us-west-2': 'Oregon',
+  'sa-east-1': 'São Paulo',
+  // GCP Cloud Run regions
   'asia-northeast1': 'Tokyo',
   'asia-northeast3': 'Seoul',
+  'asia-south1': 'Mumbai',
+  'europe-west1': 'Belgium',
+  'us-east1': 'S. Carolina',
   'us-central1': 'Iowa',
+  'southamerica-east1': 'São Paulo',
+  // Azure regions (added ahead of Azure origin rollout)
+  australiaeast: 'Sydney',
+  southafricanorth: 'Johannesburg',
+  uaenorth: 'Dubai',
+  canadacentral: 'Toronto',
+  eastasia: 'Hong Kong',
+  westus2: 'Washington (US)',
+  // Vercel edge codes
   arn1: 'Stockholm',
   bom1: 'Mumbai',
   cdg1: 'Paris',
@@ -129,4 +144,75 @@ export const ORIGIN_CITIES: Record<string, string> = {
   sin1: 'Singapore',
   syd1: 'Sydney',
   yul1: 'Montreal',
+}
+
+/**
+ * Continent for each probe-origin code, so the /health board can order and
+ * group the From columns geographically instead of alphabetically. Falls back
+ * to 'Other' for unknown codes (keeps them visible at the end).
+ */
+export const ORIGIN_CONTINENTS: Record<string, string> = {
+  // North America
+  'us-east-1': 'North America',
+  'us-west-2': 'North America',
+  'us-east1': 'North America',
+  'us-central1': 'North America',
+  westus2: 'North America',
+  canadacentral: 'North America',
+  iad1: 'North America',
+  cle1: 'North America',
+  pdx1: 'North America',
+  sfo1: 'North America',
+  yul1: 'North America',
+  // Europe
+  'eu-central-1': 'Europe',
+  'europe-west1': 'Europe',
+  arn1: 'Europe',
+  cdg1: 'Europe',
+  dub1: 'Europe',
+  fra1: 'Europe',
+  lhr1: 'Europe',
+  // Asia
+  'ap-northeast-1': 'Asia',
+  'ap-northeast-2': 'Asia',
+  'ap-southeast-1': 'Asia',
+  'asia-northeast1': 'Asia',
+  'asia-northeast3': 'Asia',
+  'asia-south1': 'Asia',
+  eastasia: 'Asia',
+  bom1: 'Asia',
+  hkg1: 'Asia',
+  hnd1: 'Asia',
+  icn1: 'Asia',
+  kix1: 'Asia',
+  sin1: 'Asia',
+  // Middle East
+  uaenorth: 'Middle East',
+  dxb1: 'Middle East',
+  // South America
+  'sa-east-1': 'South America',
+  'southamerica-east1': 'South America',
+  gru1: 'South America',
+  // Oceania
+  australiaeast: 'Oceania',
+  syd1: 'Oceania',
+  // Africa
+  southafricanorth: 'Africa',
+  cpt1: 'Africa',
+}
+
+/** Continent display order for probe-origin (From) columns. */
+export const ORIGIN_CONTINENT_ORDER = [
+  'North America',
+  'Europe',
+  'Asia',
+  'Middle East',
+  'South America',
+  'Oceania',
+  'Africa',
+  'Other',
+]
+
+export function originContinent(col: ProbeColumn): string {
+  return ORIGIN_CONTINENTS[columnCode(col)] || 'Other'
 }

@@ -418,6 +418,24 @@ code,
 }
 .matrix-from-code { display: block; font-family: var(--font-jetbrains-mono), ui-monospace, monospace; color: var(--text); }
 .matrix-from-city { display: block; font-size: 10px; font-weight: 400; color: var(--text-muted); }
+/* Continent group header (top row) + per-origin head with CSP logo (second row). */
+.matrix-from-continent {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted) !important;
+  border-bottom: 1px solid var(--border);
+}
+.matrix-from-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+}
+/* Two-row sticky header: continent row on top (top:0), origin row below it. */
+.matrix-table thead tr:nth-child(2) th { top: 22px; }
+.matrix-table thead .matrix-corner { top: 0; }
 @media (max-width: 639px) {
   .matrix-to-location { display: none; }
 }

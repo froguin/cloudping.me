@@ -13,6 +13,9 @@ import {
   normalizeMatrixSnapshot,
   MIN_N24H,
   sameCloudKind,
+  originVendor,
+  originContinent,
+  ORIGIN_CONTINENT_ORDER,
 } from '@app/fns/probe-snapshot'
 import { getHealthJsonUrl, getSiteUrl } from '../site-config'
 
@@ -195,7 +198,19 @@ export default function Health(props: HealthProps): JSX.Element {
 
   const columns = useMemo(() => {
     if (!snapshot) return [] as ProbeColumn[]
+    // Order From columns by continent (ORIGIN_CONTINENT_ORDER), then by city/code,
+    // so geographically related origins sit together instead of alphabetically.
+    const continentRank = (col: ProbeColumn) => {
+      const idx = ORIGIN_CONTINENT_ORDER.indexOf(originContinent(col))
+      return idx === -1 ? ORIGIN_CONTINENT_ORDER.length : idx
+    }
     return Object.values(snapshot.from).sort((a, b) => {
+      const ca = continentRank(a)
+      const cb = continentRank(b)
+      if (ca !== cb) return ca - cb
+      const la = (ORIGIN_CITIES[columnCode(a)] || columnCode(a)).toLowerCase()
+      const lb = (ORIGIN_CITIES[columnCode(b)] || columnCode(b)).toLowerCase()
+      if (la !== lb) return la < lb ? -1 : 1
       const left = columnCode(a)
       const right = columnCode(b)
       return left < right ? -1 : left > right ? 1 : 0
@@ -408,14 +423,39 @@ export default function Health(props: HealthProps): JSX.Element {
               <table className="matrix-table">
                 <thead>
                   <tr>
-                    <th className="matrix-corner">To \ From</th>
-                    {columns.map((col) => (
-                      <th key={col.id} title={col.label}>
-                        <span className="matrix-from-code">{columnCode(col)}</span>
-                        {columnCity(col) ? <span className="matrix-from-city">{columnCity(col)}</span> : null}
-                        <span className="matrix-from-city">{columnSubtitle(col)}</span>
-                      </th>
-                    ))}
+                    <th className="matrix-corner" rowSpan={2}>To \ From</th>
+                    {(() => {
+                      // Continent group header row spanning each run of same-continent columns.
+                      const groups: { continent: string; span: number }[] = []
+                      for (const col of columns) {
+                        const c = originContinent(col)
+                        const last = groups[groups.length - 1]
+                        if (last && last.continent === c) last.span += 1
+                        else groups.push({ continent: c, span: 1 })
+                      }
+                      return groups.map((g, i) => (
+                        <th key={`grp-${g.continent}-${i}`} colSpan={g.span} className="matrix-from-continent">
+                          {g.continent}
+                        </th>
+                      ))
+                    })()}
+                  </tr>
+                  <tr>
+                    {columns.map((col) => {
+                      const vendor = originVendor(col)
+                      return (
+                        <th key={col.id} title={col.label}>
+                          <span className="matrix-from-head">
+                            {vendor && vendor !== 'vercel' ? (
+                              <CloudProviderLogo width={13} providerKey={vendor} providerName={vendor.toUpperCase()} />
+                            ) : null}
+                            <span className="matrix-from-code">{columnCode(col)}</span>
+                          </span>
+                          {columnCity(col) ? <span className="matrix-from-city">{columnCity(col)}</span> : null}
+                          <span className="matrix-from-city">{columnSubtitle(col)}</span>
+                        </th>
+                      )
+                    })}
                   </tr>
                 </thead>
                 <tbody>
