@@ -1,0 +1,31 @@
+version: 0.2
+# CodeBuild buildspec run by cloudping-lambda-pipeline (CodePipeline, us-east-1).
+# Bundles lambda/handler.ts once and fans the same zip out to every Lambda
+# region via update-function-code only -- never touches function configuration,
+# so PROBE_SECRET / Function URL settings set outside CI are preserved.
+env:
+  variables:
+    LAMBDA_REGIONS: >-
+      us-east-1 us-east-2 us-west-2 ca-central-1 eu-west-1 eu-central-1
+      ap-northeast-1 ap-northeast-2 ap-southeast-1 ap-southeast-2 sa-east-1
+      af-south-1 me-central-1
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+  build:
+    commands:
+      - echo "Bundling handler with esbuild..."
+      - mkdir -p build
+      - npx --yes esbuild lambda/handler.ts --bundle --platform=node --target=node24 --format=cjs
+        --alias:@app/data="$CODEBUILD_SRC_DIR/src/data" --outfile=build/index.js
+      - (cd build && zip -qr function.zip index.js)
+      - |
+        for region in $LAMBDA_REGIONS; do
+          echo "=== deploying to ${region} ==="
+          aws lambda update-function-code --region "${region}" --function-name cloudping-probe \
+            --zip-file fileb://build/function.zip --architectures arm64 >/dev/null
+          aws lambda wait function-updated --region "${region}" --function-name cloudping-probe
+        done
+      - echo "All regions updated."

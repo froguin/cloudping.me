@@ -1,0 +1,80 @@
+name: Deploy Azure probes
+
+# Auto-deploys azure/server.ts to all 7 Azure App Service (F1) probe origins on
+# push to main. Bundles with esbuild (same as azure/deploy.sh) and zip-deploys
+# code only -- app settings (PROBE_SECRET, etc.) are never touched here.
+#
+# Auth is OIDC (azure/oidc-setup.sh): a federated Azure AD app trusted only for
+# `repo:froguin/cloudping.me:ref:refs/heads/main`, holding "Website Contributor"
+# scoped to the cloudping-probe resource group only. No secrets stored.
+#
+# Public repo -> GitHub Actions minutes are free regardless of run time.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'azure/**'
+      - 'src/fns/**'
+      - 'src/data/**'
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-azure
+  cancel-in-progress: false
+
+env:
+  RG: cloudping-probe
+  APPS: >-
+    cloudping-probe-australiaeast cloudping-probe-southafricanorth
+    cloudping-probe-eastus2 cloudping-probe-westeurope
+    cloudping-probe-koreacentral cloudping-probe-brazilsouth
+    cloudping-probe-canadacentral
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Bundle server with esbuild
+        run: |
+          set -euo pipefail
+          mkdir -p build
+          npx --yes esbuild azure/server.ts \
+            --bundle --platform=node --target=node24 --format=cjs \
+            --alias:@app/data="$(pwd)/src/data" \
+            --outfile=build/server.js
+          cat > build/package.json <<'PKGJSON'
+          { "name": "cloudping-probe", "version": "1.0.0", "private": true,
+            "scripts": { "start": "node server.js" }, "engines": { "node": ">=24" } }
+          PKGJSON
+          (cd build && zip -qr ../app.zip server.js package.json)
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to each F1 app
+        run: |
+          set -euo pipefail
+          for app in ${APPS}; do
+            echo "=== ${app} ==="
+            az webapp deploy -g "${RG}" -n "${app}" --src-path app.zip --type zip -o none
+          done
+
+      - name: Azure logout
+        if: always()
+        run: az logout || true
