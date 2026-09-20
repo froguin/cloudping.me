@@ -70,8 +70,10 @@ latency heatmap (colors: &lt;100 / 100–180 / &gt;180ms).
 - **Rows (To)** — cloud regions being measured. **Columns (From)** — probe
   origins in 25 regions across AWS, GCP, and Azure, grouped by continent then
   CSP. Both axes are filterable.
-- Each cell = P50 of 5 HTTP GETs after warmup (not from your browser). A 24h P50
-  view is available once enough samples accrue.
+- Each cell's latest value = the fastest of up to 4 successful HTTP GETs to response
+  headers after 2 warmups (at least 3 successes; not from your browser). A 24h P50
+  view is available once enough samples accrue; it is the median of per-run values
+  and may include older probe behavior.
 - Snapshots refresh about every 30 minutes.
 
 > Operating the probes (multi-cloud deploy, scheduling, secrets, free-tier

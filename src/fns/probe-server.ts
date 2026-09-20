@@ -4,16 +4,8 @@ import type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 export type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 
 const MAX_BODY_BYTES = 64 * 1024
-// A full round fans out to 300+ targets from small (256MB) Lambdas, and its
-// wall-clock duration — which is what Lambda bills — is dominated by serial
-// per-target requests, not CPU. Trimming one timed sample (5→4) drops per-target
-// requests from 7 to 6 (~15% shorter rounds, lower GB-seconds) while MIN_SAMPLES
-// stays at 3 so the median still rejects a single outlier. WARMUP_COUNT stays at
-// 2: the previous commit raised it 1→2 to hide origin/target cold-start first-hit
-// cost on cross-region paths, and lowering it again isn't justified here. NOTE:
-// the AWS Seoul self-ping jitter (occasional 150–440ms spikes on a ~20ms path)
-// is a SEPARATE issue this change does NOT fix — it persisted after warmup went
-// 1→2, so it's origin-side measurement noise, not a warmup/sample-count problem.
+// Keep six requests per target to bound round duration / serverless GB-seconds.
+// Require three successes even though we report the fastest measured response.
 const SAMPLE_COUNT = 4
 const MIN_SAMPLES = 3
 const WARMUP_COUNT = 2
@@ -24,17 +16,22 @@ const WARMUP_COUNT = 2
 // separated, so tightening it further would risk false timeouts.
 const DEFAULT_TIMEOUT_MS = 3000
 const CHINA_TIMEOUT_MS = 2000
+// The self-target shares the origin's region, so its round trip is tens of ms at
+// most. It is measured serially *before* the concurrent fan-out (see runProbe),
+// so a dead self-target would otherwise gate the whole round behind six full
+// DEFAULT_TIMEOUT_MS timeouts (~18s). A tight self timeout caps that stall while
+// still leaving a ~10× margin over a healthy same-region path.
+const SELF_TIMEOUT_MS = 750
+// Samples faster than this are physically implausible for an HTTP GET that
+// re-runs DNS/TLS-agnostic fetch with cache: 'no-store' — a sub-RTT reading is
+// almost certainly a measurement artifact. Because we report min(), one bogus
+// low sample would win outright, so we drop these before taking the minimum.
+// MIN_SAMPLES already tolerates dropping a sample.
+const MIN_PLAUSIBLE_MS = 1
 
 function isChinaTarget(country: string, url: string): boolean {
   if (country === 'CN') return true
   return /(?:\.cn(?:[:/]|$)|amazonaws\.com\.cn|oss-cn-)/i.test(url)
-}
-
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  if (sorted.length % 2) return sorted[mid]
-  return Math.round((sorted[mid - 1] + sorted[mid]) / 2)
 }
 
 async function drainAfterClock(res: Response): Promise<void> {
@@ -61,7 +58,7 @@ async function timedGet(url: string, timeoutMs: number): Promise<number> {
   parsed.searchParams.set('_cloudping', `${Date.now()}-${Math.random().toString(36).slice(2)}`)
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
-  const start = Date.now()
+  const start = performance.now()
   try {
     const res = await fetch(parsed.toString(), {
       method: 'GET',
@@ -70,9 +67,11 @@ async function timedGet(url: string, timeoutMs: number): Promise<number> {
       signal: controller.signal,
       headers: { 'user-agent': 'cloudping.me-probe' },
     })
-    const elapsed = Date.now() - start
+    const elapsed = performance.now() - start
     clearTimeout(timer)
     await drainAfterClock(res)
+    // performance.now() is monotonic, so elapsed can't go negative; the clamp is
+    // a cheap defensive floor, not a correction for clock step-backs.
     return Math.max(elapsed, 0)
   } finally {
     clearTimeout(timer)
@@ -101,13 +100,17 @@ async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number;
   let lastError: 'timeout' | 'network' = 'network'
   for (let i = 0; i < SAMPLE_COUNT; i++) {
     try {
-      samples.push(Math.round(await timedGet(url, timeoutMs)))
+      const ms = await timedGet(url, timeoutMs)
+      // Drop implausibly-fast readings so a single artifact can't win min().
+      if (ms >= MIN_PLAUSIBLE_MS) samples.push(ms)
     } catch (err) {
       lastError = errorKind(err)
     }
   }
   if (samples.length < MIN_SAMPLES) return { error: lastError }
-  return { ms: median(samples), samples: samples.length }
+  // Queueing and event-loop stalls add delay. The minimum estimates the least
+  // congested HTTP round trip, still including target processing (not raw RTT).
+  return { ms: Math.round(Math.min(...samples) * 100) / 100, samples: samples.length }
 }
 
 async function mapPool<T, R>(items: T[], concurrency: number, worker: (item: T) => Promise<R>): Promise<R[]> {
@@ -137,8 +140,8 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     }
   }
 
-  const results = await mapPool(jobs, concurrency, async (job) => {
-    const timeoutMs = isChinaTarget(job.region.country, job.region.ping_url) ? CHINA_TIMEOUT_MS : DEFAULT_TIMEOUT_MS
+  const measureJob = async (job: (typeof jobs)[number], selfTimeout = false): Promise<ProbeResult> => {
+    const timeoutMs = selfTimeout ? SELF_TIMEOUT_MS : isChinaTarget(job.region.country, job.region.ping_url) ? CHINA_TIMEOUT_MS : DEFAULT_TIMEOUT_MS
     const base: ProbeResult = {
       provider: job.provider,
       region: job.region.key,
@@ -151,9 +154,18 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     const out = await pingTarget(job.region.ping_url, timeoutMs)
     if ('error' in out) return { ...base, error: out.error }
     return { ...base, ms: out.ms, ok: true, samples: out.samples }
-  })
+  }
 
   const origin = resolveOrigin()
+  // Measure the known same-provider/region target before fan-out: concurrent
+  // socket/TLS callbacks can inflate every sample on a short path. The self pass
+  // uses a tight SELF_TIMEOUT_MS so a dead self-target can't gate the whole round
+  // (it runs serially, before the pool). Reuse this result in the original order;
+  // other targets retain the requested concurrency and their normal timeouts.
+  const selfJob = jobs.find((job) => `${job.provider}-${job.region.key}` === origin.id)
+  const selfResult = selfJob ? await measureJob(selfJob, true) : undefined
+  const results = await mapPool(jobs, concurrency, async (job) => (job === selfJob && selfResult ? selfResult : measureJob(job)))
+
   return {
     probe: {
       id: origin.id,
