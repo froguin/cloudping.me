@@ -295,7 +295,7 @@ export default function Health(props: HealthProps): JSX.Element {
   const siteUrl = getSiteUrl()
   const title = 'Health — Cloudping.me'
   const description =
-    'Shared cloud-region latency matrix from a Vercel Function probe. HTTP round-trip, not measured from your browser.'
+    'Shared cloud-region latency matrix probed from AWS, GCP, and Azure regions. HTTP round-trip, not measured from your browser.'
   const fromLabel = columns.map((col) => `${columnCode(col)}${columnCity(col) ? ` (${columnCity(col)})` : ''}`).join(', ')
 
   const toggleProvider = (k: string) => setSelectedProviders((v) => (v.includes(k) ? v.filter((x) => x !== k) : [...v, k]))
@@ -344,7 +344,7 @@ export default function Health(props: HealthProps): JSX.Element {
             </p>
             <p className="text-xs text-[color:var(--text-muted)]">
               {snapshot
-                ? `Last updated ${formatUpdated(snapshot.at)}. Refreshed about every 15 minutes.`
+                ? `Last updated ${formatUpdated(snapshot.at)}. Refreshed about every 30 minutes.`
                 : loadError
                   ? `No probe snapshot yet (${loadError}). Run the Probe GitHub Action to publish the status branch.`
                   : 'Loading latest probe snapshot…'}
@@ -603,8 +603,8 @@ export default function Health(props: HealthProps): JSX.Element {
             )}
           </div>
           <p className="matrix-footnote">
-            Latest is the P50 of five HTTP GETs after warmup, timed to response headers (not body download). 24h P50 needs about 8 runs.
-            Corner mark = same metro and same cloud (or Vercel as AWS-adjacent in Seoul), not every AWS row.
+            Latest is the P50 of five HTTP GETs after warmup, timed to response headers (not body download). 24h P50 builds up
+            over the first several hours of runs. Corner mark = probe origin in the same metro and same cloud as the target row.
           </p>
         </div>
       </div>
