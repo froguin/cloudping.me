@@ -3,17 +3,23 @@
 # GitHub Actions minutes are never spent on GCP deploys — GCP builds itself.
 #
 # No-billing projects can only run Cloud Build in a limited set of regions, so we
-# build a single image in europe-west1 (cheapest build-capable Artifact Registry)
-# and every region deploys that same prebuilt image via --image. Identical bytes
-# across regions, one build.
+# build a single image in the BUILD_REGION and every region deploys that same
+# prebuilt image via --image. Identical bytes across regions, one build.
+#
+# BUILD_REGION defaults to asia-northeast3 (Seoul): Artifact Registry storage is
+# the same price in every region (and free under 0.5GB), so region choice is
+# purely about (1) where builds are allowed on this project and (2) colocation
+# with a Cloud Run origin to avoid cross-region image-pull egress if we ever move
+# to paid tier. Seoul is a GCP origin region and builds succeed there. Priority:
+# us-west1 (pending a Cloud Build quota support ticket) > Seoul/East-Asia.
 #
 # Substitutions:
 #   _PROBE_SECRET  — app bearer secret (set on the trigger, not committed)
-#   _BUILD_REGION  — region for the one-time build + image storage (europe-west1)
+#   _BUILD_REGION  — region for the one-time build + image storage
 #   _REGIONS       — space-separated Cloud Run regions to deploy
 
 substitutions:
-  _BUILD_REGION: europe-west1
+  _BUILD_REGION: asia-northeast3
   _REGIONS: 'europe-west1 asia-northeast1 asia-northeast3 asia-south1 southamerica-east1 us-west1'
   _PROBE_SECRET: ''
 

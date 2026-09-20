@@ -11,19 +11,20 @@
 # region deploys that same prebuilt image via --image. This sidesteps per-region
 # build quota entirely and guarantees all GCP origins run identical bytes.
 #
-# BUILD_REGION defaults to europe-west1: among the build-capable regions on this
-# no-billing project it has the cheapest Artifact Registry storage ($0.020/GB,
-# the lowest tier — US regions can't build here). The image is tiny (~100MB) so
-# the absolute cost is negligible, but this keeps the artifact in the cheapest spot.
+# BUILD_REGION defaults to asia-northeast3 (Seoul): Artifact Registry storage costs
+# the same in every region (free under 0.5GB), so region choice is about where
+# builds are allowed on this no-billing project + colocation with a Cloud Run
+# origin (Seoul is one) to minimize image-pull egress on any future paid tier.
+# Priority: us-west1 (pending a Cloud Build quota support ticket) > Seoul/East-Asia.
 #
 # Prereqs: gcloud auth, PROBE_SECRET exported, project set.
 # Usage:   PROBE_SECRET=xxx ./cloudrun/deploy.sh asia-northeast3 us-west1 ...
-#   BUILD_REGION=europe-west1     # region used for the one-time build (default)
+#   BUILD_REGION=asia-northeast3  # region used for the one-time build (default)
 #   REBUILD=1                     # force a fresh build even if an image exists
 set -euo pipefail
 
 SERVICE="cloudping-probe"
-BUILD_REGION="${BUILD_REGION:-europe-west1}"
+BUILD_REGION="${BUILD_REGION:-asia-northeast3}"
 : "${PROBE_SECRET:?export PROBE_SECRET first}"
 if [ "$#" -eq 0 ]; then echo "usage: PROBE_SECRET=xxx $0 <region> [region ...]" >&2; exit 1; fi
 
