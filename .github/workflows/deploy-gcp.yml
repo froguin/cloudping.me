@@ -1,4 +1,4 @@
-name: Deploy GCP
+name: Deploy GCP Cloud Run probes
 
 # Build the probe image in the GitHub Actions runner and deploy it to every GCP
 # Cloud Run region. Doing the build in Actions (not GCP Cloud Build) sidesteps the
