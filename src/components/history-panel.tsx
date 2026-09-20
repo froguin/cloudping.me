@@ -29,13 +29,24 @@ function useTooltip() {
   return { hover, setHover }
 }
 
-/** Format an x-axis / tooltip tick for a given granularity. */
+/**
+ * Format an x-axis / tooltip tick for a given granularity.
+ *
+ * Locale is pinned to 'en-US' on purpose. The rest of the UI is English-only, so
+ * letting these ticks follow the visitor's browser locale (the old `[]` argument)
+ * rendered Hangul/CJK/Arabic dates like "9월 20일" on some visitors — which then
+ * fell back to each OS's default CJK font (Malgun Gothic on Windows). Pinning to
+ * 'en-US' keeps every visitor on Latin glyphs (fully covered by Inter), also
+ * avoids Eastern-Arabic digits breaking SVG tick widths and SSR/CSR hydration
+ * mismatches. hour12:false keeps the narrow axis on a 24-hour clock; the time
+ * zone still follows the viewer's local zone.
+ */
 function fmtTick(unixSec: number, mode: '24h' | '7d'): string {
   const d = new Date(unixSec * 1000)
   if (mode === '24h') {
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
   }
-  return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 /**

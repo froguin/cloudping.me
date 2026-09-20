@@ -4,10 +4,25 @@ import type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 export type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 
 const MAX_BODY_BYTES = 64 * 1024
-const SAMPLE_COUNT = 5
+// A full round fans out to 300+ targets from small (256MB) Lambdas, and its
+// wall-clock duration — which is what Lambda bills — is dominated by serial
+// per-target requests, not CPU. Trimming one timed sample (5→4) drops per-target
+// requests from 7 to 6 (~15% shorter rounds, lower GB-seconds) while MIN_SAMPLES
+// stays at 3 so the median still rejects a single outlier. WARMUP_COUNT stays at
+// 2: the previous commit raised it 1→2 to hide origin/target cold-start first-hit
+// cost on cross-region paths, and lowering it again isn't justified here. NOTE:
+// the AWS Seoul self-ping jitter (occasional 150–440ms spikes on a ~20ms path)
+// is a SEPARATE issue this change does NOT fix — it persisted after warmup went
+// 1→2, so it's origin-side measurement noise, not a warmup/sample-count problem.
+const SAMPLE_COUNT = 4
 const MIN_SAMPLES = 3
 const WARMUP_COUNT = 2
-const DEFAULT_TIMEOUT_MS = 5000
+// Trim only the default timeout (5s→3s): a healthy target answers well under it
+// (the farthest real paths, e.g. Seoul→São Paulo, sit ~300ms), so 3s still leaves
+// a 10× margin while stopping dead targets from stalling a round for 5s each.
+// China keeps its 2s bucket unchanged — GFW/DPI jitter there is exactly why it's
+// separated, so tightening it further would risk false timeouts.
+const DEFAULT_TIMEOUT_MS = 3000
 const CHINA_TIMEOUT_MS = 2000
 
 function isChinaTarget(country: string, url: string): boolean {
