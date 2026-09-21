@@ -149,73 +149,84 @@ async function mapPool<T, R>(items: T[], concurrency: number, worker: (item: T) 
 }
 
 export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
-  const started = Date.now()
-  const providers = getAllProviders()
-  const regions = getAllCloudRegions()
-  const jobs: { provider: string; region: (typeof regions)[string][number] }[] = []
-  for (const provider of providers) {
-    for (const region of regions[provider.key] || []) {
-      if (!region.ping_url) continue
-      jobs.push({ provider: provider.key, region })
-    }
-  }
-
-  const measureJob = async (job: (typeof jobs)[number]): Promise<ProbeResult> => {
-    const timeoutMs = isChinaTarget(job.region.country, job.region.ping_url) ? CHINA_TIMEOUT_MS : DEFAULT_TIMEOUT_MS
-    const base: ProbeResult = {
-      provider: job.provider,
-      region: job.region.key,
-      location: job.region.location,
-      country: job.region.country,
-      geo: job.region.geo,
-      ms: null,
-      ok: false,
-    }
-    const out = await pingTarget(job.region.ping_url, timeoutMs)
-    if ('error' in out) return { ...base, error: out.error }
-    return { ...base, ms: out.ms, ok: true, samples: out.samples }
-  }
-
-  const origin = resolveOrigin()
-  // Claim (and flip) the warm-state flag synchronously, before any await, so
-  // two rounds that overlap in this module instance can't both read `false`:
-  // whichever call reaches this line first "wins" cold, every later one is
-  // warm no matter how their awaits interleave.
+  // Claim (and flip) the warm-state flag as the very first statement, before
+  // any other work — setup (data lookups, job construction, origin
+  // resolution) as well as measurement. This guarantees two properties:
+  // 1. Two rounds that overlap in this module instance can't both read
+  //    `false`: whichever call reaches this line first "wins" cold, every
+  //    later one is warm no matter how their awaits interleave.
+  // 2. The flag advances for every *attempted* round, even one that never
+  //    reaches the pool, so a setup failure can't leave the next round
+  //    wrongly marked cold.
   const warmAtEntry = warmContainer
   warmContainer = true
 
-  let results: ProbeResult[]
+  // `origin` is resolved inside the try below; a fallback id is used for the
+  // failure diagnostic if the exception happens before resolution completes.
+  let origin: { id: string; label: string } | undefined
+
   try {
-    results = await mapPool(jobs, concurrency, measureJob)
+    const started = Date.now()
+    const providers = getAllProviders()
+    const regions = getAllCloudRegions()
+    const jobs: { provider: string; region: (typeof regions)[string][number] }[] = []
+    for (const provider of providers) {
+      for (const region of regions[provider.key] || []) {
+        if (!region.ping_url) continue
+        jobs.push({ provider: provider.key, region })
+      }
+    }
+
+    const measureJob = async (job: (typeof jobs)[number]): Promise<ProbeResult> => {
+      const timeoutMs = isChinaTarget(job.region.country, job.region.ping_url) ? CHINA_TIMEOUT_MS : DEFAULT_TIMEOUT_MS
+      const base: ProbeResult = {
+        provider: job.provider,
+        region: job.region.key,
+        location: job.region.location,
+        country: job.region.country,
+        geo: job.region.geo,
+        ms: null,
+        ok: false,
+      }
+      const out = await pingTarget(job.region.ping_url, timeoutMs)
+      if ('error' in out) return { ...base, error: out.error }
+      return { ...base, ms: out.ms, ok: true, samples: out.samples }
+    }
+
+    origin = resolveOrigin()
+
+    const results = await mapPool(jobs, concurrency, measureJob)
+
+    // Self enters the ordinary pool in catalog order like every other target
+    // — it is not promoted or run first. Diagnostic-only: confirms whether
+    // that (vs. the reverted serial pre-pass) still shows the cold-start
+    // latency spike production data attributed to per-invocation
+    // network-path init.
+    const selfResult = results.find((r) => `${r.provider}-${r.region}` === origin!.id)
+    if (!selfResult) {
+      logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'unavailable', ms: null, samples: null, error: null })
+    } else if (selfResult.ok) {
+      logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'ok', ms: selfResult.ms, samples: selfResult.samples ?? null, error: null })
+    } else {
+      logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'failed', ms: null, samples: null, error: selfResult.error ?? null })
+    }
+
+    return {
+      probe: {
+        id: origin.id,
+        label: origin.label,
+        at: new Date().toISOString(),
+        durationMs: Date.now() - started,
+      },
+      results,
+    }
   } catch (err) {
-    // The pool itself rejected (not an individual target failure — those are
-    // caught inside pingTarget/measureJob and reported as a normal ProbeResult).
-    // Still emit exactly one diagnostic for the round, then re-raise unchanged.
-    logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'round-failed', ms: null, samples: null, error: null })
+    // Setup (data lookups, job construction, origin resolution) or the pool
+    // itself rejected — not an individual target failure, those are caught
+    // inside pingTarget/measureJob and reported as a normal ProbeResult.
+    // Emit exactly one diagnostic for the round, then re-raise unchanged.
+    logSelfProbe({ origin: origin?.id ?? 'unknown', warmContainer: warmAtEntry, status: 'round-failed', ms: null, samples: null, error: null })
     throw err
-  }
-
-  // Self enters the ordinary pool in catalog order like every other target —
-  // it is not promoted or run first. Diagnostic-only: confirms whether that
-  // (vs. the reverted serial pre-pass) still shows the cold-start latency
-  // spike production data attributed to per-invocation network-path init.
-  const selfResult = results.find((r) => `${r.provider}-${r.region}` === origin.id)
-  if (!selfResult) {
-    logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'unavailable', ms: null, samples: null, error: null })
-  } else if (selfResult.ok) {
-    logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'ok', ms: selfResult.ms, samples: selfResult.samples ?? null, error: null })
-  } else {
-    logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'failed', ms: null, samples: null, error: selfResult.error ?? null })
-  }
-
-  return {
-    probe: {
-      id: origin.id,
-      label: origin.label,
-      at: new Date().toISOString(),
-      durationMs: Date.now() - started,
-    },
-    results,
   }
 }
 
