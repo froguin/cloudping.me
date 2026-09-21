@@ -1,6 +1,6 @@
 name: Deploy Azure probes
 
-# Auto-deploys azure/server.ts to all 7 Azure App Service (F1) probe origins on
+# Auto-deploys azure/server.ts to all 8 Azure App Service (F1) probe origins on
 # push to main. Bundles with esbuild (same as azure/deploy.sh) and zip-deploys
 # code only -- app settings (PROBE_SECRET, etc.) are never touched here.
 #
@@ -32,8 +32,8 @@ env:
   APPS: >-
     cloudping-probe-australiacentral cloudping-probe-southafricanorth
     cloudping-probe-eastus2 cloudping-probe-westeurope
-    cloudping-probe-koreacentral cloudping-probe-brazilsouth
-    cloudping-probe-canadacentral
+    cloudping-probe-koreacentral cloudping-probe-israelcentral
+    cloudping-probe-brazilsouth cloudping-probe-canadacentral
 
 jobs:
   deploy:

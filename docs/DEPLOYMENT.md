@@ -1,12 +1,13 @@
 # Deployment Architecture
 
 How cloudping.me's measurement origins are built, deployed, and run — across
-AWS, GCP, and Azure. Everything stays within free tiers.
+AWS, GCP, and Azure. The topology is designed around free-tier resources, with
+usage monitored because long probe rounds can exceed account-wide compute grants.
 
 ## Overview
 
 `/health` shows a latency matrix. **Rows** are target cloud regions; **columns
-("From")** are probe *origins* — small serverless services in 26 regions across
+("From")** are probe *origins* — small serverless services in 27 regions across
 three clouds that each measure HTTP round-trip latency to every target.
 
 Two independent concerns, deliberately separated:
@@ -38,13 +39,13 @@ path-filtered so unrelated commits don't trigger it.
 git push (main)
 ├── .github/workflows/deploy-aws.yml    ┌ paths: lambda/**, src/fns/**, src/data/**
 │     OIDC → AWS role (cloudping-deployer)
-│     esbuild → 12 regions: aws lambda update-function-code
+│     esbuild → 13 regions: aws lambda update-function-code
 ├── .github/workflows/deploy-gcp.yml    ┌ paths: cloudrun/**, src/fns/**, src/data/**
 │     OIDC → GCP WIF (cloudping-deployer SA)
 │     esbuild → docker build → push Artifact Registry → deploy 6 Cloud Run regions
 └── .github/workflows/deploy-azure.yml  ┌ paths: azure/**, src/fns/**, src/data/**
       OIDC → Azure AD app (federated)
-      esbuild → zip → deploy 7 F1 App Service apps
+      esbuild → zip → deploy 8 F1 App Service apps
 ```
 
 ### Why GitHub Actions for all three (not each cloud's native CI)
@@ -58,15 +59,15 @@ git push (main)
 
 Result: one place (`.github/workflows/`), one auth model (OIDC), $0.
 
-### Regions (26 origins, 7 continents)
+### Regions (27 origins, 7 continents)
 
 - **AWS (13)** — us-east-1, us-east-2, us-west-2, eu-west-1, eu-central-1,
   ap-northeast-1, ap-northeast-2, ap-southeast-1, ap-southeast-2, ap-south-1,
   sa-east-1, af-south-1, me-central-1
 - **GCP (6)** — asia-northeast1, asia-northeast3, asia-south1, europe-west1,
   southamerica-east1, us-west1
-- **Azure (7)** — australiacentral, southafricanorth, eastus2, westeurope,
-  koreacentral, brazilsouth, canadacentral
+- **Azure (8)** — australiacentral, southafricanorth, eastus2, westeurope,
+  koreacentral, israelcentral, brazilsouth, canadacentral
 
 Same-city overlaps (e.g. Seoul on AWS+GCP+Azure) are kept intentionally as
 cross-cloud backbone comparisons.

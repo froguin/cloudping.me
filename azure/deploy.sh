@@ -3,9 +3,9 @@
 #
 # Parity with the AWS Lambda / GCP Cloud Run origins: same runProbe code, Node 24
 # runtime, app-level PROBE_SECRET auth. F1 is a genuinely free (no-cost) tier:
-# 60 CPU-minutes/day, 1 GB RAM, shared compute, no custom autoscale. That budget
-# comfortably covers ~1,440 runs/month at ~32s each (~25 CPU-min/day) for ONE app
-# per region -- keep Azure origins to 1-2 regions.
+# 60 CPU-minutes/day, 1 GB RAM, shared compute, no custom autoscale. Actual
+# production CPU Time must be monitored per app; recent probe origins use roughly
+# 5-7 CPU-min/day despite much longer wall-clock network waits.
 #
 # One F1 App Service Plan is created per region (F1 plans are region-scoped and
 # each hosts a single always-free app here).
