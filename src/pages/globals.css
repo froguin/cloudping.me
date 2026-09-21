@@ -272,25 +272,33 @@ code,
   margin-bottom: 0.75rem;
 }
 .matrix-toolbar-left { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.matrix-chip {
-  @apply text-xs px-3 py-1.5 rounded-full;
-  border: 1px solid var(--pill-border);
-  background: var(--pill-bg);
-  color: var(--text-muted);
-}
-.matrix-chip.is-on,
-.matrix-chip:hover:not(:disabled) {
-  border-color: var(--pill-active-border);
-  background: var(--pill-active-bg);
-  color: var(--pill-active-text);
-}
-.matrix-chip:disabled { opacity: 0.4; cursor: not-allowed; }
+/* Metric picker — the history modal's .history-toggle look, sized up for the
+   toolbar. Keeping the shared class means one source of truth for the style.
+   Both class names are qualified on purpose: .history-toggle is defined later
+   in this file, so a bare .matrix-toggle rule ties on specificity and loses to
+   it on source order. */
+.history-toggle.matrix-toggle { border-radius: 7px; }
+.history-toggle.matrix-toggle button { font-size: 12px; padding: 0.45rem 1rem; }
+.history-toggle.matrix-toggle button:disabled { opacity: 0.4; cursor: not-allowed; }
+.history-toggle.matrix-toggle button:disabled:hover { color: var(--text-muted); }
 .matrix-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
 .matrix-legend-label { font-size: 11px; color: var(--text-muted); }
 .matrix-swatch {
   @apply text-[11px] px-2 py-0.5 rounded-sm font-medium;
   border: 1px solid transparent;
 }
+/* The swatches are buttons: clicking one focuses that band in the matrix. */
+button.matrix-swatch { cursor: pointer; transition: opacity 0.12s ease, box-shadow 0.12s ease; }
+button.matrix-swatch:hover { box-shadow: 0 0 0 1px var(--text-muted); }
+button.matrix-swatch[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--text); }
+button.matrix-swatch.is-off { opacity: 0.4; }
+.matrix-legend-clear {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.matrix-legend-clear:hover { color: var(--text); }
 .matrix-swatch.fast,
 .matrix-cell.fast { background: #c6efce; color: #006100; }
 .matrix-swatch.mid,
@@ -305,15 +313,9 @@ code,
 [data-theme="dark"] .matrix-cell.slow { background: #7f1d1d; color: #fca5a5; }
 .matrix-cell.fail,
 .matrix-cell.empty { background: var(--bg-surface); color: var(--text-muted); }
+.matrix-cell.is-dimmed { opacity: 0.18; }
+.matrix-cell.is-dimmed:hover { opacity: 1; }
 
-.matrix-filter {
-  margin-bottom: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-surface);
-}
-.matrix-filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
 .matrix-filter-search {
   @apply text-sm px-3 py-1.5 rounded-md;
   border: 1px solid var(--border);
@@ -417,10 +419,11 @@ code,
   font-size: 12px;
 }
 .matrix-from-code { display: block; font-family: var(--font-jetbrains-mono), ui-monospace, monospace; color: var(--text); }
-/* To-row filter box — mirrors the From box for a symmetric, labeled layout. */
+/* To-row filter box — collapsible; sits under the From box and holds every
+   row-side filter (cloud, continent, per-region list) in one place. */
 .matrix-to-filter {
-  margin-bottom: 0.9rem;
-  padding: 0.5rem 0.7rem;
+  margin-bottom: 1.25rem;
+  padding: 0.4rem 0.7rem;
   border: 1px solid var(--border);
   border-radius: 8px;
 }
@@ -428,24 +431,79 @@ code,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.2rem 0;
+  text-align: left;
 }
-.matrix-to-filter-geos {
+.matrix-to-filter-summary {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.matrix-to-filter-head:hover .matrix-to-filter-summary { color: var(--text-secondary); }
+.matrix-to-filter-caret { font-size: 10px; line-height: 1; }
+.matrix-to-filter-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   margin-top: 0.5rem;
   padding-top: 0.5rem;
   border-top: 1px dashed var(--border);
 }
+.matrix-to-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+}
+.matrix-to-filter-lead {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  width: 5.5rem;
+  flex: 0 0 5.5rem;
+}
+.matrix-to-filter-pills { flex: 1 1 0; min-width: 0; }
+.matrix-to-filter-sublabel {
+  min-width: 5.5rem;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.matrix-to-filter-action {
+  font-size: 11px;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+.matrix-to-filter-action:hover { color: var(--text-secondary); }
+/* On narrow screens the fixed label column squeezes the pills into a thin
+   stack, so stack the label above them and let the pills use the full width. */
+@media (max-width: 640px) {
+  .matrix-to-filter-row-pills { flex-direction: column; align-items: stretch; }
+  .matrix-to-filter-row-pills .matrix-to-filter-lead {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    width: auto;
+    flex: 0 0 auto;
+  }
+  .matrix-to-filter-row-pills .matrix-to-filter-sublabel { min-width: 0; }
+}
 /* From-column filter box — bordered + labeled so it doesn't blend with the
-   To/row provider+geo pills above it. */
+   collapsible To/row box below it. */
 .matrix-from-filter {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.5rem;
   padding: 0.5rem 0.7rem;
   border: 1px dashed var(--border);
   border-radius: 8px;
