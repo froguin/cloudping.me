@@ -5,7 +5,7 @@
 - **Diagnosis Verdict**: **UNCONFIRMED HYPOTHESIS & MITIGATION TRIAL** — Outbound transport/socket resource contention (such as Azure App Service SNAT port exhaustion or socket allocation limits on F1 Free instances) is a plausible leading hypothesis for the observed block timeouts, but cannot be confirmed without Azure platform-level diagnostics or packet captures.
 - **Geographic Distance vs. Transport Contention**: Grounded in saved production data, pure geographic path length exceeding the 3-second `DEFAULT_TIMEOUT_MS` is weakened as a sole explanation by contiguous block-failure patterns, successful historical measurements over the same Azure paths, and AWS Sydney baseline results. However, 3-second timeout effects under real-world network jitter, cold DNS/TLS setup, and packet loss are not refuted.
 - **Minimal Azure-Only Implementation**: Outbound probe fan-out concurrency in `azure/server.ts` is lowered from hardcoded 24 to default **8** (matching AWS Lambda in `lambda/handler.ts`), with safe fallback for `process.env.PROBE_CONCURRENCY` to allow A/B testing without redeployment, plus structured round diagnostic logging.
-- **Scope & Deployment Boundary**: The shared probe engine (`src/fns/probe-server.ts`) is left untouched to prevent triggering CI deployment workflows for AWS Lambda and GCP Cloud Run. All changes are strictly confined to `azure/server.ts`. Probe timeouts, sample counts, warmups, and measurement logic remain identical to preserve parity across clouds.
+- **Scope & Deployment Boundary (historical)**: The original Azure-only mitigation changed only `azure/server.ts`. Later PRs #15 and #16 intentionally changed `src/fns/probe-server.ts` and were deployed to AWS Lambda and GCP Cloud Run as well; the shared early-break and failure-topology logging now run on every server probe origin.
 - **Operational Risk (270s Caller Timeout)**: Lowering concurrency reduces concurrent request bursts, but worker count is not a retained socket ceiling. If underlying failures persist, eight workers iterating through failed targets could increase round duration and risk hitting GitHub Actions' 270-second invoke timeout (`curl --max-time 270`). This change is therefore treated as an operational experiment rather than an asserted guarantee.
 
 ---
@@ -99,12 +99,16 @@ Because live before/after Azure measurements under failed conditions are not yet
 
 ---
 
-## 5. Minimal Azure-Only Implementation
+## 5. Original Azure-Only Implementation (Superseded)
 
-### 1. Scope Isolation (`azure/server.ts`)
-To prevent triggering unintended redeployments of AWS Lambda (`deploy-aws.yml`) and GCP Cloud Run (`deploy-gcp.yml`), no files under `src/fns/**` were modified:
-- `src/fns/probe-server.ts` retains its standard signature and default (`concurrency = 24`).
-- All concurrency logic is encapsulated in `azure/server.ts`.
+> **Status update (2026-09-21):** This section describes the initial Azure-only change. PR #15 later added the mathematically equivalent failed-target early break to `src/fns/probe-server.ts`, and PR #16 added shared failure-topology logging and disabled-region filtering. Those shared changes intentionally triggered and completed AWS Lambda and GCP Cloud Run redeployments.
+
+### 1. Original Scope Isolation (`azure/server.ts`)
+At the time of the initial mitigation, no files under `src/fns/**` were modified:
+- `src/fns/probe-server.ts` retained its standard signature and default (`concurrency = 24`).
+- All concurrency logic was encapsulated in `azure/server.ts`.
+
+This isolation no longer describes the current deployment boundary; the later shared changes run on AWS, GCP, Azure, and Vercel probe origins.
 
 ### 2. Implementation in `azure/server.ts`
 - Safely parses `process.env.PROBE_CONCURRENCY`:
@@ -132,4 +136,4 @@ To prevent triggering unintended redeployments of AWS Lambda (`deploy-aws.yml`) 
 - `npx tsc --noEmit`: Typecheck clean with 0 errors.
 - `npx eslint azure/server.ts`: Clean with 0 errors and 0 warnings.
 - `node scripts/measure-probe-latency.cjs synthetic`: Synthetic benchmark passed (concurrency 8 and 24 validated).
-- `git diff origin/main -- src/fns/probe-server.ts`: Verified empty diff and identical blob hash `1af742b63fd190e94f28a2b552a7f966e2ddb0cd` against current `origin/main` (deploy workflows for AWS and GCP will not trigger).
+- Historical initial check: `git diff origin/main -- src/fns/probe-server.ts` was empty for the Azure-only change. This is superseded by PRs #15 and #16, which intentionally changed the shared probe engine and triggered AWS/GCP redeployments.

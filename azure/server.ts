@@ -29,29 +29,6 @@ interface ActiveRun {
 let activeRun: ActiveRun | null = null
 let runSequence = 0
 
-function summarizeFailures(results: Array<{ ok: boolean; error?: string }>) {
-  let firstFailedIndex: number | null = null
-  let lastFailedIndex: number | null = null
-  let currentBlock = 0
-  let longestFailureBlock = 0
-  const failureKinds: Record<string, number> = {}
-
-  results.forEach((result, index) => {
-    if (result.ok) {
-      currentBlock = 0
-      return
-    }
-    firstFailedIndex ??= index
-    lastFailedIndex = index
-    currentBlock++
-    longestFailureBlock = Math.max(longestFailureBlock, currentBlock)
-    const kind = result.error || 'unknown'
-    failureKinds[kind] = (failureKinds[kind] || 0) + 1
-  })
-
-  return { firstFailedIndex, lastFailedIndex, longestFailureBlock, failureKinds }
-}
-
 const server = createServer((req, res) => {
   void (async () => {
     const method = req.method || 'GET'
@@ -100,7 +77,6 @@ const server = createServer((req, res) => {
           cells: total,
           failed,
           failRate: total ? Number((failed / total).toFixed(3)) : 0,
-          ...summarizeFailures(snapshot.results),
           cpuUserMs: Math.round(cpu.user / 1000),
           cpuSystemMs: Math.round(cpu.system / 1000),
           rssMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
