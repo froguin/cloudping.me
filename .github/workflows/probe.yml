@@ -1,8 +1,9 @@
 name: Probe
 
 on:
-  # EventBridge in ap-northeast-2 is the real 15-minute clock (workflow_dispatch).
-  # Fallback cron runs on an offset so it provides a 15-minute safety net if EventBridge stops.
+  # EventBridge in ap-northeast-2 is the real 30-minute clock (workflow_dispatch),
+  # sized to stay within free tiers. Fallback cron runs on an offset so it provides
+  # a 30-minute safety net if EventBridge stops.
   schedule:
     - cron: '7,37 * * * *'
   workflow_dispatch:
@@ -392,10 +393,11 @@ jobs:
 
       # Mirror latest.json to Vercel Blob (primary read path for /health).
       # git status branch stays as the rollback backup. Uploading only latest.json
-      # (one put/run) and gating to ~30-minute cadence keeps us within Blob's free
+      # (one put/run) on a ~30-minute cadence keeps us within Blob's free
       # 2,000 advanced-operations/month (30 min => ~1,440/month). EventBridge/cron
-      # still fire every 15 min; we simply skip the upload when the existing blob is
-      # younger than the cadence window.
+      # fire every 30 min (free-tier sizing); the cadence gate still skips the
+      # upload if the existing blob is younger than the cadence window (e.g. a
+      # manual/fallback re-run).
       - name: Mirror latest.json to Vercel Blob
         if: steps.trigger.outputs.skip != 'true'
         env:
