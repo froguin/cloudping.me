@@ -15,12 +15,14 @@ type CloudProvider struct {
 }
 
 type CloudRegion struct {
-	Key         string `json:"key"`
-	DisplayName string `json:"display_name"`
-	Country     string `json:"country"`
-	Location    string `json:"location"`
-	Geography   string `json:"geo"`
-	PingURL     string `json:"ping_url"`
+	Key            string `json:"key"`
+	DisplayName    string `json:"display_name"`
+	Country        string `json:"country"`
+	Location       string `json:"location"`
+	Geography      string `json:"geo"`
+	PingURL        string `json:"ping_url"`
+	Disabled       bool   `json:"disabled,omitempty"`
+	DisabledReason string `json:"disabled_reason,omitempty"`
 }
 
 func findDataDir() (string, error) {

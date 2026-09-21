@@ -88,14 +88,6 @@
     "ping_url": "https://s3.in-mum.cloud-object-storage.appdomain.cloud"
   },
   {
-    "key": "mil01",
-    "display_name": "Milan, Italy",
-    "country": "IT",
-    "location": "Milan",
-    "geo": "Europe",
-    "ping_url": "https://s3.mil01.cloud-object-storage.appdomain.cloud"
-  },
-  {
     "key": "mon01",
     "display_name": "Montreal, Canada",
     "country": "CA",

@@ -28,6 +28,8 @@ export interface CloudRegion {
   location: string
   geo: string
   ping_url: string
+  disabled?: boolean
+  disabled_reason?: string
 }
 
 const regionsMap: Record<string, CloudRegion[]> = {
@@ -56,7 +58,7 @@ export function getAllCloudRegions(): Record<string, CloudRegion[]> {
   const result: Record<string, CloudRegion[]> = {}
   for (const provider of providers) {
     if (regionsMap[provider.key]) {
-      result[provider.key] = regionsMap[provider.key]
+      result[provider.key] = regionsMap[provider.key].filter((region) => !region.disabled)
     }
   }
   return result
