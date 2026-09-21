@@ -458,13 +458,14 @@ export default function Health(props: HealthProps): JSX.Element {
                 <div className="matrix-to-filter-row matrix-to-filter-row-pills">
                   <div className="matrix-to-filter-lead">
                     <span className="matrix-to-filter-sublabel">Cloud</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedProviders(selectedProviders.length === props.providers.length ? [] : props.providers.map((p) => p.key))}
-                      className="matrix-to-filter-action"
-                    >
-                      {selectedProviders.length === props.providers.length ? 'None' : 'All'}
-                    </button>
+                    <span className="matrix-to-filter-actions">
+                      <button type="button" className="matrix-to-filter-action" onClick={() => setSelectedProviders(props.providers.map((p) => p.key))}>
+                        All
+                      </button>
+                      <button type="button" className="matrix-to-filter-action" onClick={() => setSelectedProviders([])}>
+                        None
+                      </button>
+                    </span>
                   </div>
                   <div className="pills-wrap matrix-to-filter-pills">
                     {props.providers.map((provider) => {
@@ -489,13 +490,14 @@ export default function Health(props: HealthProps): JSX.Element {
                 <div className="matrix-to-filter-row matrix-to-filter-row-pills">
                   <div className="matrix-to-filter-lead">
                     <span className="matrix-to-filter-sublabel">Continent</span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedGeos(selectedGeos.length === geoKeys.length ? [] : geoKeys)}
-                      className="matrix-to-filter-action"
-                    >
-                      {selectedGeos.length === geoKeys.length ? 'None' : 'All'}
-                    </button>
+                    <span className="matrix-to-filter-actions">
+                      <button type="button" className="matrix-to-filter-action" onClick={() => setSelectedGeos(geoKeys)}>
+                        All
+                      </button>
+                      <button type="button" className="matrix-to-filter-action" onClick={() => setSelectedGeos([])}>
+                        None
+                      </button>
+                    </span>
                   </div>
                   <div className="pills-wrap matrix-to-filter-pills">
                     {GEO_ORDER.map((geo) => {
@@ -571,51 +573,27 @@ export default function Health(props: HealthProps): JSX.Element {
                 </button>
               </div>
             </div>
-            <div className="matrix-toolbar-right">
-              <div className="matrix-legend" role="group" aria-label="Latency color scale — click a band to focus it">
-                <span className="matrix-legend-label">Latency:</span>
-                {LEGEND_BANDS.map((b) => {
-                  const on = focusBands.includes(b.key)
-                  return (
-                    <button
-                      key={b.key}
-                      type="button"
-                      className={`matrix-swatch ${b.key}${focusBands.length > 0 && !on ? ' is-off' : ''}`}
-                      aria-pressed={on}
-                      onClick={() => toggleBand(b.key)}
-                      title={on ? `Stop focusing ${b.label}` : `Focus ${b.label} cells`}
-                    >
-                      {b.label}
-                    </button>
-                  )
-                })}
-                {focusBands.length > 0 ? (
-                  <button type="button" className="matrix-legend-clear" onClick={() => setFocusBands([])}>
-                    Clear
+            <div className="matrix-legend" role="group" aria-label="Latency color scale — click a band to focus it">
+              <span className="matrix-legend-label">Latency:</span>
+              {LEGEND_BANDS.map((b) => {
+                const on = focusBands.includes(b.key)
+                return (
+                  <button
+                    key={b.key}
+                    type="button"
+                    className={`matrix-swatch ${b.key}${focusBands.length > 0 && !on ? ' is-off' : ''}`}
+                    aria-pressed={on}
+                    onClick={() => toggleBand(b.key)}
+                    title={on ? `Stop focusing ${b.label}` : `Focus ${b.label} cells`}
+                  >
+                    {b.label}
                   </button>
-                ) : null}
-              </div>
-              {/* Key for the ◥ corner glyph, so its meaning is readable without
-                  hunting for a 10px triangle to hover. */}
-              {markKinds.onNet || markKinds.adjacent ? (
-                <div className="matrix-mark-key">
-                  <span className="matrix-legend-label">Same metro:</span>
-                  {markKinds.onNet ? (
-                    <span
-                      className="matrix-legend-mark"
-                      title="Origin and target are the same cloud in the same metro — on the provider backbone, not a real internet path."
-                    >
-                      <span className="matrix-legend-tri on-net" aria-hidden="true" />
-                      same cloud
-                    </span>
-                  ) : null}
-                  {markKinds.adjacent ? (
-                    <span className="matrix-legend-mark" title="Vercel origin hitting AWS in the same metro — close to on-net, not a real internet path.">
-                      <span className="matrix-legend-tri adjacent" aria-hidden="true" />
-                      Vercel on AWS
-                    </span>
-                  ) : null}
-                </div>
+                )
+              })}
+              {focusBands.length > 0 ? (
+                <button type="button" className="matrix-legend-clear" onClick={() => setFocusBands([])}>
+                  Clear
+                </button>
               ) : null}
             </div>
           </div>
@@ -752,9 +730,24 @@ export default function Health(props: HealthProps): JSX.Element {
               </table>
             )}
           </div>
+          {/* The corner mark is keyed here and nowhere else: the toolbar used to
+              carry a duplicate swatch beside a footnote that only pointed at it. */}
           <p className="matrix-footnote">
             Latest min = the fastest of up to 4 successful HTTP GETs to response headers after 2 warmups (at least 3 successes); 24h P50 is the median of
-            per-run values and may include older probe behavior. Click a cell for history; hover the ◥ corner mark for same-metro details.
+            per-run values and may include older probe behavior. Click a cell for history.
+            {markKinds.onNet ? (
+              <>
+                {' '}
+                <span className="matrix-tri on-net" aria-hidden="true" /> marks a cell whose origin and target are the same cloud in the same metro — it rides
+                the provider backbone rather than a real internet path, so it is not comparable with the other cells.
+              </>
+            ) : null}
+            {markKinds.adjacent ? (
+              <>
+                {' '}
+                <span className="matrix-tri adjacent" aria-hidden="true" /> is a Vercel origin hitting AWS in the same metro, which is close to the same thing.
+              </>
+            ) : null}
           </p>
         </div>
         {selectedCell ? (
