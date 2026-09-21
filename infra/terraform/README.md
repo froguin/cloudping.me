@@ -6,7 +6,7 @@ the deploy-pipeline identities into Terraform state managed by **HCP Terraform**
 layer, not the deploy path — actual code deploys still run through
 `.github/workflows/deploy-*.yml` and `*/deploy.sh`.
 
-## What's managed (74 resources)
+## What's managed (76 resources)
 
 - **AWS (32)**: 13 `cloudping-probe` Lambdas (nodejs24.x), the `cloudping-probe-clock`
   Lambda (kept on nodejs20.x — a separate change owns any runtime bump), the
@@ -14,7 +14,7 @@ layer, not the deploy path — actual code deploys still run through
   3 IAM roles + policies, and the GitHub Actions OIDC provider.
 - **GCP (23)**: 6 Cloud Run probe services, Artifact Registry repo, the Workload
   Identity Federation pool/provider, and the deployer/invoker service accounts + IAM.
-- **Azure (19)**: the `cloudping-probe` resource group, 7 F1 App Service plans + web
+- **Azure (21)**: the `cloudping-probe` resource group, 8 F1 App Service plans + web
   apps (NODE|24-lts), and the Azure AD app + federated credential + role assignment.
 
 ## Execution model (local exec, HCP state)

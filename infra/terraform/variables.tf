@@ -70,6 +70,7 @@ variable "azure_probe_regions" {
     "eastus2",
     "westeurope",
     "koreacentral",
+    "israelcentral",
     "brazilsouth",
     "canadacentral"
   ]

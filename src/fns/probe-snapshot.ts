@@ -131,6 +131,7 @@ export const ORIGIN_CITIES: Record<string, string> = {
   eastus2: 'Virginia',
   westeurope: 'Netherlands',
   koreacentral: 'Seoul',
+  israelcentral: 'Tel Aviv',
   brazilsouth: 'São Paulo',
   uaenorth: 'Dubai',
   canadacentral: 'Toronto',
@@ -210,6 +211,7 @@ export const ORIGIN_CONTINENTS: Record<string, string> = {
   // Middle East
   'me-central-1': 'Middle East',
   uaenorth: 'Middle East',
+  israelcentral: 'Middle East',
   dxb1: 'Middle East',
   // South America
   'sa-east-1': 'South America',

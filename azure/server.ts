@@ -24,7 +24,7 @@ import { runProbe } from '../src/fns/probe-server'
 const PORT = Number(process.env.PORT) || 8080
 const DEFAULT_CONCURRENCY = 8
 const REDUCED_CONCURRENCY = 4
-const REDUCED_CONCURRENCY_ORIGINS = new Set(['azure-eastus2', 'azure-koreacentral'])
+const REDUCED_CONCURRENCY_ORIGINS = new Set(['azure-eastus2', 'azure-koreacentral', 'azure-israelcentral'])
 
 function defaultConcurrency(): number {
   return REDUCED_CONCURRENCY_ORIGINS.has(process.env.PROBE_ORIGIN_ID || '') ? REDUCED_CONCURRENCY : DEFAULT_CONCURRENCY
