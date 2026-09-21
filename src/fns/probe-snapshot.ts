@@ -126,6 +126,7 @@ export const ORIGIN_CITIES: Record<string, string> = {
   'southamerica-east1': 'São Paulo',
   // Azure regions
   australiaeast: 'Sydney',
+  australiacentral: 'Canberra',
   southafricanorth: 'Johannesburg',
   eastus2: 'Virginia',
   westeurope: 'Netherlands',
@@ -218,6 +219,7 @@ export const ORIGIN_CONTINENTS: Record<string, string> = {
   // Oceania
   'ap-southeast-2': 'Oceania',
   australiaeast: 'Oceania',
+  australiacentral: 'Oceania',
   syd1: 'Oceania',
   // Africa
   'af-south-1': 'Africa',
@@ -226,16 +228,7 @@ export const ORIGIN_CONTINENTS: Record<string, string> = {
 }
 
 /** Continent display order for probe-origin (From) columns. */
-export const ORIGIN_CONTINENT_ORDER = [
-  'North America',
-  'Europe',
-  'Asia',
-  'Middle East',
-  'South America',
-  'Oceania',
-  'Africa',
-  'Other',
-]
+export const ORIGIN_CONTINENT_ORDER = ['North America', 'Europe', 'Asia', 'Middle East', 'South America', 'Oceania', 'Africa', 'Other']
 
 export function originContinent(col: ProbeColumn): string {
   return ORIGIN_CONTINENTS[columnCode(col)] || 'Other'
@@ -248,5 +241,5 @@ export function originContinent(col: ProbeColumn): string {
 export function originVendorRank(col: ProbeColumn): number {
   const order: Record<string, number> = { aws: 0, gcp: 1, azure: 2, vercel: 3 }
   const vendor = originVendor(col)
-  return vendor ? order[vendor] ?? 9 : 9
+  return vendor ? (order[vendor] ?? 9) : 9
 }

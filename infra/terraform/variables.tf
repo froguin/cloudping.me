@@ -65,7 +65,7 @@ variable "azure_probe_regions" {
   type        = list(string)
   description = "List of Azure regions where cloudping-probe App Service is deployed"
   default = [
-    "australiaeast",
+    "australiacentral",
     "southafricanorth",
     "eastus2",
     "westeurope",

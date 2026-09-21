@@ -30,7 +30,7 @@ concurrency:
 env:
   RG: cloudping-probe
   APPS: >-
-    cloudping-probe-australiaeast cloudping-probe-southafricanorth
+    cloudping-probe-australiacentral cloudping-probe-southafricanorth
     cloudping-probe-eastus2 cloudping-probe-westeurope
     cloudping-probe-koreacentral cloudping-probe-brazilsouth
     cloudping-probe-canadacentral

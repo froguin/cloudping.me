@@ -11,7 +11,7 @@
 # each hosts a single always-free app here).
 #
 # Prereqs: az login (MFA), PROBE_SECRET exported.
-# Usage: PROBE_SECRET=xxx ./azure/deploy.sh australiaeast [southafricanorth ...]
+# Usage: PROBE_SECRET=xxx ./azure/deploy.sh australiacentral [southafricanorth ...]
 set -euo pipefail
 
 : "${PROBE_SECRET:?export PROBE_SECRET first}"
