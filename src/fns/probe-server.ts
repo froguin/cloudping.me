@@ -23,9 +23,29 @@ const CHINA_TIMEOUT_MS = 2000
 // MIN_SAMPLES already tolerates dropping a sample.
 const MIN_PLAUSIBLE_MS = 1
 
-// Tracks whether this invocation's container has already run a round, so the
-// self-probe diagnostic log can tell a cold start apart from a warm re-run.
+// Tracks whether a round has already entered this module instance. This is a
+// proxy, not proof: it only says "a prior runProbe() call started here", not
+// that the platform did (or didn't) pay a cold-start / network-path-init cost.
 let warmContainer = false
+
+type SelfProbeStatus = 'ok' | 'failed' | 'unavailable' | 'round-failed'
+
+// Best-effort structured log. Never let a logging failure (or JSON.stringify
+// throwing on unexpected input) mask the round's real outcome.
+function logSelfProbe(fields: {
+  origin: string
+  warmContainer: boolean
+  status: SelfProbeStatus
+  ms: number | null
+  samples: number | null
+  error: 'timeout' | 'network' | null
+}): void {
+  try {
+    console.log(JSON.stringify({ kind: 'self-probe', ...fields }))
+  } catch {
+    /* logging must never affect the round's result or rejection */
+  }
+}
 
 function isChinaTarget(country: string, url: string): boolean {
   if (country === 'CN') return true
@@ -157,27 +177,36 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
   }
 
   const origin = resolveOrigin()
+  // Claim (and flip) the warm-state flag synchronously, before any await, so
+  // two rounds that overlap in this module instance can't both read `false`:
+  // whichever call reaches this line first "wins" cold, every later one is
+  // warm no matter how their awaits interleave.
   const warmAtEntry = warmContainer
-  const results = await mapPool(jobs, concurrency, measureJob)
-
-  // Diagnostic-only: confirm whether pinning self to the fan-out's first slot
-  // (rather than a serial pre-pass) still shows the cold-start latency spike
-  // production data attributed to per-invocation network-path init.
-  const selfResult = results.find((r) => `${r.provider}-${r.region}` === origin.id)
-  if (selfResult) {
-    console.log(
-      JSON.stringify({
-        kind: 'self-probe',
-        origin: origin.id,
-        warmContainer: warmAtEntry,
-        ms: selfResult.ms,
-        samples: selfResult.samples ?? null,
-        ok: selfResult.ok,
-        error: selfResult.error ?? null,
-      })
-    )
-  }
   warmContainer = true
+
+  let results: ProbeResult[]
+  try {
+    results = await mapPool(jobs, concurrency, measureJob)
+  } catch (err) {
+    // The pool itself rejected (not an individual target failure — those are
+    // caught inside pingTarget/measureJob and reported as a normal ProbeResult).
+    // Still emit exactly one diagnostic for the round, then re-raise unchanged.
+    logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'round-failed', ms: null, samples: null, error: null })
+    throw err
+  }
+
+  // Self enters the ordinary pool in catalog order like every other target —
+  // it is not promoted or run first. Diagnostic-only: confirms whether that
+  // (vs. the reverted serial pre-pass) still shows the cold-start latency
+  // spike production data attributed to per-invocation network-path init.
+  const selfResult = results.find((r) => `${r.provider}-${r.region}` === origin.id)
+  if (!selfResult) {
+    logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'unavailable', ms: null, samples: null, error: null })
+  } else if (selfResult.ok) {
+    logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'ok', ms: selfResult.ms, samples: selfResult.samples ?? null, error: null })
+  } else {
+    logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'failed', ms: null, samples: null, error: selfResult.error ?? null })
+  }
 
   return {
     probe: {
