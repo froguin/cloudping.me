@@ -93,7 +93,9 @@
     "country": "IT",
     "location": "Milan",
     "geo": "Europe",
-    "ping_url": "https://s3.mil01.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.mil01.cloud-object-storage.appdomain.cloud",
+    "disabled": true,
+    "disabled_reason": "IBM Milan data center retired and replaced by Madrid"
   },
   {
     "key": "mon01",

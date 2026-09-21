@@ -203,6 +203,45 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     origin = resolveOrigin()
 
     const results = await mapPool(jobs, concurrency, measureJob)
+    const failedTargets: Array<{ index: number; provider: string; region: string; error: string }> = []
+    const failureKinds: Record<string, number> = {}
+    let currentFailureBlock = 0
+    let longestFailureBlock = 0
+
+    results.forEach((result, index) => {
+      if (result.ok) {
+        currentFailureBlock = 0
+        return
+      }
+      const error = result.error || 'unknown'
+      failureKinds[error] = (failureKinds[error] || 0) + 1
+      currentFailureBlock++
+      longestFailureBlock = Math.max(longestFailureBlock, currentFailureBlock)
+      if (failedTargets.length < 50) {
+        failedTargets.push({ index, provider: result.provider, region: result.region, error })
+      }
+    })
+
+    // Shared topology log for AWS, GCP, Azure, and Vercel origins. Keeping the
+    // catalog index and target identity distinguishes destination-specific
+    // failures from an origin-side resource block without another probe pass.
+    // eslint-disable-next-line no-console
+    console.log(
+      JSON.stringify({
+        kind: 'probe-round-summary',
+        origin: origin.id,
+        concurrency,
+        durationMs: Date.now() - started,
+        cells: results.length,
+        failed: results.filter((result) => !result.ok).length,
+        firstFailedIndex: failedTargets[0]?.index ?? null,
+        lastFailedIndex: failedTargets[failedTargets.length - 1]?.index ?? null,
+        longestFailureBlock,
+        failureKinds,
+        failedTargets,
+        failedTargetsTruncated: Object.values(failureKinds).reduce((sum, count) => sum + count, 0) - failedTargets.length,
+      })
+    )
 
     // Self enters the ordinary pool in catalog order like every other target
     // — it is not promoted or run first. Diagnostic-only: confirms whether

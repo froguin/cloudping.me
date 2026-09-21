@@ -48,7 +48,7 @@ func main() {
 			continue
 		}
 		for _, region := range provider.Regions {
-			if region.PingURL == "" {
+			if region.Disabled || region.PingURL == "" {
 				continue
 			}
 			if len(selectedGeos) > 0 && !selectedGeos[region.Geography] {

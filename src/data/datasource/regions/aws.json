@@ -261,7 +261,9 @@
     "country": "BH",
     "location": "Bahrain",
     "geo": "Middle East",
-    "ping_url": "https://dynamodb.me-south-1.amazonaws.com/ping"
+    "ping_url": "https://dynamodb.me-south-1.amazonaws.com/ping",
+    "disabled": true,
+    "disabled_reason": "Regional service outage observed 2026-09-21"
   },
   {
     "key": "me-central-1",
