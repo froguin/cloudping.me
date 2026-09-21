@@ -185,7 +185,7 @@
   },
   {
     "key": "eu-central-1",
-    "display_name": "EU (Frankfurt)",
+    "display_name": "Europe (Frankfurt)",
     "country": "DE",
     "location": "Frankfurt",
     "geo": "Europe",
@@ -193,7 +193,7 @@
   },
   {
     "key": "eu-central-2",
-    "display_name": "EU (Zurich)",
+    "display_name": "Europe (Zurich)",
     "country": "CH",
     "location": "Zurich",
     "geo": "Europe",
@@ -201,7 +201,7 @@
   },
   {
     "key": "eu-west-1",
-    "display_name": "EU (Ireland)",
+    "display_name": "Europe (Ireland)",
     "country": "IE",
     "location": "Dublin",
     "geo": "Europe",
@@ -209,7 +209,7 @@
   },
   {
     "key": "eu-west-2",
-    "display_name": "EU (London)",
+    "display_name": "Europe (London)",
     "country": "UK",
     "location": "London",
     "geo": "Europe",
@@ -233,7 +233,7 @@
   },
   {
     "key": "eu-west-3",
-    "display_name": "EU (Paris)",
+    "display_name": "Europe (Paris)",
     "country": "FR",
     "location": "Paris",
     "geo": "Europe",
@@ -241,7 +241,7 @@
   },
   {
     "key": "eu-north-1",
-    "display_name": "EU (Stockholm)",
+    "display_name": "Europe (Stockholm)",
     "country": "SE",
     "location": "Stockholm",
     "geo": "Europe",

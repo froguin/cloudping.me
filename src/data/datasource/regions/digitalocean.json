@@ -8,6 +8,14 @@
     "ping_url": "https://ams3.digitaloceanspaces.com"
   },
   {
+    "key": "atl1",
+    "display_name": "ATL1",
+    "country": "US",
+    "location": "Atlanta",
+    "geo": "North America",
+    "ping_url": "https://atl1.digitaloceanspaces.com"
+  },
+  {
     "key": "blr1",
     "display_name": "BLR1",
     "country": "IN",
@@ -62,6 +70,30 @@
     "location": "Singapore",
     "geo": "Asia",
     "ping_url": "https://sgp1.digitaloceanspaces.com"
+  },
+  {
+    "key": "mkc1",
+    "display_name": "MKC1",
+    "country": "US",
+    "location": "Kansas City",
+    "geo": "North America",
+    "ping_url": "https://mkc1.digitaloceanspaces.com"
+  },
+  {
+    "key": "ric1",
+    "display_name": "RIC1",
+    "country": "US",
+    "location": "Richmond",
+    "geo": "North America",
+    "ping_url": "https://ric1.digitaloceanspaces.com"
+  },
+  {
+    "key": "syd1",
+    "display_name": "SYD1",
+    "country": "AU",
+    "location": "Sydney",
+    "geo": "Oceania",
+    "ping_url": "https://syd1.digitaloceanspaces.com"
   },
   {
     "key": "tor1",
