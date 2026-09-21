@@ -272,11 +272,15 @@ code,
   margin-bottom: 0.75rem;
 }
 .matrix-toolbar-left { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-/* Metric picker — the history modal's .history-toggle look, sized for the
-   toolbar. Keeping the shared class means one source of truth for the style. */
-.matrix-toggle button { font-size: 11px; padding: 0.3rem 0.7rem; }
-.matrix-toggle button:disabled { opacity: 0.4; cursor: not-allowed; }
-.matrix-toggle button:disabled:hover { color: var(--text-muted); }
+/* Metric picker — the history modal's .history-toggle look, sized up for the
+   toolbar. Keeping the shared class means one source of truth for the style.
+   Both class names are qualified on purpose: .history-toggle is defined later
+   in this file, so a bare .matrix-toggle rule ties on specificity and loses to
+   it on source order. */
+.history-toggle.matrix-toggle { border-radius: 7px; }
+.history-toggle.matrix-toggle button { font-size: 12px; padding: 0.45rem 1rem; }
+.history-toggle.matrix-toggle button:disabled { opacity: 0.4; cursor: not-allowed; }
+.history-toggle.matrix-toggle button:disabled:hover { color: var(--text-muted); }
 .matrix-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
 .matrix-legend-label { font-size: 11px; color: var(--text-muted); }
 .matrix-swatch {
