@@ -60,12 +60,12 @@ Result: one place (`.github/workflows/`), one auth model (OIDC), $0.
 
 ### Regions (26 origins, 7 continents)
 
-- **AWS (12)** — us-east-1, us-east-2, us-west-2, eu-west-1, eu-central-1,
-  ap-northeast-1, ap-northeast-2, ap-southeast-1, ap-southeast-2, sa-east-1,
-  af-south-1, me-central-1
+- **AWS (13)** — us-east-1, us-east-2, us-west-2, eu-west-1, eu-central-1,
+  ap-northeast-1, ap-northeast-2, ap-southeast-1, ap-southeast-2, ap-south-1,
+  sa-east-1, af-south-1, me-central-1
 - **GCP (6)** — asia-northeast1, asia-northeast3, asia-south1, europe-west1,
   southamerica-east1, us-west1
-- **Azure (7)** — australiaeast, southafricanorth, eastus2, westeurope,
+- **Azure (7)** — australiacentral, southafricanorth, eastus2, westeurope,
   koreacentral, brazilsouth, canadacentral
 
 Same-city overlaps (e.g. Seoul on AWS+GCP+Azure) are kept intentionally as
@@ -114,11 +114,12 @@ GCP `cloudping-invoker`) so deploy and run privileges don't overlap.
 
 ## Cost
 
-Everything is $0 within free tiers:
-- AWS Lambda 12 regions ≈ 34% of the 400,000 GB-s/month free grant (account-wide).
-- GCP Cloud Run 6 regions ≈ within 180,000 vCPU-s/month; Artifact Registry image
-  < 0.5 GB (free); build runs in Actions (free).
-- Azure F1: free SKU, per-app CPU budget independent per region.
+The deployment is designed around free-tier resources, but usage must be monitored:
+- AWS Lambda 13 regions can approach or exceed the account-wide 400,000 GB-s/month
+  free grant when probe rounds run long; request count remains far below 1 million.
+- GCP Cloud Run 6 regions currently run close to the 180,000 vCPU-s/month request-based
+  free grant; Artifact Registry image storage remains below 0.5 GB and builds run in Actions.
+- Azure F1: free SKU with a 60 CPU-minute/day per-app quota and no production SLA.
 - GitHub Actions: free (public repo).
 - Vercel Blob: ~1,440 writes/month (free tier 2,000).
 
@@ -130,7 +131,7 @@ The `*/deploy.sh` scripts still work for manual/one-off deploys:
 export PROBE_SECRET=...
 ./lambda/deploy.sh us-east-1 eu-central-1 ...        # AWS
 PROBE_SECRET=... ./cloudrun/deploy.sh asia-northeast3 ...  # GCP (builds via gcloud)
-PROBE_SECRET=... ./azure/deploy.sh australiaeast ...       # Azure
+PROBE_SECRET=... ./azure/deploy.sh australiacentral ...   # Azure
 ```
 
 ## Notes / open items
