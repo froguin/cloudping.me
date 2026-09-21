@@ -6,7 +6,9 @@ import { runProbe } from '../src/fns/probe-server'
 // the AWS Lambda / GCP Cloud Run origins, exposed as a plain HTTP server. App
 // Service injects PORT (default 8080 here for local runs). Kept at parity with
 // the AWS/GCP conditions (identical probe logic/constants, timeout 300s) so
-// /health From-column comparisons stay fair.
+// /health From-column comparisons stay fair. Concurrency is capped to 8 (same as
+// AWS Lambda) to prevent outbound SNAT port exhaustion on F1 instances (~128 port
+// budget) across 300+ targets.
 //
 // F1 apps are public, so auth is purely app-level: the GitHub Actions workflow
 // sends the PROBE_SECRET as `Authorization: Bearer`. (X-Probe-Secret is also
@@ -23,17 +25,29 @@ const server = createServer((req, res) => {
       return
     }
     const secretHeader = req.headers['x-probe-secret']
-    const appAuth =
-      typeof secretHeader === 'string' && secretHeader.length > 0
-        ? `Bearer ${secretHeader}`
-        : req.headers.authorization
+    const appAuth = typeof secretHeader === 'string' && secretHeader.length > 0 ? `Bearer ${secretHeader}` : req.headers.authorization
     if (!authorized(appAuth)) {
       res.writeHead(401, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ error: 'unauthorized' }))
       return
     }
     try {
-      const snapshot = await runProbe(24)
+      const parsed = Number(process.env.PROBE_CONCURRENCY)
+      const concurrency = Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 8
+      const snapshot = await runProbe(concurrency)
+      const total = snapshot.results.length
+      const failed = snapshot.results.filter((r) => !r.ok).length
+      // eslint-disable-next-line no-console
+      console.log(
+        JSON.stringify({
+          probe: snapshot.probe.id,
+          concurrency,
+          durationMs: snapshot.probe.durationMs,
+          cells: total,
+          failed,
+          failRate: total ? Number((failed / total).toFixed(3)) : 0,
+        })
+      )
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
       res.end(JSON.stringify(snapshot))
     } catch (err) {
