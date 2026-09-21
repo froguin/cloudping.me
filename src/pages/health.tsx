@@ -141,7 +141,9 @@ export default function Health(props: HealthProps): JSX.Element {
   const [selectedProviders, setSelectedProviders] = useState(props.providers.map((p) => p.key))
   const [selectedGeos, setSelectedGeos] = useState(Object.keys(props.geos))
   const [selectedKeys, setSelectedKeys] = useState(catalog.map((r) => r.key))
-  const [filterOpen, setFilterOpen] = useState(false)
+  // The To (target region) box is collapsed by default — it holds every row-side
+  // filter and would otherwise eat most of the screen above the matrix.
+  const [toFilterOpen, setToFilterOpen] = useState(false)
   const [filterQuery, setFilterQuery] = useState('')
   const [metric, setMetric] = useState<'latest' | 'p24'>('latest')
   // From-column (probe origin) filters: by CSP vendor and by continent.
@@ -303,6 +305,9 @@ export default function Health(props: HealthProps): JSX.Element {
 
   const rows = useMemo(() => scoped.filter((row) => selectedKeys.includes(row.key)), [scoped, selectedKeys])
   const showProvider = selectedProviders.length !== 1
+  const geoKeys = useMemo(() => Object.keys(props.geos), [props.geos])
+  // Collapsed-header summary so the counts stay visible without opening the box.
+  const toFilterSummary = `${selectedProviders.length}/${props.providers.length} clouds · ${selectedGeos.length}/${geoKeys.length} continents · ${rows.length}/${catalog.length} regions`
   const filterMatches = useMemo(() => {
     const q = filterQuery.trim().toLowerCase()
     if (!q) return scoped
@@ -373,52 +378,8 @@ export default function Health(props: HealthProps): JSX.Element {
             </p>
           </div>
 
-          {/* To-row (target region) filters: CSP vendor + continent, grouped in one
-              labeled box that mirrors the From box below. */}
-          <div className="matrix-to-filter">
-            <div className="matrix-to-filter-head">
-              <span className="matrix-from-filter-label">To (target regions)</span>
-              <button
-                type="button"
-                onClick={() => setSelectedProviders(selectedProviders.length === props.providers.length ? [] : props.providers.map((p) => p.key))}
-                className="text-xs text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)] transition-colors"
-              >
-                {selectedProviders.length === props.providers.length ? 'Deselect all' : 'Select all'}
-              </button>
-            </div>
-            <div className="pills-wrap w-full">
-              {props.providers.map((provider) => {
-                const isActive = selectedProviders.includes(provider.key)
-                return (
-                  <button
-                    key={provider.key}
-                    type="button"
-                    onClick={() => toggleProvider(provider.key)}
-                    className={`provider-pill flex-shrink-0 ${isActive ? 'active' : ''}`}
-                    title={provider.display_name}
-                  >
-                    <CloudProviderLogo width={16} providerKey={provider.key} providerName={provider.display_name} />
-                    <span className="hidden sm:inline">{provider.display_name}</span>
-                    <span className="sm:hidden">{provider.short_name ?? provider.display_name}</span>
-                  </button>
-                )
-              })}
-            </div>
-            <div className="matrix-to-filter-geos">
-              {GEO_ORDER.map((geo) => {
-                if (!props.geos[geo]) return null
-                const on = selectedGeos.includes(geo)
-                return (
-                  <button key={geo} type="button" onClick={() => toggleGeo(geo)} className={`provider-pill ${on ? 'active' : ''}`}>
-                    {geo}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* From-column (probe origin) filters — visually separated from the To/row
-              filters above via a bordered box and an explicit "From" label. */}
+          {/* From-column (probe origin) filters first: the matrix's columns come
+              from here, and the box stays small enough to leave open. */}
           <div className="matrix-from-filter">
             <span className="matrix-from-filter-label">From (probe origins)</span>
             <div className="matrix-from-filter-pills">
@@ -449,6 +410,111 @@ export default function Health(props: HealthProps): JSX.Element {
             </div>
           </div>
 
+          {/* To-row (target region) filters — collapsed by default. Every row-side
+              control lives in here (cloud, continent, per-region list) so there is
+              only one place to narrow rows; the header shows the active counts. */}
+          <div className="matrix-to-filter">
+            <button type="button" className="matrix-to-filter-head" onClick={() => setToFilterOpen((v) => !v)} aria-expanded={toFilterOpen}>
+              <span className="matrix-from-filter-label">To (target regions)</span>
+              <span className="matrix-to-filter-summary">
+                <span>{toFilterSummary}</span>
+                <span className="matrix-to-filter-caret" aria-hidden="true">
+                  {toFilterOpen ? '▾' : '▸'}
+                </span>
+              </span>
+            </button>
+            {toFilterOpen ? (
+              <div className="matrix-to-filter-body">
+                <div className="matrix-to-filter-row matrix-to-filter-row-pills">
+                  <div className="matrix-to-filter-lead">
+                    <span className="matrix-to-filter-sublabel">Cloud</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProviders(selectedProviders.length === props.providers.length ? [] : props.providers.map((p) => p.key))}
+                      className="matrix-to-filter-action"
+                    >
+                      {selectedProviders.length === props.providers.length ? 'None' : 'All'}
+                    </button>
+                  </div>
+                  <div className="pills-wrap matrix-to-filter-pills">
+                    {props.providers.map((provider) => {
+                      const isActive = selectedProviders.includes(provider.key)
+                      return (
+                        <button
+                          key={provider.key}
+                          type="button"
+                          onClick={() => toggleProvider(provider.key)}
+                          className={`provider-pill flex-shrink-0 ${isActive ? 'active' : ''}`}
+                          title={provider.display_name}
+                        >
+                          <CloudProviderLogo width={16} providerKey={provider.key} providerName={provider.display_name} />
+                          <span className="hidden sm:inline">{provider.display_name}</span>
+                          <span className="sm:hidden">{provider.short_name ?? provider.display_name}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="matrix-to-filter-row matrix-to-filter-row-pills">
+                  <div className="matrix-to-filter-lead">
+                    <span className="matrix-to-filter-sublabel">Continent</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGeos(selectedGeos.length === geoKeys.length ? [] : geoKeys)}
+                      className="matrix-to-filter-action"
+                    >
+                      {selectedGeos.length === geoKeys.length ? 'None' : 'All'}
+                    </button>
+                  </div>
+                  <div className="pills-wrap matrix-to-filter-pills">
+                    {GEO_ORDER.map((geo) => {
+                      if (!props.geos[geo]) return null
+                      const on = selectedGeos.includes(geo)
+                      return (
+                        <button key={geo} type="button" onClick={() => toggleGeo(geo)} className={`provider-pill ${on ? 'active' : ''}`}>
+                          {geo}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Per-region picker, scoped to the cloud + continent pills above. */}
+                <div className="matrix-to-filter-row">
+                  <span className="matrix-to-filter-sublabel">
+                    Regions {rows.length}/{scoped.length}
+                  </span>
+                  <input
+                    type="search"
+                    value={filterQuery}
+                    onChange={(e) => setFilterQuery(e.target.value)}
+                    placeholder="Search regions"
+                    className="matrix-filter-search"
+                  />
+                  <button type="button" className="matrix-to-filter-action" onClick={() => setScopedKeys(true)}>
+                    All
+                  </button>
+                  <button type="button" className="matrix-to-filter-action" onClick={() => setScopedKeys(false)}>
+                    None
+                  </button>
+                </div>
+                <div className="matrix-filter-grid">
+                  {filterMatches.map((row) => {
+                    const on = selectedKeys.includes(row.key)
+                    return (
+                      <label key={row.key} className={`matrix-filter-item ${on ? 'is-on' : ''}`}>
+                        <input type="checkbox" checked={on} onChange={() => toggleRegion(row.key)} />
+                        <span className="font-mono">{row.region.key}</span>
+                        {showProvider ? <span className="text-[color:var(--text-muted)]">{row.provider.short_name}</span> : null}
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
           <div className="matrix-toolbar">
             <div className="matrix-toolbar-left">
               <button type="button" className={`matrix-chip ${metric === 'latest' ? 'is-on' : ''}`} onClick={() => setMetric('latest')}>
@@ -463,9 +529,6 @@ export default function Health(props: HealthProps): JSX.Element {
               >
                 24h P50
               </button>
-              <button type="button" className="matrix-chip" onClick={() => setFilterOpen((v) => !v)}>
-                Filter Regions {rows.length}/{scoped.length}
-              </button>
             </div>
             <div className="matrix-legend" aria-label="Latency color scale">
               <span className="matrix-legend-label">Latency:</span>
@@ -474,39 +537,6 @@ export default function Health(props: HealthProps): JSX.Element {
               <span className="matrix-swatch slow">&gt; 180ms</span>
             </div>
           </div>
-
-          {filterOpen ? (
-            <div className="matrix-filter">
-              <div className="matrix-filter-bar">
-                <input
-                  type="search"
-                  value={filterQuery}
-                  onChange={(e) => setFilterQuery(e.target.value)}
-                  placeholder="Search regions"
-                  className="matrix-filter-search"
-                />
-                <button type="button" className="text-xs text-[color:var(--text-muted)]" onClick={() => setScopedKeys(true)}>
-                  Select all
-                </button>
-                <button type="button" className="text-xs text-[color:var(--text-muted)]" onClick={() => setScopedKeys(false)}>
-                  Select none
-                </button>
-              </div>
-              <div className="matrix-filter-grid">
-                {filterMatches.map((row) => {
-                  const on = selectedKeys.includes(row.key)
-                  return (
-                    <label key={row.key} className={`matrix-filter-item ${on ? 'is-on' : ''}`}>
-                      <input type="checkbox" checked={on} onChange={() => toggleRegion(row.key)} />
-                      <span className="font-mono">{row.region.key}</span>
-                      {showProvider ? <span className="text-[color:var(--text-muted)]">{row.provider.short_name}</span> : null}
-                    </label>
-                  )
-                })}
-              </div>
-            </div>
-          ) : null}
-
           <div className="matrix-scroll">
             {rows.length === 0 || visibleColumns.length === 0 ? (
               <div className="text-center py-12 text-[color:var(--text-muted)]">
