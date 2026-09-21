@@ -12,7 +12,7 @@ three clouds that each measure HTTP round-trip latency to every target.
 Two independent concerns, deliberately separated:
 
 1. **Deploy** — get the probe code onto each origin (on `git push`).
-2. **Run** — invoke all origins every ~15 min, merge results, publish to `/health`.
+2. **Run** — invoke all origins every ~30 min, merge results, publish to `/health`.
 
 ## The probe code (one source, three packagings)
 
@@ -71,13 +71,13 @@ Result: one place (`.github/workflows/`), one auth model (OIDC), $0.
 Same-city overlaps (e.g. Seoul on AWS+GCP+Azure) are kept intentionally as
 cross-cloud backbone comparisons.
 
-## Run: `probe.yml` (the 15-minute clock, unchanged by deploys)
+## Run: `probe.yml` (the 30-minute clock, unchanged by deploys)
 
 `.github/workflows/probe.yml` is the runtime path, independent of the deploy
 workflows:
 
 ```
-EventBridge (ap-northeast-2, 15-min) ──dispatch──┐   ┌ cron fallback (7,22,37,52 * * * *)
+EventBridge (ap-northeast-2, 30-min) ──dispatch──┐   ┌ cron fallback (7,37 * * * *)
                                                  ▼   ▼
                         probe.yml (pull model, one runner)
           ├── AWS: `aws lambda invoke` (OIDC role) for invoke-only regions
@@ -97,7 +97,7 @@ EventBridge (ap-northeast-2, 15-min) ──dispatch──┐   ┌ cron fallback
 merges, and writes **one** `latest.json` per round. This keeps Vercel Blob writes
 at ~1,440/month (free tier is 2,000) regardless of origin count — the reason we
 did *not* go push-model or Cloudflare R2. Measured round time ≈ 80s (well under
-the 15-min window), so no matrix/sharding needed.
+the 30-min window), so no matrix/sharding needed.
 
 Missing origins are carried forward as `stale` for up to 1 hour, then aged out.
 
