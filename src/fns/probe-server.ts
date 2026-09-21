@@ -16,18 +16,16 @@ const WARMUP_COUNT = 2
 // separated, so tightening it further would risk false timeouts.
 const DEFAULT_TIMEOUT_MS = 3000
 const CHINA_TIMEOUT_MS = 2000
-// The self-target shares the origin's region, so its round trip is tens of ms at
-// most. It is measured serially *before* the concurrent fan-out (see runProbe),
-// so a dead self-target would otherwise gate the whole round behind six full
-// DEFAULT_TIMEOUT_MS timeouts (~18s). A tight self timeout caps that stall while
-// still leaving a ~10× margin over a healthy same-region path.
-const SELF_TIMEOUT_MS = 750
 // Samples faster than this are physically implausible for an HTTP GET that
 // re-runs DNS/TLS-agnostic fetch with cache: 'no-store' — a sub-RTT reading is
 // almost certainly a measurement artifact. Because we report min(), one bogus
 // low sample would win outright, so we drop these before taking the minimum.
 // MIN_SAMPLES already tolerates dropping a sample.
 const MIN_PLAUSIBLE_MS = 1
+
+// Tracks whether this invocation's container has already run a round, so the
+// self-probe diagnostic log can tell a cold start apart from a warm re-run.
+let warmContainer = false
 
 function isChinaTarget(country: string, url: string): boolean {
   if (country === 'CN') return true
@@ -142,8 +140,8 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     }
   }
 
-  const measureJob = async (job: (typeof jobs)[number], selfTimeout = false): Promise<ProbeResult> => {
-    const timeoutMs = selfTimeout ? SELF_TIMEOUT_MS : isChinaTarget(job.region.country, job.region.ping_url) ? CHINA_TIMEOUT_MS : DEFAULT_TIMEOUT_MS
+  const measureJob = async (job: (typeof jobs)[number]): Promise<ProbeResult> => {
+    const timeoutMs = isChinaTarget(job.region.country, job.region.ping_url) ? CHINA_TIMEOUT_MS : DEFAULT_TIMEOUT_MS
     const base: ProbeResult = {
       provider: job.provider,
       region: job.region.key,
@@ -159,14 +157,27 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
   }
 
   const origin = resolveOrigin()
-  // Measure the known same-provider/region target before fan-out: concurrent
-  // socket/TLS callbacks can inflate every sample on a short path. The self pass
-  // uses a tight SELF_TIMEOUT_MS so a dead self-target can't gate the whole round
-  // (it runs serially, before the pool). Reuse this result in the original order;
-  // other targets retain the requested concurrency and their normal timeouts.
-  const selfJob = jobs.find((job) => `${job.provider}-${job.region.key}` === origin.id)
-  const selfResult = selfJob ? await measureJob(selfJob, true) : undefined
-  const results = await mapPool(jobs, concurrency, async (job) => (job === selfJob && selfResult ? selfResult : measureJob(job)))
+  const warmAtEntry = warmContainer
+  const results = await mapPool(jobs, concurrency, measureJob)
+
+  // Diagnostic-only: confirm whether pinning self to the fan-out's first slot
+  // (rather than a serial pre-pass) still shows the cold-start latency spike
+  // production data attributed to per-invocation network-path init.
+  const selfResult = results.find((r) => `${r.provider}-${r.region}` === origin.id)
+  if (selfResult) {
+    console.log(
+      JSON.stringify({
+        kind: 'self-probe',
+        origin: origin.id,
+        warmContainer: warmAtEntry,
+        ms: selfResult.ms,
+        samples: selfResult.samples ?? null,
+        ok: selfResult.ok,
+        error: selfResult.error ?? null,
+      })
+    )
+  }
+  warmContainer = true
 
   return {
     probe: {
