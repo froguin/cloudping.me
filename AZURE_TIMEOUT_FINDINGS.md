@@ -19,11 +19,11 @@ Saved status data from `origin/status` (commit `69c6dda`, `latest.json`) records
 | `azure-australiaeast` | 301 | 176 | 125 | 0 | 128,077 ms (~128s) |
 | `azure-koreacentral` | 301 | 252 | 49 | 0 | 60,486 ms (~60s) |
 | `azure-brazilsouth` | 301 | 269 | 31 | 1 (`network`) | 69,173 ms (~69s) |
-| `azure-eastus2` | 301 | 287 | 14 | 0 | 48,154 ms (~48s) |
-| `azure-canadacentral` | 301 | 293 | 8 | 0 | 44,988 ms (~45s) |
+| `azure-eastus2` | 301 | 287 | 14 | 0 | 46,600 ms (~47s) |
+| `azure-canadacentral` | 301 | 293 | 8 | 0 | 39,842 ms (~40s) |
 | `aws-ap-southeast-2` (Sydney) | 301 | 298 | 3 | 0 | 128,825 ms (~129s) |
 | `aws-ap-northeast-2` (Seoul) | 301 | 299 | 2 | 0 | 84,140 ms (~84s) |
-| `gcp-europe-west1` | 301 | 298 | 2 | 1 (`network`) | 48,642 ms (~49s) |
+| `gcp-europe-west1` | 301 | 298 | 2 | 1 (`network`) | 40,676 ms (~41s) |
 
 ### Observations vs. Inferences
 
@@ -33,7 +33,7 @@ Saved status data from `origin/status` (commit `69c6dda`, `latest.json`) records
    - **Vultr** (33 targets): 33 OK, 0 timeouts, **108–609 ms**
    - **Linode** (25 targets): 25 OK, 0 timeouts, **3–404 ms**
    - **DigitalOcean** (9 targets): 9 OK, 0 timeouts, **141–372 ms**
-   
+
    *Inference*: These numbers show that small-provider targets are responsive from Sydney when network paths are clear. However, AWS and Azure maintain separate routing, transoceanic transit, and network virtualization layers; AWS performance does not prove Azure network conditions are identical.
 
 2. **Azure Historical Ground Truth (`history.json`)**:
@@ -46,7 +46,7 @@ Saved status data from `origin/status` (commit `69c6dda`, `latest.json`) records
 3. **Execution Index & Temporal Block Failures**:
    Jobs in `runProbe` are dispatched by `mapPool` in sequential catalog order (`src/data/datasource/providers.json`):
    - **`azure-australiaeast`**: Targets `0..181` had 6 scattered failures (`aws-me-south-1`, `aws-eusc-de-east-1`, `tencent-sa-saopaulo`, `ibm-mil01`, `ibm-eu-es`, `ibm-br-sao`). Then, from index **182 through 300** (119 consecutive targets: Oracle, DigitalOcean, Linode, Vultr, NCP, Kakao, KT, NHN, iWinv), every target timed out in an unbroken block.
-   - **`azure-koreacentral`**: Targets `0..43` and `45..48` (48 targets across AWS and Azure) failed consecutively at probe start. Index 44 (`azure-koreacentral`, the pre-measured self-target) succeeded at 7ms. Later in the round, index 170 (`ibm-mil01`) also failed.
+   - **`azure-koreacentral`**: Targets `0..43` and `45..48` (48 targets across AWS and Azure) failed consecutively at probe start. Index 44 (`azure-koreacentral`, measured at 6 ms in this snapshot under earlier serial self-probe logic) succeeded. Later in the round, index 170 (`ibm-mil01`) also failed.
    - **`azure-brazilsouth`**: Targets `21..44` formed an unbroken block of 24 failures (`aws-cn-north-1` through `azure-koreacentral`), plus smaller clusters at 123–124, 126–128, 130, 170, and 300.
 
    *Inference*: Contiguous block failures align strongly with worker pool scheduling order rather than target geography. In `azure-australiaeast`, the trailing block coincided with the point where the worker pool had visited ~180 distinct remote endpoints.
@@ -88,12 +88,12 @@ curl -fsS --max-time 270 -X POST "${url}" -H "Authorization: Bearer ${PROBE_SECR
 The caller imposes a **270-second (4.5-minute) hard timeout**.
 
 ### The Concurrency / Timeout Tradeoff
-- Under `concurrency = 24`, failed targets run in parallel across 24 workers. When `azure-australiaeast` suffered 125 timeouts (up to 6 attempts × 3s = 18s per target), 24 workers processed the failing block in approximately 5–6 waves (~90–110s), finishing the overall round at **128s**.
+- Under `concurrency = 24`, failed targets run in parallel across 24 workers. When `azure-australiaeast` suffered 125 timeouts, 24 workers processed the failing block in approximately 5–6 waves, finishing the overall round at **128s**.
 - Under `concurrency = 8`:
-  - If lower concurrency resolves socket contention and targets succeed, round duration will stay in the healthy ~80–130s range (similar to AWS Sydney at 128s).
-  - **Risk**: If the 119 trailing targets continue to fail (due to genuine network unreachability, routing drops, or persistent connection limits), 8 workers require **15 serial waves** (119 / 8 ≈ 15).
-  - 15 waves × 18s stall per target = **270 seconds for the failed block alone**, plus the time required for the first 182 targets!
-  - In that failure mode, concurrency 8 guarantees that the round will exceed 270 seconds, causing `curl --max-time 270` to abort and turning a partial snapshot into a complete run failure.
+  - **Healthy Reference Baseline**: AWS Sydney's ~128s round at concurrency 8 serves as a reference observation for a healthy run, but this is an unvalidated expectation for Azure App Service F1 instances; successful duration is not guaranteed to fall within ~80–130s.
+  - **Caller Timeout Risk**: Each target runs 2 warmup requests and 4 timed samples. If a persistent transport failure causes all 6 attempts on a failing target to consume their full 3-second timeout (an 18-second stall per target), 8 workers processing the 119 trailing targets would require at least 15 serial waves (119 / 8 ≈ 15).
+  - 15 waves × 18s stall per target = **270 seconds for the failed block alone**, even before accounting for the time spent on the preceding 182 targets!
+  - Under that persistent-failure scenario, concurrency 8 guarantees that the round will exceed 270 seconds, causing `curl --max-time 270` to abort and turning a partial snapshot into a complete invocation failure. (Note: A target marked `timeout` in the snapshot indicates fewer than 3 successful samples; it does not prove all 6 requests fully timed out, but the worst-case scenario represents a severe operational risk.)
 
 Because live before/after Azure measurements under failed conditions are not yet available, concurrency 8 must be treated as a **tunable experiment**, not a proven fix.
 
@@ -120,7 +120,7 @@ To prevent triggering unintended redeployments of AWS Lambda (`deploy-aws.yml`) 
   Emits a JSON log to `console.log` on completion reporting `probe`, `concurrency`, `durationMs`, `cells`, `failed`, and `failRate`. This provides visibility into round duration and failure rates directly in Azure App Service log streams (`az webapp log tail`).
 
 ### 3. Preserved Parity
-- No changes to probe timeouts (`DEFAULT_TIMEOUT_MS = 3000`, `CHINA_TIMEOUT_MS = 2000`, `SELF_TIMEOUT_MS = 750`).
+- No changes to probe timeouts (`DEFAULT_TIMEOUT_MS = 3000`, `CHINA_TIMEOUT_MS = 2000`).
 - No changes to sample count (4) or warmup count (2).
 - No changes to AWS Lambda, GCP Cloud Run, or Vercel entrypoints.
 
@@ -132,4 +132,4 @@ To prevent triggering unintended redeployments of AWS Lambda (`deploy-aws.yml`) 
 - `npx tsc --noEmit`: Typecheck clean with 0 errors.
 - `npx eslint azure/server.ts`: Clean with 0 errors and 0 warnings.
 - `node scripts/measure-probe-latency.cjs synthetic`: Synthetic benchmark passed (concurrency 8 and 24 validated).
-- `git diff 1c1c376 -- src/fns/probe-server.ts`: Verified 0 diff against main (deploy workflows for AWS and GCP will not trigger).
+- `git diff origin/main -- src/fns/probe-server.ts`: Verified empty diff and identical blob hash `1af742b63fd190e94f28a2b552a7f966e2ddb0cd` against current `origin/main` (deploy workflows for AWS and GCP will not trigger).
