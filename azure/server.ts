@@ -6,9 +6,14 @@ import { runProbe } from '../src/fns/probe-server'
 // the AWS Lambda / GCP Cloud Run origins, exposed as a plain HTTP server. App
 // Service injects PORT (default 8080 here for local runs). Kept at parity with
 // the AWS/GCP conditions (identical probe logic/constants, timeout 300s) so
-// /health From-column comparisons stay fair. Concurrency is capped to 8 (same as
-// AWS Lambda) to prevent outbound SNAT port exhaustion on F1 instances (~128 port
-// budget) across 300+ targets.
+// /health From-column comparisons stay fair.
+//
+// Far-target timeouts on Azure origins show block-failure patterns consistent with
+// transport/socket contention or SNAT port pressure under burst fan-out (24).
+// Lowering concurrency here to 8 (matching AWS Lambda) acts as a tunable mitigation
+// trial to reduce concurrent socket churn. It does not enforce a hard socket ceiling.
+// Tunable via PROBE_CONCURRENCY env var so operators can A/B test concurrency against
+// caller budget (270s in workflow) without code redeployment.
 //
 // F1 apps are public, so auth is purely app-level: the GitHub Actions workflow
 // sends the PROBE_SECRET as `Authorization: Bearer`. (X-Probe-Secret is also

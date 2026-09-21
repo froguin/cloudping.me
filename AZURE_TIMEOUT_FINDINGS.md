@@ -2,118 +2,134 @@
 
 ## 1. Executive Summary
 
-- **Hypothesis Verdict**: **CONFIRMED** — The far-target timeouts on Azure App Service origins are caused by **outbound SNAT port exhaustion**, **NOT** by genuine network latency exceeding the 3-second `DEFAULT_TIMEOUT_MS`.
-- **Alternative Hypothesis (Tight 3s Timeout)**: **REFUTED** — Grounded in production data from identical geographic origins (Sydney AWS vs Sydney Azure), actual measured round trips to the failed "small provider" targets sit between 120ms and 320ms (nearly a 10× safety margin below 3,000ms).
-- **Minimal Fix**: Capped outbound fan-out concurrency to **8** (matching AWS Lambda in `lambda/handler.ts`) for Azure App Service origins (`azure/server.ts` and `src/fns/probe-server.ts`), with `PROBE_CONCURRENCY` environment variable override support and structured round diagnostic logging.
-- **Scope Isolation**: AWS Lambda, GCP Cloud Run, and Vercel remain completely unaffected (`WEBSITE_SITE_NAME` gating and Azure-entrypoint scoping). Probe timeouts, warmup counts, sample counts, and self-target logic remain untouched.
+- **Diagnosis Verdict**: **UNCONFIRMED HYPOTHESIS & MITIGATION TRIAL** — Outbound transport/socket resource contention (such as Azure App Service SNAT port exhaustion or socket allocation limits on F1 Free instances) is a plausible leading hypothesis for the observed block timeouts, but cannot be confirmed without Azure platform-level diagnostics or packet captures.
+- **Geographic Distance vs. Transport Contention**: Grounded in saved production data, pure geographic path length exceeding the 3-second `DEFAULT_TIMEOUT_MS` is weakened as a sole explanation by contiguous block-failure patterns, successful historical measurements over the same Azure paths, and AWS Sydney baseline results. However, 3-second timeout effects under real-world network jitter, cold DNS/TLS setup, and packet loss are not refuted.
+- **Minimal Azure-Only Implementation**: Outbound probe fan-out concurrency in `azure/server.ts` is lowered from hardcoded 24 to default **8** (matching AWS Lambda in `lambda/handler.ts`), with safe fallback for `process.env.PROBE_CONCURRENCY` to allow A/B testing without redeployment, plus structured round diagnostic logging.
+- **Scope & Deployment Boundary**: The shared probe engine (`src/fns/probe-server.ts`) is left untouched to prevent triggering CI deployment workflows for AWS Lambda and GCP Cloud Run. All changes are strictly confined to `azure/server.ts`. Probe timeouts, sample counts, warmups, and measurement logic remain identical to preserve parity across clouds.
+- **Operational Risk (270s Caller Timeout)**: Lowering concurrency reduces concurrent request bursts, but worker count is not a retained socket ceiling. If underlying failures persist, eight workers iterating through failed targets could increase round duration and risk hitting GitHub Actions' 270-second invoke timeout (`curl --max-time 270`). This change is therefore treated as an operational experiment rather than an asserted guarantee.
 
 ---
 
-## 2. Production Data Analysis (Round `2026-09-21T10:15Z` / `10:47Z`)
+## 2. Production Data Analysis (Snapshot `2026-09-21T10:45:37.155Z`)
 
-In the live production status snapshot (`latest.json`):
-- `azure-australiaeast`: **125 of 301 targets timed out** (41.5% failure rate).
-- `azure-koreacentral`: **49 of 301 targets timed out** (16.3% failure rate).
-- `azure-brazilsouth`: **31 of 301 targets timed out** (10.3% failure rate).
-- `azure-eastus2`: **14 of 301 targets timed out**.
-- In contrast, AWS and GCP origins running the same shared probe logic had virtually zero issues:
-  - `aws-ap-southeast-2` (Sydney, Australia): **298 of 301 OK** (only 3 timeouts).
-  - `aws-ap-northeast-2` (Seoul, Korea): **299 of 301 OK** (only 2 timeouts).
-  - `gcp-europe-west1`: **298 of 301 OK**.
+Saved status data from `origin/status` (commit `69c6dda`, `latest.json`) records the following outcomes:
 
-### Refuting the "Far Path Slower than 3s Timeout" Hypothesis
+| Origin | Total Targets | OK | Timeouts | Other Errors | Round Duration (`durationMs`) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `azure-australiaeast` | 301 | 176 | 125 | 0 | 128,077 ms (~128s) |
+| `azure-koreacentral` | 301 | 252 | 49 | 0 | 60,486 ms (~60s) |
+| `azure-brazilsouth` | 301 | 269 | 31 | 1 (`network`) | 69,173 ms (~69s) |
+| `azure-eastus2` | 301 | 287 | 14 | 0 | 48,154 ms (~48s) |
+| `azure-canadacentral` | 301 | 293 | 8 | 0 | 44,988 ms (~45s) |
+| `aws-ap-southeast-2` (Sydney) | 301 | 298 | 3 | 0 | 128,825 ms (~129s) |
+| `aws-ap-northeast-2` (Seoul) | 301 | 299 | 2 | 0 | 84,140 ms (~84s) |
+| `gcp-europe-west1` | 301 | 298 | 2 | 1 (`network`) | 48,642 ms (~49s) |
 
-1. **Geographic Baseline Parity (`aws-ap-southeast-2` vs `azure-australiaeast`)**:
-   Both origins operate out of Sydney, Australia, targeting the exact same 301 endpoints with the identical 3,000ms timeout:
-   - Oracle (42 targets): From Sydney AWS, **0 timeouts**; latencies ranged 140ms–320ms.
-   - Vultr (33 targets): From Sydney AWS, **0 timeouts**; latencies ranged 120ms–300ms.
-   - Linode (25 targets): From Sydney AWS, **0 timeouts**; latencies ranged 150ms–280ms.
-   - DigitalOcean (9 targets): From Sydney AWS, **0 timeouts**; latencies ranged 160ms–270ms.
-   Every single "small provider" target responded in well under 350ms. None came anywhere close to 3,000ms.
+### Observations vs. Inferences
+
+1. **AWS Sydney Baseline (`aws-ap-southeast-2`)**:
+   Probing the identical 301 targets with the same 3,000ms timeout yielded 298 successes. Actual successful measured latency ranges from Sydney AWS:
+   - **Oracle** (42 targets): 42 OK, 0 timeouts, **5–470 ms**
+   - **Vultr** (33 targets): 33 OK, 0 timeouts, **108–609 ms**
+   - **Linode** (25 targets): 25 OK, 0 timeouts, **3–404 ms**
+   - **DigitalOcean** (9 targets): 9 OK, 0 timeouts, **141–372 ms**
+   
+   *Inference*: These numbers show that small-provider targets are responsive from Sydney when network paths are clear. However, AWS and Azure maintain separate routing, transoceanic transit, and network virtualization layers; AWS performance does not prove Azure network conditions are identical.
 
 2. **Azure Historical Ground Truth (`history.json`)**:
-   In previous rounds where `azure-australiaeast` did not hit port exhaustion, recorded steady-state latencies to these identical targets were:
-   - `azure-australiaeast` → `oracle/sa-saopaulo-1`: **298ms**
-   - `azure-australiaeast` → `linode/us-east`: **205ms**
+   In historical rounds recorded in `history.json`, `azure-australiaeast` achieved successful samples to targets that failed in the 10:15Z/10:47Z rounds:
+   - `azure-australiaeast` → `oracle/sa-saopaulo-1`: historical points around **298 ms**
+   - `azure-australiaeast` → `linode/us-east`: historical points around **205 ms**
 
-3. **Near Targets Timing Out on Seoul (`azure-koreacentral`)**:
-   In `azure-koreacentral`, the 49 timeouts were **not** far or small providers. They were:
-   - **All 37 AWS targets** (including Tokyo at ~30ms, Seoul local at ~5ms, Osaka at ~35ms, US West at ~135ms, US East at ~185ms).
-   - **11 Azure targets**.
-   High-capacity hyperscaler backbone paths with 5ms–185ms baseline latencies do not suddenly take >3,000ms unless connections are blocked at the transport layer.
+   *Inference*: These historical measurements demonstrate that high-latency physical distance alone does not inherently exceed 3,000ms on these Azure paths. However, historical minimums reflect successful steady-state transfers and cannot bound cold DNS resolution, TCP/TLS handshake latency, retransmission delays under packet loss, or host event-loop stalls.
 
-### Confirming SNAT Exhaustion via Index & Temporal Clustering
+3. **Execution Index & Temporal Block Failures**:
+   Jobs in `runProbe` are dispatched by `mapPool` in sequential catalog order (`src/data/datasource/providers.json`):
+   - **`azure-australiaeast`**: Targets `0..181` had 6 scattered failures (`aws-me-south-1`, `aws-eusc-de-east-1`, `tencent-sa-saopaulo`, `ibm-mil01`, `ibm-eu-es`, `ibm-br-sao`). Then, from index **182 through 300** (119 consecutive targets: Oracle, DigitalOcean, Linode, Vultr, NCP, Kakao, KT, NHN, iWinv), every target timed out in an unbroken block.
+   - **`azure-koreacentral`**: Targets `0..43` and `45..48` (48 targets across AWS and Azure) failed consecutively at probe start. Index 44 (`azure-koreacentral`, the pre-measured self-target) succeeded at 7ms. Later in the round, index 170 (`ibm-mil01`) also failed.
+   - **`azure-brazilsouth`**: Targets `21..44` formed an unbroken block of 24 failures (`aws-cn-north-1` through `azure-koreacentral`), plus smaller clusters at 123–124, 126–128, 130, 170, and 300.
 
-When failures are analyzed by execution order (the 301 catalog jobs are processed sequentially by the worker pool in provider order):
-
-- **`azure-australiaeast`**:
-  - Targets `[0..181]` (AWS, Azure, GCP, Alibaba, Tencent, IBM): Almost all **succeeded** (only 6 sporadic fails).
-  - Targets `[182..300]` (Oracle, DigitalOcean, Linode, Vultr, NCP, Kakao, KT, NHN, iWinv): **119 consecutive targets failed as an unbroken block**.
-  - **Reason**: The apparent correlation with "small providers" was an artifact of catalog order (`src/data/datasource/providers.json` lists Oracle, DigitalOcean, Linode, and Vultr at the end). The origin did not fail because the targets were small providers; it failed because by target 182, the worker had opened connections to ~180 distinct endpoints within ~30 seconds, completely exhausting the Azure SNAT port pool.
-
-- **`azure-koreacentral`**:
-  - Targets `[0..48]` (All 37 AWS targets + 11 Azure targets): **48 of 49 consecutive targets timed out** right at the beginning of the round (except target 44, the pre-probed self-target).
-  - Targets `[49..300]`: **All succeeded**.
-  - **Reason**: SNAT ports were exhausted at probe start (likely lingering from prior connections within the 240-second cool-down). After ~40 seconds of dropped handshakes, the 4-minute cool-down expired, ports were freed, and the remaining 250+ targets completed without a single timeout.
-
-- **`azure-brazilsouth`**:
-  - Targets `[21..44]`: An unbroken block of **24 consecutive targets** timed out during an active exhaustion burst.
-
-This contiguous block-failure pattern is the signature of transport-layer SNAT port starvation.
+   *Inference*: Contiguous block failures align strongly with worker pool scheduling order rather than target geography. In `azure-australiaeast`, the trailing block coincided with the point where the worker pool had visited ~180 distinct remote endpoints.
 
 ---
 
-## 3. Underlying Technical Mechanism
+## 3. Technical Evaluation: SNAT Hypothesis & Socket Management
 
-1. **Azure App Service SNAT Port Allocation**:
-   - Azure App Service instances (especially F1 Free tier, running on shared multi-tenant scale units) are assigned a default quota of **128 outbound SNAT ports**.
-   - When an outbound TCP connection closes, the Azure Load Balancer retains that SNAT port in a **240-second (4-minute) TIME_WAIT/cool-down state** before it can be reclaimed for new flows.
+### The SNAT Port Exhaustion Hypothesis
+- According to [Microsoft App Service Outbound Connection Guidance](https://learn.microsoft.com/en-us/azure/app-service/troubleshoot-intermittent-outbound-connection-errors), App Service instances share infrastructure load balancers and have default preallocated quotas (typically ~128 outbound SNAT ports per instance on basic/free plans).
+- When connections close, the load balancer typically retains the port mapping in a 240-second (4-minute) TIME_WAIT/cool-down state before reclamation.
+- If outbound requests rapidly deplete SNAT capacity, subsequent TCP SYN packets are dropped, stalling handshakes until `DEFAULT_TIMEOUT_MS` (3,000ms) triggers an `AbortError`.
 
-2. **Node.js undici / fetch Connection Management**:
-   - Node 24's global `fetch` creates an internal connection pool per unique remote origin.
-   - For each target, `pingTarget` performs 2 warmup requests and 4 timed samples. HTTP keep-alive successfully reuses the single TCP connection across all 6 requests for that specific host.
-   - However, when a target finishes, undici keeps the socket open in the idle pool for its default `keepAliveTimeout` (~4,000ms).
-   - At `concurrency = 24`, 24 workers fan out rapidly across 301 distinct hostnames. In just 4 seconds, 24 workers can cycle through dozens of different hosts. With 100+ sockets simultaneously open or transitioning through TCP FIN/TIME_WAIT, the 128 SNAT port allocation is instantly depleted.
+### Why SNAT Remains Unconfirmed
+- Microsoft documentation notes that SNAT ports can be shared across flows directed to *different* destination IP/port tuples, while also enforcing sandbox-level cross-VM TCP connection limits.
+- The repository snapshot contains HTTP probe outcomes, not OS-level TCP socket metrics or Azure portal diagnostic data ("SNAT Port Exhaustion" detector).
+- The normal probe schedule runs on a 15-minute cadence (well beyond a 4-minute cooldown), so initial-target failures on `azure-koreacentral` cannot be attributed to a prior scheduled round without evidence of overlapping manual invocations or independent traffic.
+- Therefore, SNAT port exhaustion is a plausible leading suspect, but remains an **unconfirmed hypothesis**.
 
-3. **Silent SYN Dropping & Abort Timeout**:
-   - Once all SNAT ports are consumed, the Azure Load Balancer silently drops outbound TCP SYN packets for any new destination.
-   - The client TCP stack retransmits SYNs (at 1s, 3s).
-   - In `timedGet`, the `AbortController` fires at `DEFAULT_TIMEOUT_MS = 3000ms`.
-   - The resulting `AbortError` is classified as `'timeout'`, causing 6 successive 3s timeouts (18s wasted per target).
-
----
-
-## 4. Why Alternative Proposals Were Rejected
-
-- **Increasing Timeout for Azure**:
-  - **Rejected**: Healthy paths from Australia take at most ~300ms (10× margin). Increasing timeout to 5s would not fix dropped SYNs; it would increase the wasted stall time per target from 18s to 30s (exceeding round timeouts) and hold exhausted sockets open even longer. It would also break `/health` parity across clouds.
-- **Disabling Keep-Alive (`Connection: close`)**:
-  - **Rejected**: Sockets are already isolated per host. Forcing `Connection: close` on every request would destroy connection reuse between the 2 warmups and 4 samples, generating 1,806 TCP/TLS handshakes per round and drastically increasing socket churn and measurement jitter.
+### Worker Concurrency vs. Retained Sockets
+- Capping `mapPool` concurrency at 8 limits the number of actively executing target tasks in JavaScript.
+- **It does NOT establish a hard socket ceiling**:
+  - Global `fetch` (backed by `undici` in Node 24) maintains connection pools with keep-alive idle timers (~4 seconds) across visited origins.
+  - Sockets to earlier targets remain established in the pool while workers move to subsequent targets.
+  - Fast requests (e.g. 10–20ms) can still open and retain dozens of open sockets across distinct hosts within the idle window.
+  - Multiple concurrent incoming requests to the App Service instance spin up independent worker pools.
+- Consequently, lowering concurrency to 8 is a burst-reduction heuristic and scheduling throttle, not a mathematically guaranteed socket cap.
 
 ---
 
-## 5. Implementation & Parity Details
+## 4. Round Duration & Caller Budget Analysis (270s Timeout Risk)
 
-1. **`azure/server.ts`**:
-   - Replaced hardcoded `runProbe(24)` with `runProbe(concurrency)`, where `concurrency` defaults to **8** (reading `process.env.PROBE_CONCURRENCY` if set).
-   - Added round diagnostic logging (`probe`, `concurrency`, `durationMs`, `cells`, `failed`, `failRate`) matching `lambda/handler.ts`.
-   - Fixed prettier formatting on `appAuth`.
+A critical operational constraint is the GitHub Actions workflow invoke step (`.github/workflows/probe.yml:191`):
 
-2. **`src/fns/probe-server.ts`**:
-   - Set `DEFAULT_CONCURRENCY = process.env.WEBSITE_SITE_NAME ? 8 : 24`.
-   - Guarantees that any execution within Azure App Service environment defaults to concurrency 8 even if called without explicit parameters.
-   - Preserves `concurrency = 24` for Cloud Run, Vercel, and benchmarks.
+```bash
+curl -fsS --max-time 270 -X POST "${url}" -H "Authorization: Bearer ${PROBE_SECRET}"
+```
 
-3. **Performance & Budget Impact**:
-   - **Concurrency 8** limits peak concurrent in-flight sockets to 8. Over a 4-second window, 8 workers touch at most ~40 unique endpoints, staying safely below the 128 SNAT port ceiling.
-   - **Round Duration**: Round duration remains bounded at ~80s–130s globally (validated by AWS Lambda running concurrency 8 in Australia at 128s), well within GitHub Actions' 270s invoke timeout and App Service's 300s limit.
-   - **F1 Daily CPU Budget**: Network I/O wait does not consume compute quota. At ~10–15 CPU-seconds per round, 96 rounds/day consumes ~16–24 CPU-minutes/day, comfortably within the 60 CPU-minute F1 daily allowance.
+The caller imposes a **270-second (4.5-minute) hard timeout**.
+
+### The Concurrency / Timeout Tradeoff
+- Under `concurrency = 24`, failed targets run in parallel across 24 workers. When `azure-australiaeast` suffered 125 timeouts (up to 6 attempts × 3s = 18s per target), 24 workers processed the failing block in approximately 5–6 waves (~90–110s), finishing the overall round at **128s**.
+- Under `concurrency = 8`:
+  - If lower concurrency resolves socket contention and targets succeed, round duration will stay in the healthy ~80–130s range (similar to AWS Sydney at 128s).
+  - **Risk**: If the 119 trailing targets continue to fail (due to genuine network unreachability, routing drops, or persistent connection limits), 8 workers require **15 serial waves** (119 / 8 ≈ 15).
+  - 15 waves × 18s stall per target = **270 seconds for the failed block alone**, plus the time required for the first 182 targets!
+  - In that failure mode, concurrency 8 guarantees that the round will exceed 270 seconds, causing `curl --max-time 270` to abort and turning a partial snapshot into a complete run failure.
+
+Because live before/after Azure measurements under failed conditions are not yet available, concurrency 8 must be treated as a **tunable experiment**, not a proven fix.
+
+---
+
+## 5. Minimal Azure-Only Implementation
+
+### 1. Scope Isolation (`azure/server.ts`)
+To prevent triggering unintended redeployments of AWS Lambda (`deploy-aws.yml`) and GCP Cloud Run (`deploy-gcp.yml`), no files under `src/fns/**` were modified:
+- `src/fns/probe-server.ts` retains its standard signature and default (`concurrency = 24`).
+- All concurrency logic is encapsulated in `azure/server.ts`.
+
+### 2. Implementation in `azure/server.ts`
+- Safely parses `process.env.PROBE_CONCURRENCY`:
+  ```ts
+  const parsed = Number(process.env.PROBE_CONCURRENCY)
+  const concurrency = Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 8
+  const snapshot = await runProbe(concurrency)
+  ```
+  - Unset, empty, whitespace, non-numeric, `NaN`, negative numbers, `0`, and `< 1` values safely fall back to `8`.
+  - Non-integer values are floored (`1.9` → `1`).
+  - Operators can adjust concurrency (e.g. `12`, `16`, or back to `24`) via the App Service app settings without redeploying code.
+- Structured diagnostic logging:
+  Emits a JSON log to `console.log` on completion reporting `probe`, `concurrency`, `durationMs`, `cells`, `failed`, and `failRate`. This provides visibility into round duration and failure rates directly in Azure App Service log streams (`az webapp log tail`).
+
+### 3. Preserved Parity
+- No changes to probe timeouts (`DEFAULT_TIMEOUT_MS = 3000`, `CHINA_TIMEOUT_MS = 2000`, `SELF_TIMEOUT_MS = 750`).
+- No changes to sample count (4) or warmup count (2).
+- No changes to AWS Lambda, GCP Cloud Run, or Vercel entrypoints.
 
 ---
 
 ## 6. Verification
 
 - `npm run build`: Successful Next.js production build.
-- `npx tsc --noEmit`: Clean TypeScript compilation with 0 errors.
-- `npx eslint azure/server.ts src/fns/probe-server.ts`: Passed with 0 errors and 0 warnings.
-- `node scripts/measure-probe-latency.cjs synthetic`: Successfully passed synthetic probe benchmark.
+- `npx tsc --noEmit`: Typecheck clean with 0 errors.
+- `npx eslint azure/server.ts`: Clean with 0 errors and 0 warnings.
+- `node scripts/measure-probe-latency.cjs synthetic`: Synthetic benchmark passed (concurrency 8 and 24 validated).
+- `git diff 1c1c376 -- src/fns/probe-server.ts`: Verified 0 diff against main (deploy workflows for AWS and GCP will not trigger).
