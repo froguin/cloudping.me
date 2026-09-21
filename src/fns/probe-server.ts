@@ -124,6 +124,13 @@ async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number;
     } catch (err) {
       lastError = errorKind(err)
     }
+
+    // Once the remaining attempts cannot bring us to MIN_SAMPLES, the result
+    // is already known to be a failure. Avoid up to two more doomed requests;
+    // this preserves the existing success rule while reducing socket churn and
+    // worst-case round duration on constrained probe origins.
+    const remaining = SAMPLE_COUNT - i - 1
+    if (samples.length + remaining < MIN_SAMPLES) break
   }
   if (samples.length < MIN_SAMPLES) return { error: lastError }
   // Queueing and event-loop stalls add delay. The minimum estimates the least
