@@ -299,6 +299,41 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   text-underline-offset: 2px;
 }
 .matrix-legend-clear:hover { color: var(--text); }
+/* Corner-mark key: the same triangle the cells draw, at legend size. */
+.matrix-toolbar-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem 0.9rem;
+}
+.matrix-mark-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.matrix-legend-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.matrix-legend-tri {
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  flex-shrink: 0;
+}
+.matrix-legend-tri.on-net {
+  border-top-color: var(--mark-on-net);
+  border-right-color: var(--mark-on-net);
+}
+.matrix-legend-tri.adjacent {
+  border-top-color: var(--mark-adjacent);
+  border-right-color: var(--mark-adjacent);
+}
 .matrix-swatch.fast,
 .matrix-cell.fast { background: #c6efce; color: #006100; }
 .matrix-swatch.mid,
@@ -569,6 +604,16 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
   min-width: 4.75rem;
 }
+/* Corner-mark shades live in variables so the cell glyph and the legend key
+   that explains it cannot drift apart. */
+:root {
+  --mark-on-net: rgba(0, 0, 0, 0.45);
+  --mark-adjacent: rgba(0, 0, 0, 0.22);
+}
+[data-theme="dark"] {
+  --mark-on-net: rgba(255, 255, 255, 0.55);
+  --mark-adjacent: rgba(255, 255, 255, 0.28);
+}
 .matrix-cell.on-net .matrix-mark,
 .matrix-cell.adjacent .matrix-mark {
   content: '';
@@ -581,20 +626,12 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   cursor: help;
 }
 .matrix-cell.on-net .matrix-mark {
-  border-top-color: rgba(0, 0, 0, 0.45);
-  border-right-color: rgba(0, 0, 0, 0.45);
+  border-top-color: var(--mark-on-net);
+  border-right-color: var(--mark-on-net);
 }
 .matrix-cell.adjacent .matrix-mark {
-  border-top-color: rgba(0, 0, 0, 0.22);
-  border-right-color: rgba(0, 0, 0, 0.22);
-}
-[data-theme="dark"] .matrix-cell.on-net .matrix-mark {
-  border-top-color: rgba(255, 255, 255, 0.55);
-  border-right-color: rgba(255, 255, 255, 0.55);
-}
-[data-theme="dark"] .matrix-cell.adjacent .matrix-mark {
-  border-top-color: rgba(255, 255, 255, 0.28);
-  border-right-color: rgba(255, 255, 255, 0.28);
+  border-top-color: var(--mark-adjacent);
+  border-right-color: var(--mark-adjacent);
 }
 /* Instant, no-delay tooltip for the corner glyph (native title lags ~1s). */
 .matrix-mark[data-tip]::before {
@@ -604,8 +641,11 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   right: 0;
   transform: translateY(4px);
   z-index: 60;
-  white-space: nowrap;
-  padding: 3px 7px;
+  white-space: normal;
+  width: max-content;
+  max-width: 15rem;
+  text-align: left;
+  padding: 4px 8px;
   border-radius: 5px;
   font-family: var(--font-space-grotesk), sans-serif;
   font-size: 11px;

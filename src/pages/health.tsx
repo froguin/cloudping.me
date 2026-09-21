@@ -321,6 +321,22 @@ export default function Health(props: HealthProps): JSX.Element {
   const geoKeys = useMemo(() => Object.keys(props.geos), [props.geos])
   // Collapsed-header summary so the counts stay visible without opening the box.
   const toFilterSummary = `${selectedProviders.length}/${props.providers.length} clouds · ${selectedGeos.length}/${geoKeys.length} continents · ${rows.length}/${catalog.length} regions`
+  // Which corner-mark kinds actually occur on screen. The legend keys only those,
+  // so it never explains a glyph a viewer cannot find — 'adjacent' needs a Vercel
+  // origin, and snapshots without one simply drop that row from the key.
+  const markKinds = useMemo(() => {
+    let onNet = false
+    let adjacent = false
+    for (const col of visibleColumns) {
+      for (const row of rows) {
+        const k = sameCloudKind(col, row.provider.key, row.region.location)
+        if (k === 'on-net') onNet = true
+        else if (k === 'adjacent') adjacent = true
+        if (onNet && adjacent) return { onNet, adjacent }
+      }
+    }
+    return { onNet, adjacent }
+  }, [visibleColumns, rows])
   const filterMatches = useMemo(() => {
     const q = filterQuery.trim().toLowerCase()
     if (!q) return scoped
@@ -555,27 +571,51 @@ export default function Health(props: HealthProps): JSX.Element {
                 </button>
               </div>
             </div>
-            <div className="matrix-legend" role="group" aria-label="Latency color scale — click a band to focus it">
-              <span className="matrix-legend-label">Latency:</span>
-              {LEGEND_BANDS.map((b) => {
-                const on = focusBands.includes(b.key)
-                return (
-                  <button
-                    key={b.key}
-                    type="button"
-                    className={`matrix-swatch ${b.key}${focusBands.length > 0 && !on ? ' is-off' : ''}`}
-                    aria-pressed={on}
-                    onClick={() => toggleBand(b.key)}
-                    title={on ? `Stop focusing ${b.label}` : `Focus ${b.label} cells`}
-                  >
-                    {b.label}
+            <div className="matrix-toolbar-right">
+              <div className="matrix-legend" role="group" aria-label="Latency color scale — click a band to focus it">
+                <span className="matrix-legend-label">Latency:</span>
+                {LEGEND_BANDS.map((b) => {
+                  const on = focusBands.includes(b.key)
+                  return (
+                    <button
+                      key={b.key}
+                      type="button"
+                      className={`matrix-swatch ${b.key}${focusBands.length > 0 && !on ? ' is-off' : ''}`}
+                      aria-pressed={on}
+                      onClick={() => toggleBand(b.key)}
+                      title={on ? `Stop focusing ${b.label}` : `Focus ${b.label} cells`}
+                    >
+                      {b.label}
+                    </button>
+                  )
+                })}
+                {focusBands.length > 0 ? (
+                  <button type="button" className="matrix-legend-clear" onClick={() => setFocusBands([])}>
+                    Clear
                   </button>
-                )
-              })}
-              {focusBands.length > 0 ? (
-                <button type="button" className="matrix-legend-clear" onClick={() => setFocusBands([])}>
-                  Clear
-                </button>
+                ) : null}
+              </div>
+              {/* Key for the ◥ corner glyph, so its meaning is readable without
+                  hunting for a 10px triangle to hover. */}
+              {markKinds.onNet || markKinds.adjacent ? (
+                <div className="matrix-mark-key">
+                  <span className="matrix-legend-label">Same metro:</span>
+                  {markKinds.onNet ? (
+                    <span
+                      className="matrix-legend-mark"
+                      title="Origin and target are the same cloud in the same metro — on the provider backbone, not a real internet path."
+                    >
+                      <span className="matrix-legend-tri on-net" aria-hidden="true" />
+                      same cloud
+                    </span>
+                  ) : null}
+                  {markKinds.adjacent ? (
+                    <span className="matrix-legend-mark" title="Vercel origin hitting AWS in the same metro — close to on-net, not a real internet path.">
+                      <span className="matrix-legend-tri adjacent" aria-hidden="true" />
+                      Vercel on AWS
+                    </span>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           </div>
@@ -666,7 +706,15 @@ export default function Health(props: HealthProps): JSX.Element {
                             if (cell?.ms != null) parts.push(`latest ${formatMs(cell.ms)}`)
                             if (cell?.ms24h != null) parts.push(`24h ${formatMs(cell.ms24h)} n=${cell.n24h ?? '?'}`)
                             if (cell?.samples) parts.push(`${cell.samples} samples`)
-                            const markTip = kind === 'on-net' ? 'same-cloud backbone' : kind === 'adjacent' ? 'AWS-adjacent origin' : null
+                            // The glyph's whole point is that these numbers are not
+                            // comparable with the rest, so the tip says so outright
+                            // rather than naming the relationship and leaving it there.
+                            const markTip =
+                              kind === 'on-net'
+                                ? 'Same cloud in the same metro — this rides the provider backbone, so it is faster than a real internet path. Not comparable with the other cells.'
+                                : kind === 'adjacent'
+                                  ? 'Vercel origin hitting AWS in the same metro — close to on-net, so it is faster than a real internet path. Not comparable with the other cells.'
+                                  : null
                             return (
                               <td
                                 key={col.id}
