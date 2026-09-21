@@ -272,25 +272,29 @@ code,
   margin-bottom: 0.75rem;
 }
 .matrix-toolbar-left { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.matrix-chip {
-  @apply text-xs px-3 py-1.5 rounded-full;
-  border: 1px solid var(--pill-border);
-  background: var(--pill-bg);
-  color: var(--text-muted);
-}
-.matrix-chip.is-on,
-.matrix-chip:hover:not(:disabled) {
-  border-color: var(--pill-active-border);
-  background: var(--pill-active-bg);
-  color: var(--pill-active-text);
-}
-.matrix-chip:disabled { opacity: 0.4; cursor: not-allowed; }
+/* Metric picker — the history modal's .history-toggle look, sized for the
+   toolbar. Keeping the shared class means one source of truth for the style. */
+.matrix-toggle button { font-size: 11px; padding: 0.3rem 0.7rem; }
+.matrix-toggle button:disabled { opacity: 0.4; cursor: not-allowed; }
+.matrix-toggle button:disabled:hover { color: var(--text-muted); }
 .matrix-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
 .matrix-legend-label { font-size: 11px; color: var(--text-muted); }
 .matrix-swatch {
   @apply text-[11px] px-2 py-0.5 rounded-sm font-medium;
   border: 1px solid transparent;
 }
+/* The swatches are buttons: clicking one focuses that band in the matrix. */
+button.matrix-swatch { cursor: pointer; transition: opacity 0.12s ease, box-shadow 0.12s ease; }
+button.matrix-swatch:hover { box-shadow: 0 0 0 1px var(--text-muted); }
+button.matrix-swatch[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--text); }
+button.matrix-swatch.is-off { opacity: 0.4; }
+.matrix-legend-clear {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.matrix-legend-clear:hover { color: var(--text); }
 .matrix-swatch.fast,
 .matrix-cell.fast { background: #c6efce; color: #006100; }
 .matrix-swatch.mid,
@@ -305,6 +309,8 @@ code,
 [data-theme="dark"] .matrix-cell.slow { background: #7f1d1d; color: #fca5a5; }
 .matrix-cell.fail,
 .matrix-cell.empty { background: var(--bg-surface); color: var(--text-muted); }
+.matrix-cell.is-dimmed { opacity: 0.18; }
+.matrix-cell.is-dimmed:hover { opacity: 1; }
 
 .matrix-filter-search {
   @apply text-sm px-3 py-1.5 rounded-md;

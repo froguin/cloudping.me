@@ -108,12 +108,23 @@ function columnSubtitle(col: ProbeColumn): string {
   return `${when} · ${formatDuration(col.durationMs)}`
 }
 
-function latencyBand(ms: number | null, ok: boolean): 'fast' | 'mid' | 'slow' | 'fail' | 'empty' {
+type LatencyBand = 'fast' | 'mid' | 'slow' | 'fail' | 'empty'
+
+function latencyBand(ms: number | null, ok: boolean): LatencyBand {
   if (!ok || ms == null) return 'fail'
   if (ms < 100) return 'fast'
   if (ms <= 180) return 'mid'
   return 'slow'
 }
+
+// The legend doubles as a band filter: clicking a swatch focuses that latency
+// band and dims every other cell, which is the only practical way to scan 301
+// rows for, say, the slow ones. Labels must match the thresholds above.
+const LEGEND_BANDS: { key: 'fast' | 'mid' | 'slow'; label: string }[] = [
+  { key: 'fast', label: '< 100ms' },
+  { key: 'mid', label: '100–180ms' },
+  { key: 'slow', label: '> 180ms' },
+]
 
 function formatMs(ms: number): string {
   return `${Math.round(ms)}ms`
@@ -146,6 +157,8 @@ export default function Health(props: HealthProps): JSX.Element {
   const [toFilterOpen, setToFilterOpen] = useState(false)
   const [filterQuery, setFilterQuery] = useState('')
   const [metric, setMetric] = useState<'latest' | 'p24'>('latest')
+  // Empty = no band focus (every cell at full strength).
+  const [focusBands, setFocusBands] = useState<('fast' | 'mid' | 'slow')[]>([])
   // From-column (probe origin) filters: by CSP vendor and by continent.
   const [selectedFromVendors, setSelectedFromVendors] = useState<string[] | null>(null)
   const [selectedFromContinents, setSelectedFromContinents] = useState<string[] | null>(null)
@@ -341,6 +354,7 @@ export default function Health(props: HealthProps): JSX.Element {
       return next.length === fromContinents.length ? null : next
     })
   const toggleRegion = (key: string) => setSelectedKeys((v) => (v.includes(key) ? v.filter((x) => x !== key) : [...v, key]))
+  const toggleBand = (b: 'fast' | 'mid' | 'slow') => setFocusBands((v) => (v.includes(b) ? v.filter((x) => x !== b) : [...v, b]))
 
   const setScopedKeys = (on: boolean) => {
     const scopedSet = new Set(scoped.map((r) => r.key))
@@ -517,24 +531,52 @@ export default function Health(props: HealthProps): JSX.Element {
 
           <div className="matrix-toolbar">
             <div className="matrix-toolbar-left">
-              <button type="button" className={`matrix-chip ${metric === 'latest' ? 'is-on' : ''}`} onClick={() => setMetric('latest')}>
-                Latest min
-              </button>
-              <button
-                type="button"
-                className={`matrix-chip ${metric === 'p24' ? 'is-on' : ''}`}
-                onClick={() => setMetric('p24')}
-                disabled={!has24h}
-                title={has24h ? 'Median of per-run values over the last 24 hours' : `Need about ${MIN_N24H} runs (~2 hours) before 24h P50`}
-              >
-                24h P50
-              </button>
+              {/* Two views of the same cell, so a segmented control (same pattern as
+                  the history modal's Daily/2h) rather than two loose chips. */}
+              <div className="history-toggle matrix-toggle" role="group" aria-label="Latency metric">
+                <button
+                  type="button"
+                  className={metric === 'latest' ? 'is-on' : ''}
+                  aria-pressed={metric === 'latest'}
+                  onClick={() => setMetric('latest')}
+                  title="Fastest successful round-trip of the most recent run"
+                >
+                  Latest min
+                </button>
+                <button
+                  type="button"
+                  className={metric === 'p24' ? 'is-on' : ''}
+                  aria-pressed={metric === 'p24'}
+                  onClick={() => setMetric('p24')}
+                  disabled={!has24h}
+                  title={has24h ? 'Median of per-run values over the last 24 hours' : `Need about ${MIN_N24H} runs (~2 hours) before 24h P50`}
+                >
+                  24h P50
+                </button>
+              </div>
             </div>
-            <div className="matrix-legend" aria-label="Latency color scale">
+            <div className="matrix-legend" role="group" aria-label="Latency color scale — click a band to focus it">
               <span className="matrix-legend-label">Latency:</span>
-              <span className="matrix-swatch fast">&lt; 100ms</span>
-              <span className="matrix-swatch mid">100–180ms</span>
-              <span className="matrix-swatch slow">&gt; 180ms</span>
+              {LEGEND_BANDS.map((b) => {
+                const on = focusBands.includes(b.key)
+                return (
+                  <button
+                    key={b.key}
+                    type="button"
+                    className={`matrix-swatch ${b.key}${focusBands.length > 0 && !on ? ' is-off' : ''}`}
+                    aria-pressed={on}
+                    onClick={() => toggleBand(b.key)}
+                    title={on ? `Stop focusing ${b.label}` : `Focus ${b.label} cells`}
+                  >
+                    {b.label}
+                  </button>
+                )
+              })}
+              {focusBands.length > 0 ? (
+                <button type="button" className="matrix-legend-clear" onClick={() => setFocusBands([])}>
+                  Clear
+                </button>
+              ) : null}
             </div>
           </div>
           <div className="matrix-scroll">
@@ -628,7 +670,9 @@ export default function Health(props: HealthProps): JSX.Element {
                             return (
                               <td
                                 key={col.id}
-                                className={`matrix-cell ${band}${kind === 'on-net' ? ' on-net' : kind === 'adjacent' ? ' adjacent' : ''}${cell ? ' clickable' : ''}`}
+                                className={`matrix-cell ${band}${kind === 'on-net' ? ' on-net' : kind === 'adjacent' ? ' adjacent' : ''}${cell ? ' clickable' : ''}${
+                                  focusBands.length > 0 && !focusBands.includes(band as 'fast' | 'mid' | 'slow') ? ' is-dimmed' : ''
+                                }`}
                                 title={cell ? `${parts.join(' · ')} · click for history` : parts.join(' · ')}
                                 onClick={
                                   cell
