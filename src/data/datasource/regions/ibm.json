@@ -72,6 +72,22 @@
     "ping_url": "https://s3.che01.cloud-object-storage.appdomain.cloud"
   },
   {
+    "key": "in-che",
+    "display_name": "Chennai - Airtel",
+    "country": "IN",
+    "location": "Chennai",
+    "geo": "Asia",
+    "ping_url": "https://s3.in-che.cloud-object-storage.appdomain.cloud"
+  },
+  {
+    "key": "in-mum",
+    "display_name": "Mumbai - Airtel",
+    "country": "IN",
+    "location": "Mumbai",
+    "geo": "Asia",
+    "ping_url": "https://s3.in-mum.cloud-object-storage.appdomain.cloud"
+  },
+  {
     "key": "mil01",
     "display_name": "Milan, Italy",
     "country": "IT",
@@ -81,11 +97,19 @@
   },
   {
     "key": "mon01",
-    "display_name": "Montrèal, Canada",
+    "display_name": "Montreal, Canada",
     "country": "CA",
     "location": "Montreal",
     "geo": "North America",
     "ping_url": "https://s3.mon01.cloud-object-storage.appdomain.cloud"
+  },
+  {
+    "key": "ca-mon",
+    "display_name": "Montreal",
+    "country": "CA",
+    "location": "Montreal",
+    "geo": "North America",
+    "ping_url": "https://s3.ca-mon.cloud-object-storage.appdomain.cloud"
   },
   {
     "key": "par01",

@@ -56,6 +56,14 @@
     "ping_url": "https://oss-cn-wulanchabu.aliyuncs.com"
   },
   {
+    "key": "cn-zhongwei",
+    "display_name": "China (Zhongwei)",
+    "country": "CN",
+    "location": "Zhongwei",
+    "geo": "Asia",
+    "ping_url": "https://oss-cn-zhongwei.aliyuncs.com"
+  },
+  {
     "key": "cn-shenzhen",
     "display_name": "China (Shenzhen)",
     "country": "CN",
@@ -190,5 +198,45 @@
     "location": "Dubai",
     "geo": "Middle East",
     "ping_url": "https://oss-me-east-1.aliyuncs.com"
+  },
+  {
+    "key": "ap-southeast-8",
+    "display_name": "Malaysia (Johor)",
+    "country": "MY",
+    "location": "Johor",
+    "geo": "Asia",
+    "ping_url": "https://oss-ap-southeast-8.aliyuncs.com"
+  },
+  {
+    "key": "sa-east-1",
+    "display_name": "Brazil (Sao Paulo)",
+    "country": "BR",
+    "location": "São Paulo",
+    "geo": "South America",
+    "ping_url": "https://oss-sa-east-1.aliyuncs.com"
+  },
+  {
+    "key": "na-south-1",
+    "display_name": "Mexico",
+    "country": "MX",
+    "location": "Mexico",
+    "geo": "North America",
+    "ping_url": "https://oss-na-south-1.aliyuncs.com"
+  },
+  {
+    "key": "eu-west-2",
+    "display_name": "France (Paris)",
+    "country": "FR",
+    "location": "Paris",
+    "geo": "Europe",
+    "ping_url": "https://oss-eu-west-2.aliyuncs.com"
+  },
+  {
+    "key": "me-central-1",
+    "display_name": "Saudi Arabia (Riyadh - Partner Region)",
+    "country": "SA",
+    "location": "Riyadh",
+    "geo": "Middle East",
+    "ping_url": "https://oss-me-central-1.aliyuncs.com"
   }
 ]
