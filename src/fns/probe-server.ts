@@ -205,6 +205,9 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     const results = await mapPool(jobs, concurrency, measureJob)
     const failedTargets: Array<{ index: number; provider: string; region: string; error: string }> = []
     const failureKinds: Record<string, number> = {}
+    let failedCount = 0
+    let firstFailedIndex: number | null = null
+    let lastFailedIndex: number | null = null
     let currentFailureBlock = 0
     let longestFailureBlock = 0
 
@@ -214,6 +217,9 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
         return
       }
       const error = result.error || 'unknown'
+      failedCount++
+      firstFailedIndex ??= index
+      lastFailedIndex = index
       failureKinds[error] = (failureKinds[error] || 0) + 1
       currentFailureBlock++
       longestFailureBlock = Math.max(longestFailureBlock, currentFailureBlock)
@@ -233,13 +239,13 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
         concurrency,
         durationMs: Date.now() - started,
         cells: results.length,
-        failed: results.filter((result) => !result.ok).length,
-        firstFailedIndex: failedTargets[0]?.index ?? null,
-        lastFailedIndex: failedTargets[failedTargets.length - 1]?.index ?? null,
+        failed: failedCount,
+        firstFailedIndex,
+        lastFailedIndex,
         longestFailureBlock,
         failureKinds,
         failedTargets,
-        failedTargetsTruncated: Object.values(failureKinds).reduce((sum, count) => sum + count, 0) - failedTargets.length,
+        failedTargetsTruncated: failedCount - failedTargets.length,
       })
     )
 
