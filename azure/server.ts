@@ -10,16 +10,25 @@ import { runProbe } from '../src/fns/probe-server'
 //
 // Far-target timeouts on Azure origins show block-failure patterns consistent with
 // transport/socket contention or SNAT port pressure under burst fan-out (24).
-// Lowering concurrency here to 8 (matching AWS Lambda) acts as a tunable mitigation
-// trial to reduce concurrent socket churn. It does not enforce a hard socket ceiling.
-// Tunable via PROBE_CONCURRENCY env var so operators can A/B test concurrency against
-// caller budget (270s in workflow) without code redeployment.
+// Azure origins default to concurrency 8 (matching AWS Lambda). Origins that
+// reproduced large provider-independent failure blocks use a targeted free-tier
+// experiment at concurrency 4, while the other Azure origins remain controls at 8.
+// PROBE_CONCURRENCY still overrides either default for operator A/B tests. Neither
+// value enforces a hard socket ceiling, and the 270s workflow caller budget remains
+// the adoption guardrail.
 //
 // F1 apps are public, so auth is purely app-level: the GitHub Actions workflow
 // sends the PROBE_SECRET as `Authorization: Bearer`. (X-Probe-Secret is also
 // accepted for symmetry with the Cloud Run origin.)
 
 const PORT = Number(process.env.PORT) || 8080
+const DEFAULT_CONCURRENCY = 8
+const REDUCED_CONCURRENCY = 4
+const REDUCED_CONCURRENCY_ORIGINS = new Set(['azure-australiaeast', 'azure-eastus2', 'azure-koreacentral'])
+
+function defaultConcurrency(): number {
+  return REDUCED_CONCURRENCY_ORIGINS.has(process.env.PROBE_ORIGIN_ID || '') ? REDUCED_CONCURRENCY : DEFAULT_CONCURRENCY
+}
 
 interface ActiveRun {
   id: string
@@ -61,7 +70,8 @@ const server = createServer((req, res) => {
 
     try {
       const parsed = Number(process.env.PROBE_CONCURRENCY)
-      const concurrency = Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 8
+      const fallbackConcurrency = defaultConcurrency()
+      const concurrency = Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : fallbackConcurrency
       const snapshot = await runProbe(concurrency)
       const total = snapshot.results.length
       const failed = snapshot.results.filter((r) => !r.ok).length
@@ -73,6 +83,7 @@ const server = createServer((req, res) => {
           runId,
           probe: snapshot.probe.id,
           concurrency,
+          fallbackConcurrency,
           durationMs: snapshot.probe.durationMs,
           cells: total,
           failed,
