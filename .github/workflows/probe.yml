@@ -28,6 +28,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Check out workflow source
+        uses: actions/checkout@v4
+
       - name: Configure AWS credentials (OIDC)
         if: ${{ vars.AWS_PROBE_ROLE_ARN != '' }}
         uses: aws-actions/configure-aws-credentials@v4
@@ -242,6 +245,7 @@ jobs:
         if: steps.trigger.outputs.skip != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HISTORY_BLOB_BASE_URL: https://aejnjhuwc4zeyko2.public.blob.vercel-storage.com
         run: |
           set -euo pipefail
           test -f /tmp/latest.json || { echo "no /tmp/latest.json found; skipping publish"; exit 0; }
@@ -382,11 +386,22 @@ jobs:
           # never creates a record for status-branch pushes.
           json.dump({"git": {"deploymentEnabled": False}}, open("vercel.json", "w"), separators=(",", ":"))
           PY
+          if ! node ../scripts/build-origin-history.mjs \
+            --snapshot latest.json \
+            --history history.json \
+            --previous-dir h \
+            --output-dir h \
+            --seed-base "${HISTORY_BLOB_BASE_URL}" \
+            --retain-days 7 \
+            --bucket-hours 2; then
+            echo "::warning::Compact origin history generation failed; publishing primary status files without updating h/."
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --orphan status-publish
           git rm -rf --cached . >/dev/null 2>&1 || true
           git add latest.json history.json vercel.json
+          if [ -d h ]; then git add h; fi
           git commit -m "probe $(date -u +%Y-%m-%dT%H:%M:%SZ)" || exit 0
           git push --force origin HEAD:status
           cp latest.json /tmp/latest.json
