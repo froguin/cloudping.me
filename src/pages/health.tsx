@@ -567,10 +567,7 @@ export default function Health(props: HealthProps): JSX.Element {
               ) : null}
             </div>
           </div>
-          <p id="matrix-swipe-hint" className="matrix-mobile-hint">
-            Swipe horizontally to compare probe origins.
-          </p>
-          <div className="matrix-scroll" role="region" aria-label="Cloud latency matrix" aria-describedby="matrix-swipe-hint" tabIndex={0}>
+          <div className="matrix-scroll" role="region" aria-label="Cloud latency matrix" tabIndex={0}>
             {rows.length === 0 || visibleColumns.length === 0 ? (
               <div className="text-center py-12 text-[color:var(--text-muted)]">
                 <p>

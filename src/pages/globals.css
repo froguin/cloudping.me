@@ -357,12 +357,6 @@ button.matrix-swatch.is-off { opacity: 0.4; }
 }
 .matrix-filter-item.is-on { opacity: 1; color: var(--text); }
 
-.matrix-mobile-hint {
-  display: none;
-  margin: 0 0 0.4rem;
-  font-size: 11px;
-  color: var(--text-muted);
-}
 .matrix-scroll {
   overflow: auto;
   width: 100%;
@@ -1055,10 +1049,8 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   cursor: pointer;
 }
 
-
-
-/* Mobile health-page ergonomics: preserve the desktop matrix while making its
-   dense controls and history interactions touch-friendly. */
+/* Mobile health-page ergonomics: keep the dense matrix compact while retaining
+   larger targets for navigation and destructive modal actions. */
 @media (max-width: 639px) {
   .matrix-page .theme-toggle,
   .matrix-page header nav a {
@@ -1069,32 +1061,17 @@ button.matrix-swatch.is-off { opacity: 0.4; }
     display: inline-flex;
     align-items: center;
   }
-  .provider-pill,
-  .matrix-to-filter-head,
-  .matrix-to-filter-action,
-  .matrix-filter-item,
-  .history-toggle.matrix-toggle button,
-  button.matrix-swatch,
-  .matrix-legend-clear {
-    min-height: 44px;
+  .matrix-toolbar-left {
+    width: auto;
+    flex: 0 0 auto;
   }
-  .matrix-to-filter-action,
-  .matrix-legend-clear {
-    display: inline-flex;
-    align-items: center;
+  .matrix-toolbar-left > *,
+  .matrix-legend > * {
+    flex: none;
   }
-  .matrix-filter-search {
-    width: 100%;
-    min-width: 0;
-    min-height: 44px;
-  }
-  .matrix-toolbar,
-  .matrix-toolbar-left,
   .matrix-legend {
-    width: 100%;
-  }
-  .matrix-toolbar-left > * {
-    flex: 1 1 auto;
+    width: auto;
+    max-width: 100%;
   }
   .matrix-to-filter-head {
     align-items: flex-start;
@@ -1104,15 +1081,13 @@ button.matrix-swatch.is-off { opacity: 0.4; }
     flex-wrap: wrap;
     text-align: right;
   }
-  .matrix-mobile-hint {
-    display: block;
-  }
-  .matrix-corner,
+  .matrix-table thead th.matrix-corner,
   .matrix-to,
   .matrix-group {
-    width: 9rem;
-    min-width: 9rem;
-    max-width: 9rem;
+    width: clamp(8rem, 40vw, 9rem);
+    min-width: clamp(8rem, 40vw, 9rem);
+    max-width: clamp(8rem, 40vw, 9rem);
+    box-shadow: 5px 0 9px -8px rgba(0, 0, 0, 0.65);
   }
   .matrix-to code,
   .matrix-to-provider span {
@@ -1123,7 +1098,8 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   }
   .matrix-table tbody .matrix-cell,
   .matrix-cell-button {
-    min-height: 44px;
+    height: 32px;
+    min-height: 32px;
   }
   .history-overlay {
     align-items: center;
@@ -1157,7 +1133,7 @@ button.matrix-swatch.is-off { opacity: 0.4; }
     width: 44px;
     height: 44px;
   }
-  .history-toggle button {
+  .history-modal .history-toggle button {
     min-height: 44px;
     padding-inline: 0.75rem;
   }
