@@ -11,7 +11,7 @@ import {
   ORIGIN_CITIES,
   ProbeResult,
   columnCode,
-  normalizeMatrixSnapshot,
+  normalizeCompactMatrixSnapshot,
   MIN_N24H,
   sameCloudKind,
   originVendor,
@@ -20,7 +20,9 @@ import {
   ORIGIN_CONTINENT_ORDER,
 } from '@app/fns/probe-snapshot'
 import { detectClientGeo } from '@app/fns/client-geo'
-import { getHealthJsonUrl, getSiteUrl } from '../site-config'
+import { getSiteUrl } from '../site-config'
+
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- the horizontally scrollable matrix region must be keyboard-focusable */
 
 // The matrix only reads these four region fields. Shipping the full CloudRegion
 // (with ping_url ~19KB and display_name ~10KB across 301 regions) blows the page
@@ -31,7 +33,6 @@ interface HealthProps {
   providers: CloudProvider[]
   regions: Record<string, HealthRegion[]>
   geos: Record<string, string[]>
-  initialSnapshot: MatrixSnapshot | null
 }
 
 interface CatalogRow {
@@ -40,24 +41,9 @@ interface CatalogRow {
   region: HealthRegion
 }
 
-async function loadSnapshot(): Promise<MatrixSnapshot | null> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 8000)
-  try {
-    const res = await fetch(getHealthJsonUrl(), { cache: 'no-store', signal: controller.signal })
-    if (!res.ok) return null
-    return normalizeMatrixSnapshot(await res.json())
-  } catch {
-    return null
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
 export async function getStaticProps(): Promise<GetStaticPropsResult<HealthProps>> {
   const providers = getAllProviders()
   const fullRegions = getAllCloudRegions()
-  const initialSnapshot = await loadSnapshot()
 
   // Slim each region to only the fields the matrix renders, dropping ping_url and
   // display_name so the serialized page data stays under Next.js's 128KB threshold.
@@ -80,7 +66,6 @@ export async function getStaticProps(): Promise<GetStaticPropsResult<HealthProps
         },
         {} as Record<string, string[]>
       ),
-      initialSnapshot,
     },
     revalidate: 900,
   }
@@ -147,7 +132,7 @@ export default function Health(props: HealthProps): JSX.Element {
   }, [props.providers, props.regions])
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
-  const [snapshot, setSnapshot] = useState<MatrixSnapshot | null>(props.initialSnapshot)
+  const [snapshot, setSnapshot] = useState<MatrixSnapshot | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedProviders, setSelectedProviders] = useState(props.providers.map((p) => p.key))
   const [selectedGeos, setSelectedGeos] = useState(Object.keys(props.geos))
@@ -192,38 +177,23 @@ export default function Health(props: HealthProps): JSX.Element {
   }, [])
 
   useEffect(() => {
-    const initialAt = props.initialSnapshot?.at ? new Date(props.initialSnapshot.at).getTime() : 0
-    const isFresh = Number.isFinite(initialAt) && initialAt > 0 && Date.now() - initialAt < 10 * 60 * 1000
-    if (isFresh) return
-
-    let cancelled = false
-    let url = getHealthJsonUrl()
-    try {
-      const parsed = new URL(url, typeof window !== 'undefined' ? window.location.origin : undefined)
-      parsed.searchParams.set('t', String(Math.floor(Date.now() / 60000)))
-      url = parsed.toString()
-    } catch {
-      url = url.includes('?') ? `${url}&t=${Math.floor(Date.now() / 60000)}` : `${url}?t=${Math.floor(Date.now() / 60000)}`
-    }
-    fetch(url, { cache: 'no-store' })
+    const controller = new AbortController()
+    setLoadError(null)
+    fetch('/api/health-matrix', { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
       })
       .then((data) => {
-        if (cancelled) return
-        const matrix = normalizeMatrixSnapshot(data)
+        const matrix = normalizeCompactMatrixSnapshot(data)
         if (!matrix) throw new Error('unexpected snapshot shape')
         setSnapshot(matrix)
       })
       .catch((err: Error) => {
-        if (cancelled) return
-        setLoadError(err.message || 'failed to load')
+        if (err.name !== 'AbortError') setLoadError(err.message || 'failed to load')
       })
-    return () => {
-      cancelled = true
-    }
-  }, [props.initialSnapshot])
+    return () => controller.abort()
+  }, [])
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -597,7 +567,10 @@ export default function Health(props: HealthProps): JSX.Element {
               ) : null}
             </div>
           </div>
-          <div className="matrix-scroll">
+          <p id="matrix-swipe-hint" className="matrix-mobile-hint">
+            Swipe horizontally to compare probe origins.
+          </p>
+          <div className="matrix-scroll" role="region" aria-label="Cloud latency matrix" aria-describedby="matrix-swipe-hint" tabIndex={0}>
             {rows.length === 0 || visibleColumns.length === 0 ? (
               <div className="text-center py-12 text-[color:var(--text-muted)]">
                 <p>
@@ -606,9 +579,10 @@ export default function Health(props: HealthProps): JSX.Element {
               </div>
             ) : (
               <table className="matrix-table">
+                <caption className="sr-only">Latency from each probe origin to every visible cloud region</caption>
                 <thead>
                   <tr>
-                    <th className="matrix-corner" rowSpan={2}>
+                    <th className="matrix-corner" rowSpan={2} scope="col">
                       To \ From
                     </th>
                     {(() => {
@@ -621,7 +595,7 @@ export default function Health(props: HealthProps): JSX.Element {
                         else groups.push({ continent: c, span: 1 })
                       }
                       return groups.map((g, i) => (
-                        <th key={`grp-${g.continent}-${i}`} colSpan={g.span} className="matrix-from-continent">
+                        <th key={`grp-${g.continent}-${i}`} colSpan={g.span} className="matrix-from-continent" scope="colgroup">
                           {g.continent}
                         </th>
                       ))
@@ -631,7 +605,7 @@ export default function Health(props: HealthProps): JSX.Element {
                     {visibleColumns.map((col) => {
                       const vendor = originVendor(col)
                       return (
-                        <th key={col.id} title={`${col.label} · ${columnSubtitle(col)}`}>
+                        <th key={col.id} title={`${col.label} · ${columnSubtitle(col)}`} scope="col">
                           <span className="matrix-from-head">
                             {vendor && vendor !== 'vercel' ? <CloudProviderLogo width={13} providerKey={vendor} providerName={vendor.toUpperCase()} /> : null}
                             <span className="matrix-from-code">{columnCity(col) ?? columnCode(col)}</span>
@@ -650,22 +624,22 @@ export default function Health(props: HealthProps): JSX.Element {
                       <React.Fragment key={row.key}>
                         {showGroup ? (
                           <tr>
-                            <td className="matrix-group">
+                            <th className="matrix-group" scope="rowgroup">
                               <div className="matrix-to-provider">
                                 <CloudProviderLogo width={14} providerKey={row.provider.key} providerName={row.provider.display_name} />
                                 <span>{row.provider.display_name}</span>
                               </div>
-                            </td>
+                            </th>
                             {visibleColumns.map((col) => (
                               <td key={col.id} className="matrix-group-fill" />
                             ))}
                           </tr>
                         ) : null}
                         <tr>
-                          <td className="matrix-to" title={`${row.provider.display_name} · ${row.region.location}`}>
+                          <th className="matrix-to" title={`${row.provider.display_name} · ${row.region.location}`} scope="row">
                             <code>{row.region.key}</code>
                             <span className="matrix-to-location">{row.region.location}</span>
-                          </td>
+                          </th>
                           {visibleColumns.map((col) => {
                             const cell = lookup.get(`${col.id}|${row.provider.key}|${row.region.key}`)
                             const kind = sameCloudKind(col, row.provider.key, row.region.location)
@@ -693,32 +667,41 @@ export default function Health(props: HealthProps): JSX.Element {
                                 : kind === 'adjacent'
                                   ? 'Vercel origin hitting AWS in the same metro — close to on-net, so it is faster than a real internet path. Not comparable with the other cells.'
                                   : null
+                            const historyLabel = `${parts.join('. ')}${markTip ? `. ${markTip}` : ''}. Open latency history.`
                             return (
                               <td
                                 key={col.id}
                                 className={`matrix-cell ${band}${kind === 'on-net' ? ' on-net' : kind === 'adjacent' ? ' adjacent' : ''}${cell ? ' clickable' : ''}${
                                   focusBands.length > 0 && !focusBands.includes(band as 'fast' | 'mid' | 'slow') ? ' is-dimmed' : ''
                                 }`}
-                                title={cell ? `${parts.join(' · ')} · click for history` : parts.join(' · ')}
-                                onClick={
-                                  cell
-                                    ? () =>
-                                        setSelectedCell({
-                                          origin: col.id,
-                                          originVendor: originVendor(col),
-                                          originCode: columnCode(col),
-                                          originCity: columnCity(col),
-                                          provider: row.provider.key,
-                                          providerName: row.provider.display_name,
-                                          region: row.region.key,
-                                          regionLocation: row.region.location,
-                                          regionCountry: row.region.country,
-                                        })
-                                    : undefined
-                                }
+                                title={cell ? undefined : parts.join(' · ')}
                               >
-                                {displayMs == null ? '—' : formatMs(displayMs)}
-                                {markTip ? <span className="matrix-mark" data-tip={markTip} aria-label={markTip} /> : null}
+                                {cell ? (
+                                  <button
+                                    type="button"
+                                    className="matrix-cell-button"
+                                    title={`${parts.join(' · ')} · click for history`}
+                                    aria-label={historyLabel}
+                                    onClick={() =>
+                                      setSelectedCell({
+                                        origin: col.id,
+                                        originVendor: originVendor(col),
+                                        originCode: columnCode(col),
+                                        originCity: columnCity(col),
+                                        provider: row.provider.key,
+                                        providerName: row.provider.display_name,
+                                        region: row.region.key,
+                                        regionLocation: row.region.location,
+                                        regionCountry: row.region.country,
+                                      })
+                                    }
+                                  >
+                                    {displayMs == null ? '—' : formatMs(displayMs)}
+                                    {markTip ? <span className="matrix-mark" data-tip={markTip} aria-hidden="true" /> : null}
+                                  </button>
+                                ) : (
+                                  '—'
+                                )}
                               </td>
                             )
                           })}

@@ -35,6 +35,23 @@ export interface MatrixSnapshot {
   from: Record<string, ProbeColumn>
 }
 
+export type CompactCell = [ms: number | null, ms24h: number | null, n24h: number, samples: number | null, error: 0 | 1 | 2]
+
+export interface CompactColumn {
+  l: string
+  a: string
+  d?: number
+  s?: 1
+  r: Array<CompactCell | null>
+}
+
+export interface CompactMatrixSnapshot {
+  v: 1
+  a: string
+  t: Array<[provider: string, region: string]>
+  f: Record<string, CompactColumn>
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
@@ -72,6 +89,112 @@ export function normalizeMatrixSnapshot(data: unknown): MatrixSnapshot | null {
   }
 
   return null
+}
+
+function finiteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+export function compactMatrixSnapshot(snapshot: MatrixSnapshot): CompactMatrixSnapshot {
+  const targets: Array<[string, string]> = []
+  const targetIndexes = new Map<string, number>()
+  const columns = Object.entries(snapshot.from)
+  if (columns.length === 0 || columns.length > 64) throw new Error('invalid origin count')
+
+  for (const [, column] of columns) {
+    if (!Array.isArray(column.results) || column.results.length > 1000) throw new Error('invalid result count')
+    for (const result of column.results) {
+      if (typeof result.provider !== 'string' || !result.provider || typeof result.region !== 'string' || !result.region) continue
+      const key = `${result.provider}\t${result.region}`
+      if (targetIndexes.has(key)) continue
+      if (targets.length >= 1000) throw new Error('too many targets')
+      targetIndexes.set(key, targets.length)
+      targets.push([result.provider, result.region])
+    }
+  }
+
+  const from: Record<string, CompactColumn> = {}
+  for (const [origin, column] of columns) {
+    const results: Array<CompactCell | null> = Array.from({ length: targets.length }, () => null)
+    for (const result of column.results) {
+      const index = targetIndexes.get(`${result.provider}\t${result.region}`)
+      if (index == null) continue
+      const ms = result.ok ? finiteNumber(result.ms) : null
+      const ms24h = finiteNumber(result.ms24h)
+      const n24h = Math.max(0, Math.floor(finiteNumber(result.n24h) ?? 0))
+      const samples = finiteNumber(result.samples)
+      const error = result.error === 'timeout' ? 1 : result.error === 'network' ? 2 : 0
+      results[index] = [ms, ms24h, n24h, samples, error]
+    }
+    from[origin] = {
+      l: column.label,
+      a: column.at,
+      ...(typeof column.durationMs === 'number' && Number.isFinite(column.durationMs) ? { d: column.durationMs } : {}),
+      ...(column.stale ? { s: 1 as const } : {}),
+      r: results,
+    }
+  }
+
+  return { v: 1, a: snapshot.at, t: targets, f: from }
+}
+
+export function normalizeCompactMatrixSnapshot(data: unknown): MatrixSnapshot | null {
+  if (!isRecord(data) || data.v !== 1 || typeof data.a !== 'string' || !Array.isArray(data.t) || !isRecord(data.f)) return null
+  if (data.t.length === 0 || data.t.length > 1000) return null
+
+  const targets: Array<[string, string]> = []
+  for (const target of data.t) {
+    if (!Array.isArray(target) || target.length !== 2 || typeof target[0] !== 'string' || !target[0] || typeof target[1] !== 'string' || !target[1]) {
+      return null
+    }
+    targets.push([target[0], target[1]])
+  }
+
+  const entries = Object.entries(data.f)
+  if (entries.length === 0 || entries.length > 64) return null
+  const from: Record<string, ProbeColumn> = {}
+  for (const [origin, value] of entries) {
+    if (!origin || !isRecord(value) || typeof value.l !== 'string' || typeof value.a !== 'string' || !Array.isArray(value.r)) continue
+    if (value.r.length !== targets.length) continue
+    const results: ProbeResult[] = []
+    for (let index = 0; index < value.r.length; index++) {
+      const cell = value.r[index]
+      if (cell == null) continue
+      if (!Array.isArray(cell) || cell.length !== 5) continue
+      const ms = cell[0] == null ? null : finiteNumber(cell[0])
+      const ms24h = cell[1] == null ? null : finiteNumber(cell[1])
+      const n24h = finiteNumber(cell[2])
+      const samples = cell[3] == null ? null : finiteNumber(cell[3])
+      const errorCode = cell[4]
+      if ((cell[0] != null && ms == null) || (cell[1] != null && ms24h == null) || n24h == null || (cell[3] != null && samples == null)) continue
+      if (errorCode !== 0 && errorCode !== 1 && errorCode !== 2) continue
+      const [provider, region] = targets[index]
+      results.push({
+        provider,
+        region,
+        location: '',
+        country: '',
+        geo: '',
+        ms,
+        ok: ms != null,
+        ...(samples == null ? {} : { samples }),
+        ...(ms24h == null ? {} : { ms24h }),
+        n24h: Math.max(0, Math.floor(n24h)),
+        ...(errorCode === 1 ? { error: 'timeout' as const } : errorCode === 2 ? { error: 'network' as const } : {}),
+      })
+    }
+    from[origin] = {
+      id: origin,
+      label: value.l,
+      at: value.a,
+      results,
+      ...(typeof value.d === 'number' && Number.isFinite(value.d) ? { durationMs: value.d } : {}),
+      ...(value.s === 1 ? { stale: true } : {}),
+    }
+  }
+
+  if (Object.keys(from).length === 0) return null
+  return { at: data.a, from }
 }
 
 export function originVendor(col: ProbeColumn): 'aws' | 'gcp' | 'azure' | 'vercel' | null {
