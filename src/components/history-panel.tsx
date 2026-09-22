@@ -77,15 +77,7 @@ function toDaily(points: HistoryPoint[]): HistoryPoint[] {
  * crosshair, and an inline value read-out. `mode` picks the tick format:
  * clock time for the 24h series, calendar date for the 7-day series.
  */
-function LatencyChart({
-  points,
-  mode,
-  label,
-}: {
-  points: HistoryPoint[]
-  mode: '24h' | '7d'
-  label: string
-}): JSX.Element {
+function LatencyChart({ points, mode, label }: { points: HistoryPoint[]; mode: '24h' | '7d'; label: string }): JSX.Element {
   const svgRef = useRef<SVGSVGElement>(null)
   const { hover, setHover } = useTooltip()
 
@@ -111,15 +103,11 @@ function LatencyChart({
       x: (t) => PAD_L + ((t - tMin) / spanT) * (CHART_W - PAD_L - PAD_R),
       y: (v) => PAD_T + (1 - (v - msMin) / spanMs) * (CHART_H - PAD_T - PAD_B),
     }
-    const d = points
-      .map((p, i) => `${i === 0 ? 'M' : 'L'}${scale.x(p.t).toFixed(1)},${scale.y(p.ms).toFixed(1)}`)
-      .join(' ')
+    const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${scale.x(p.t).toFixed(1)},${scale.y(p.ms).toFixed(1)}`).join(' ')
     // Area fills only under the drawn data span, not the whole (possibly empty) window.
     const firstX = scale.x(points[0].t)
     const lastX = scale.x(points[points.length - 1].t)
-    const area = `${d} L${lastX.toFixed(1)},${(CHART_H - PAD_B).toFixed(1)} L${firstX.toFixed(1)},${(
-      CHART_H - PAD_B
-    ).toFixed(1)} Z`
+    const area = `${d} L${lastX.toFixed(1)},${(CHART_H - PAD_B).toFixed(1)} L${firstX.toFixed(1)},${(CHART_H - PAD_B).toFixed(1)} Z`
     // Fixed x ticks across the window (equal time intervals, not data-driven).
     const xTickCount = 4
     const xTicks = Array.from({ length: xTickCount }, (_, k) => ({
@@ -139,7 +127,7 @@ function LatencyChart({
 
   const { scale, d, area, xTicks, yTicks } = model
 
-  const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
+  const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const svg = svgRef.current
     if (!svg) return
     const rect = svg.getBoundingClientRect()
@@ -162,7 +150,7 @@ function LatencyChart({
 
   return (
     <div className="history-chart-wrap">
-      <div className="history-readout" aria-hidden="true">
+      <div className="history-readout" role="status" aria-live="polite" aria-atomic="true">
         {hp ? (
           <>
             <span className="history-readout-ms">{Math.round(hp.ms)}ms</span>
@@ -171,7 +159,7 @@ function LatencyChart({
         ) : points.length <= 1 ? (
           <span className="history-readout-hint">still accumulating — one point so far</span>
         ) : (
-          <span className="history-readout-hint">hover for values</span>
+          <span className="history-readout-hint">hover or tap for values</span>
         )}
       </div>
       <svg
@@ -181,20 +169,20 @@ function LatencyChart({
         preserveAspectRatio="none"
         role="img"
         aria-label={desc}
-        onMouseMove={onMove}
-        onMouseLeave={() => setHover(null)}
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId)
+          onMove(e)
+        }}
+        onPointerMove={onMove}
+        onPointerLeave={(e) => {
+          if (e.pointerType === 'mouse') setHover(null)
+        }}
       >
         <title>{desc}</title>
         {/* y gridlines + labels */}
         {yTicks.map((v, i) => (
           <g key={`y${i}`}>
-            <line
-              className="history-grid"
-              x1={PAD_L}
-              x2={CHART_W - PAD_R}
-              y1={scale.y(v)}
-              y2={scale.y(v)}
-            />
+            <line className="history-grid" x1={PAD_L} x2={CHART_W - PAD_R} y1={scale.y(v)} y2={scale.y(v)} />
             <text className="history-axis" x={PAD_L - 5} y={scale.y(v) + 3} textAnchor="end">
               {Math.round(v)}
             </text>
@@ -217,22 +205,11 @@ function LatencyChart({
         {/* hover crosshair + marker */}
         {hp ? (
           <g>
-            <line
-              className="history-crosshair"
-              x1={scale.x(hp.t)}
-              x2={scale.x(hp.t)}
-              y1={PAD_T}
-              y2={CHART_H - PAD_B}
-            />
+            <line className="history-crosshair" x1={scale.x(hp.t)} x2={scale.x(hp.t)} y1={PAD_T} y2={CHART_H - PAD_B} />
             <circle cx={scale.x(hp.t)} cy={scale.y(hp.ms)} r="3" fill="currentColor" />
           </g>
         ) : (
-          <circle
-            cx={scale.x(points[points.length - 1].t)}
-            cy={scale.y(points[points.length - 1].ms)}
-            r="2.5"
-            fill="currentColor"
-          />
+          <circle cx={scale.x(points[points.length - 1].t)} cy={scale.y(points[points.length - 1].ms)} r="2.5" fill="currentColor" />
         )}
       </svg>
     </div>
@@ -241,14 +218,14 @@ function LatencyChart({
 
 /** Provider logo + optional country flag chip used on each side of the header. */
 function Endpoint({
-  role,
+  label,
   vendor,
   vendorName,
   countryCode,
   code,
   sub,
 }: {
-  role: string
+  label: string
   vendor: string | null
   vendorName: string
   countryCode?: string
@@ -259,7 +236,7 @@ function Endpoint({
   const showLogo = vendor && vendor !== 'vercel'
   return (
     <div className="history-endpoint">
-      <span className="history-endpoint-role">{role}</span>
+      <span className="history-endpoint-role">{label}</span>
       <div className="history-endpoint-body">
         <div className="history-endpoint-icons">
           {showLogo ? (
@@ -300,6 +277,9 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
   }, [props.origin, props.provider, props.region])
 
   useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     closeRef.current?.focus()
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -309,9 +289,7 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
       if (e.key !== 'Tab') return
       const modal = modalRef.current
       if (!modal) return
-      const focusable = modal.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      )
+      const focusable = modal.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
       if (focusable.length === 0) return
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
@@ -324,8 +302,12 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
       }
     }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [props])
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = previousOverflow
+      previousFocus?.focus()
+    }
+  }, [props.onClose])
 
   const stats = useMemo(() => {
     // Stats reflect the 24h intraday samples only — mixing them with the
@@ -349,20 +331,17 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
             : 'origin'
 
   return (
-    <div className="history-overlay" role="dialog" aria-modal="true" aria-label="Latency history" onClick={props.onClose}>
-      <div className="history-modal" ref={modalRef} onClick={(e) => e.stopPropagation()}>
+    <div className="history-overlay">
+      <button type="button" className="history-backdrop" aria-label="Close latency history" tabIndex={-1} onClick={props.onClose} />
+      <div className="history-modal" ref={modalRef} role="dialog" aria-modal="true" aria-label="Latency history">
         <div className="history-head">
           <div className="history-route">
+            <Endpoint label="From (probe)" vendor={props.originVendor} vendorName={originVendorName} code={props.originCode} sub={props.originCity} />
+            <span className="history-arrow" aria-hidden="true">
+              →
+            </span>
             <Endpoint
-              role="From (probe)"
-              vendor={props.originVendor}
-              vendorName={originVendorName}
-              code={props.originCode}
-              sub={props.originCity}
-            />
-            <span className="history-arrow" aria-hidden="true">→</span>
-            <Endpoint
-              role="To (target)"
+              label="To (target)"
               vendor={props.provider}
               vendorName={props.providerName}
               countryCode={props.regionCountry}
@@ -426,9 +405,7 @@ export function HistoryPanel(props: HistoryPanelProps): JSX.Element {
               </div>
             </div>
             <LatencyChart
-              points={
-                weekPrecision === 'daily' ? toDaily(data?.daily ?? []) : data?.daily ?? []
-              }
+              points={weekPrecision === 'daily' ? toDaily(data?.daily ?? []) : (data?.daily ?? [])}
               mode="7d"
               label={weekPrecision === 'daily' ? 'Last 7 days (daily P50)' : 'Last 7 days (2h)'}
             />

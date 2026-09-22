@@ -357,6 +357,12 @@ button.matrix-swatch.is-off { opacity: 0.4; }
 }
 .matrix-filter-item.is-on { opacity: 1; color: var(--text); }
 
+.matrix-mobile-hint {
+  display: none;
+  margin: 0 0 0.4rem;
+  font-size: 11px;
+  color: var(--text-muted);
+}
 .matrix-scroll {
   overflow: auto;
   width: 100%;
@@ -366,6 +372,10 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg);
+}
+.matrix-scroll:focus-visible {
+  outline: 2px solid var(--pill-active-border);
+  outline-offset: 2px;
 }
 .matrix-table {
   border-collapse: separate;
@@ -591,6 +601,26 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
   min-width: 4.75rem;
 }
+.matrix-cell.clickable { padding: 0; }
+.matrix-cell-button {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  min-height: 1.75rem;
+  padding: 0.28rem 0.55rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.matrix-cell-button:focus-visible {
+  outline: 2px solid var(--pill-active-border);
+  outline-offset: -3px;
+}
 /* Corner-mark shades live in variables so the cell glyph and the legend key
    that explains it cannot drift apart. */
 :root {
@@ -667,10 +697,20 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
+  isolation: isolate;
+}
+
+.history-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
 }
 
 .history-modal {
   position: relative;
+  z-index: 1;
   width: 100%;
   max-width: min(760px, 95vw);
   max-height: 90vh;
@@ -1015,3 +1055,113 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   cursor: pointer;
 }
 
+
+
+/* Mobile health-page ergonomics: preserve the desktop matrix while making its
+   dense controls and history interactions touch-friendly. */
+@media (max-width: 639px) {
+  .matrix-page .theme-toggle,
+  .matrix-page header nav a {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .matrix-page header nav a {
+    display: inline-flex;
+    align-items: center;
+  }
+  .provider-pill,
+  .matrix-to-filter-head,
+  .matrix-to-filter-action,
+  .matrix-filter-item,
+  .history-toggle.matrix-toggle button,
+  button.matrix-swatch,
+  .matrix-legend-clear {
+    min-height: 44px;
+  }
+  .matrix-to-filter-action,
+  .matrix-legend-clear {
+    display: inline-flex;
+    align-items: center;
+  }
+  .matrix-filter-search {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+  .matrix-toolbar,
+  .matrix-toolbar-left,
+  .matrix-legend {
+    width: 100%;
+  }
+  .matrix-toolbar-left > * {
+    flex: 1 1 auto;
+  }
+  .matrix-to-filter-head {
+    align-items: flex-start;
+  }
+  .matrix-to-filter-summary {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    text-align: right;
+  }
+  .matrix-mobile-hint {
+    display: block;
+  }
+  .matrix-corner,
+  .matrix-to,
+  .matrix-group {
+    width: 9rem;
+    min-width: 9rem;
+    max-width: 9rem;
+  }
+  .matrix-to code,
+  .matrix-to-provider span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .matrix-table tbody .matrix-cell,
+  .matrix-cell-button {
+    min-height: 44px;
+  }
+  .history-overlay {
+    align-items: center;
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+  }
+  .history-modal {
+    max-width: 100%;
+    max-height: calc(100dvh - 1rem);
+    padding: 1rem;
+  }
+  .history-route {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+  }
+  .history-arrow {
+    align-self: flex-start;
+    margin-left: 0.35rem;
+    padding: 0;
+    line-height: 1;
+    transform: rotate(90deg);
+  }
+  .history-endpoint-code,
+  .history-endpoint-sub {
+    overflow-wrap: anywhere;
+  }
+  .history-close {
+    width: 44px;
+    height: 44px;
+  }
+  .history-toggle button {
+    min-height: 44px;
+    padding-inline: 0.75rem;
+  }
+  .history-svg {
+    touch-action: pan-y;
+  }
+}

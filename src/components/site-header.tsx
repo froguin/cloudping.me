@@ -2,9 +2,15 @@ import Link from 'next/link'
 
 function ThemeToggle({ theme, onToggleTheme }: { theme: 'light' | 'dark'; onToggleTheme: () => void }): JSX.Element {
   return (
-    <button onClick={onToggleTheme} className="theme-toggle" title="Toggle theme" type="button">
+    <button
+      onClick={onToggleTheme}
+      className="theme-toggle"
+      title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+      type="button"
+    >
       {theme === 'dark' ? (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg aria-hidden="true" focusable="false" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -13,7 +19,7 @@ function ThemeToggle({ theme, onToggleTheme }: { theme: 'light' | 'dark'; onTogg
           />
         </svg>
       ) : (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg aria-hidden="true" focusable="false" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -26,23 +32,11 @@ function ThemeToggle({ theme, onToggleTheme }: { theme: 'light' | 'dark'; onTogg
   )
 }
 
-export function SiteHeader({
-  active,
-  theme,
-  onToggleTheme,
-}: {
-  active: 'ping' | 'health'
-  theme: 'light' | 'dark'
-  onToggleTheme: () => void
-}): JSX.Element {
+export function SiteHeader({ active, theme, onToggleTheme }: { active: 'ping' | 'health'; theme: 'light' | 'dark'; onToggleTheme: () => void }): JSX.Element {
   const pingClass =
-    active === 'ping'
-      ? 'text-sm font-medium text-[color:var(--text)]'
-      : 'text-sm text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)]'
+    active === 'ping' ? 'text-sm font-medium text-[color:var(--text)]' : 'text-sm text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)]'
   const healthClass =
-    active === 'health'
-      ? 'text-sm font-medium text-[color:var(--text)]'
-      : 'text-sm text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)]'
+    active === 'health' ? 'text-sm font-medium text-[color:var(--text)]' : 'text-sm text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)]'
 
   return (
     <header className="mb-8">
@@ -56,10 +50,10 @@ export function SiteHeader({
           <h1 className="min-w-0 text-base sm:text-2xl font-semibold tracking-tight truncate">Cloudping.me</h1>
         </Link>
         <div className="hidden sm:flex items-center gap-4 flex-shrink-0">
-          <Link href="/" className={`${pingClass} whitespace-nowrap`}>
+          <Link href="/" className={`${pingClass} whitespace-nowrap`} aria-current={active === 'ping' ? 'page' : undefined}>
             From you
           </Link>
-          <Link href="/health" className={`${healthClass} whitespace-nowrap`}>
+          <Link href="/health" className={`${healthClass} whitespace-nowrap`} aria-current={active === 'health' ? 'page' : undefined}>
             Health
           </Link>
           <ThemeToggle theme={theme} onToggleTheme={onToggleTheme} />
@@ -69,10 +63,10 @@ export function SiteHeader({
         </div>
       </div>
       <nav className="flex sm:hidden items-center gap-4">
-        <Link href="/" className={`${pingClass} whitespace-nowrap`}>
+        <Link href="/" className={`${pingClass} whitespace-nowrap`} aria-current={active === 'ping' ? 'page' : undefined}>
           From you
         </Link>
-        <Link href="/health" className={`${healthClass} whitespace-nowrap`}>
+        <Link href="/health" className={`${healthClass} whitespace-nowrap`} aria-current={active === 'health' ? 'page' : undefined}>
           Health
         </Link>
       </nav>

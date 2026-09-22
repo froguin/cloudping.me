@@ -16,6 +16,8 @@ export function getSiteUrl(): string | undefined {
   }
 }
 
+export const DEFAULT_HEALTH_JSON_URL = 'https://raw.githubusercontent.com/froguin/cloudping.me/status/latest.json'
+
 export function getHealthJsonUrl(): string {
-  return process.env.NEXT_PUBLIC_HEALTH_JSON_URL || 'https://raw.githubusercontent.com/froguin/cloudping.me/status/latest.json'
+  return process.env.NEXT_PUBLIC_HEALTH_JSON_URL || DEFAULT_HEALTH_JSON_URL
 }
