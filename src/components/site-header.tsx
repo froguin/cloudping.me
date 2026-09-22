@@ -4,7 +4,7 @@ function ThemeToggle({ theme, onToggleTheme }: { theme: 'light' | 'dark'; onTogg
   return (
     <button
       onClick={onToggleTheme}
-      className="theme-toggle"
+      className="theme-toggle site-header-theme"
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
       type="button"
@@ -33,43 +33,27 @@ function ThemeToggle({ theme, onToggleTheme }: { theme: 'light' | 'dark'; onTogg
 }
 
 export function SiteHeader({ active, theme, onToggleTheme }: { active: 'ping' | 'health'; theme: 'light' | 'dark'; onToggleTheme: () => void }): JSX.Element {
-  const pingClass =
-    active === 'ping' ? 'text-sm font-medium text-[color:var(--text)]' : 'text-sm text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)]'
-  const healthClass =
-    active === 'health' ? 'text-sm font-medium text-[color:var(--text)]' : 'text-sm text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)]'
-
   return (
-    <header className="mb-8">
-      <div className="flex items-center justify-between gap-3 mb-3 sm:mb-2">
-        <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+    <header className="site-header">
+      <div className="site-header-layout">
+        <Link href="/" className="site-header-brand">
+          <span className="site-header-logo" aria-hidden="true">
             <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-          </div>
-          <h1 className="min-w-0 text-base sm:text-2xl font-semibold tracking-tight truncate">Cloudping.me</h1>
+          </span>
+          <h1 className="site-header-title">Cloudping.me</h1>
         </Link>
-        <div className="hidden sm:flex items-center gap-4 flex-shrink-0">
-          <Link href="/" className={`${pingClass} whitespace-nowrap`} aria-current={active === 'ping' ? 'page' : undefined}>
-            From you
+        <nav className="page-switch" aria-label="Primary">
+          <Link href="/" className="page-switch-link" aria-current={active === 'ping' ? 'page' : undefined}>
+            From You
           </Link>
-          <Link href="/health" className={`${healthClass} whitespace-nowrap`} aria-current={active === 'health' ? 'page' : undefined}>
+          <Link href="/health" className="page-switch-link" aria-current={active === 'health' ? 'page' : undefined}>
             Health
           </Link>
-          <ThemeToggle theme={theme} onToggleTheme={onToggleTheme} />
-        </div>
-        <div className="sm:hidden flex-shrink-0">
-          <ThemeToggle theme={theme} onToggleTheme={onToggleTheme} />
-        </div>
+        </nav>
+        <ThemeToggle theme={theme} onToggleTheme={onToggleTheme} />
       </div>
-      <nav className="flex sm:hidden items-center gap-4">
-        <Link href="/" className={`${pingClass} whitespace-nowrap`} aria-current={active === 'ping' ? 'page' : undefined}>
-          From you
-        </Link>
-        <Link href="/health" className={`${healthClass} whitespace-nowrap`} aria-current={active === 'health' ? 'page' : undefined}>
-          Health
-        </Link>
-      </nav>
     </header>
   )
 }
