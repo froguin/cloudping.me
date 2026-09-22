@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import Head from 'next/head'
 import { GetStaticPropsResult } from 'next'
 import { CloudProvider, CloudRegion, getAllCloudRegions, getAllProviders } from '@app/data'
@@ -94,6 +94,20 @@ function columnSubtitle(col: ProbeColumn): string {
 }
 
 type LatencyBand = 'fast' | 'mid' | 'slow' | 'fail' | 'empty'
+type Metric = 'latest' | 'p24'
+type FocusBand = 'fast' | 'mid' | 'slow'
+
+interface SelectedCell {
+  origin: string
+  originVendor: string | null
+  originCode: string
+  originCity?: string
+  provider: string
+  providerName: string
+  region: string
+  regionLocation: string
+  regionCountry: string
+}
 
 function latencyBand(ms: number | null, ok: boolean): LatencyBand {
   if (!ok || ms == null) return 'fail'
@@ -119,6 +133,117 @@ function columnCity(col: ProbeColumn): string | undefined {
   return ORIGIN_CITIES[columnCode(col)]
 }
 
+const MatrixBody = React.memo(function MatrixBody({
+  rows,
+  columns,
+  lookup,
+  metric,
+  focusBands,
+  showProvider,
+  onSelectCell,
+}: {
+  rows: CatalogRow[]
+  columns: ProbeColumn[]
+  lookup: Map<string, ProbeResult>
+  metric: Metric
+  focusBands: FocusBand[]
+  showProvider: boolean
+  onSelectCell: (cell: SelectedCell) => void
+}): JSX.Element {
+  return (
+    <tbody>
+      {rows.map((row, index) => {
+        const prev = rows[index - 1]
+        const showGroup = showProvider && (!prev || prev.provider.key !== row.provider.key)
+        return (
+          <React.Fragment key={row.key}>
+            {showGroup ? (
+              <tr>
+                <th className="matrix-group" scope="rowgroup">
+                  <div className="matrix-to-provider">
+                    <CloudProviderLogo width={14} providerKey={row.provider.key} providerName={row.provider.display_name} />
+                    <span>{row.provider.display_name}</span>
+                  </div>
+                </th>
+                {columns.map((col) => (
+                  <td key={col.id} className="matrix-group-fill" />
+                ))}
+              </tr>
+            ) : null}
+            <tr>
+              <th className="matrix-to" title={`${row.provider.display_name} · ${row.region.location}`} scope="row">
+                <code>{row.region.key}</code>
+                <span className="matrix-to-location">{row.region.location}</span>
+              </th>
+              {columns.map((col) => {
+                const cell = lookup.get(`${col.id}|${row.provider.key}|${row.region.key}`)
+                const kind = sameCloudKind(col, row.provider.key, row.region.location)
+                const displayMs = metric === 'p24' ? (cell?.ms24h ?? cell?.ms ?? null) : (cell?.ms ?? null)
+                const displayOk = metric === 'p24' ? cell?.ms24h != null || Boolean(cell?.ok && cell.ms != null) : Boolean(cell?.ok && cell.ms != null)
+                const band = cell ? latencyBand(displayMs, displayOk && displayMs != null) : 'empty'
+                const failText = cell?.error === 'timeout' ? 'timeout' : cell?.error === 'network' ? 'network' : 'unreachable'
+                const parts = [
+                  !cell
+                    ? 'no sample'
+                    : displayMs == null
+                      ? failText
+                      : `${formatMs(displayMs)} ${metric === 'p24' ? '24h P50' : 'latest min'} from ${columnCode(col)} to ${row.region.key}`,
+                ]
+                if (cell?.ms != null) parts.push(`latest ${formatMs(cell.ms)}`)
+                if (cell?.ms24h != null) parts.push(`24h ${formatMs(cell.ms24h)} n=${cell.n24h ?? '?'}`)
+                if (cell?.samples) parts.push(`${cell.samples} samples`)
+                const markTip =
+                  kind === 'on-net'
+                    ? 'Same cloud in the same metro — this rides the provider backbone, so it is faster than a real internet path. Not comparable with the other cells.'
+                    : kind === 'adjacent'
+                      ? 'Vercel origin hitting AWS in the same metro — close to on-net, so it is faster than a real internet path. Not comparable with the other cells.'
+                      : null
+                const historyLabel = `${parts.join('. ')}${markTip ? `. ${markTip}` : ''}. Open latency history.`
+                return (
+                  <td
+                    key={col.id}
+                    className={`matrix-cell ${band}${kind === 'on-net' ? ' on-net' : kind === 'adjacent' ? ' adjacent' : ''}${cell ? ' clickable' : ''}${
+                      focusBands.length > 0 && !focusBands.includes(band as FocusBand) ? ' is-dimmed' : ''
+                    }`}
+                    title={cell ? undefined : parts.join(' · ')}
+                  >
+                    {cell ? (
+                      <button
+                        type="button"
+                        className="matrix-cell-button"
+                        title={`${parts.join(' · ')} · click for history`}
+                        aria-label={historyLabel}
+                        onClick={() =>
+                          onSelectCell({
+                            origin: col.id,
+                            originVendor: originVendor(col),
+                            originCode: columnCode(col),
+                            originCity: columnCity(col),
+                            provider: row.provider.key,
+                            providerName: row.provider.display_name,
+                            region: row.region.key,
+                            regionLocation: row.region.location,
+                            regionCountry: row.region.country,
+                          })
+                        }
+                      >
+                        {displayMs == null ? '—' : formatMs(displayMs)}
+                        {markTip ? <span className="matrix-mark" data-tip={markTip} aria-hidden="true" /> : null}
+                      </button>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                )
+              })}
+            </tr>
+          </React.Fragment>
+        )
+      })}
+    </tbody>
+  )
+})
+
 export default function Health(props: HealthProps): JSX.Element {
   const catalog = useMemo<CatalogRow[]>(() => {
     const rows: CatalogRow[] = []
@@ -132,7 +257,10 @@ export default function Health(props: HealthProps): JSX.Element {
   }, [props.providers, props.regions])
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
-  const [snapshot, setSnapshot] = useState<MatrixSnapshot | null>(null)
+  const [{ snapshot, selectedFromContinents }, setMatrixState] = useState<{
+    snapshot: MatrixSnapshot | null
+    selectedFromContinents: string[] | null
+  }>({ snapshot: null, selectedFromContinents: null })
   const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedProviders, setSelectedProviders] = useState(props.providers.map((p) => p.key))
   const [selectedGeos, setSelectedGeos] = useState(Object.keys(props.geos))
@@ -141,27 +269,13 @@ export default function Health(props: HealthProps): JSX.Element {
   // filter and would otherwise eat most of the screen above the matrix.
   const [toFilterOpen, setToFilterOpen] = useState(false)
   const [filterQuery, setFilterQuery] = useState('')
-  const [metric, setMetric] = useState<'latest' | 'p24'>('latest')
+  const [metric, setMetric] = useState<Metric>('latest')
   // Empty = no band focus (every cell at full strength).
-  const [focusBands, setFocusBands] = useState<('fast' | 'mid' | 'slow')[]>([])
+  const [focusBands, setFocusBands] = useState<FocusBand[]>([])
   // From-column (probe origin) filters: by CSP vendor and by continent.
   const [selectedFromVendors, setSelectedFromVendors] = useState<string[] | null>(null)
-  const [selectedFromContinents, setSelectedFromContinents] = useState<string[] | null>(null)
-  // Default the From-continent filter to the visitor's own continent once, on
-  // first client render (like the home page's "From you"). Users can widen it.
-  const fromGeoInitialized = useRef(false)
   // Clicked cell → per-cell latency history panel.
-  const [selectedCell, setSelectedCell] = useState<{
-    origin: string
-    originVendor: string | null
-    originCode: string
-    originCity?: string
-    provider: string
-    providerName: string
-    region: string
-    regionLocation: string
-    regionCountry: string
-  } | null>(null)
+  const [selectedCell, setSelectedCell] = useState<SelectedCell | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('theme')
@@ -187,7 +301,12 @@ export default function Health(props: HealthProps): JSX.Element {
       .then((data) => {
         const matrix = normalizeCompactMatrixSnapshot(data)
         if (!matrix) throw new Error('unexpected snapshot shape')
-        setSnapshot(matrix)
+        const availableContinents = new Set(Object.values(matrix.from).map((column) => originContinent(column)))
+        const initialContinent = detectClientGeo(availableContinents)
+        setMatrixState({
+          snapshot: matrix,
+          selectedFromContinents: initialContinent && availableContinents.has(initialContinent) ? [initialContinent] : null,
+        })
       })
       .catch((err: Error) => {
         if (err.name !== 'AbortError') setLoadError(err.message || 'failed to load')
@@ -248,18 +367,6 @@ export default function Health(props: HealthProps): JSX.Element {
     for (const col of columns) set.add(originContinent(col))
     return ORIGIN_CONTINENT_ORDER.filter((c) => set.has(c))
   }, [columns])
-
-  // On first load, narrow the From filter to the visitor's continent if we have
-  // origins there. Runs once; leaves the filter alone if detection misses.
-  useEffect(() => {
-    if (fromGeoInitialized.current) return
-    if (fromContinents.length === 0) return
-    fromGeoInitialized.current = true
-    const geo = detectClientGeo(new Set(fromContinents))
-    if (geo && fromContinents.includes(geo)) {
-      setSelectedFromContinents([geo])
-    }
-  }, [fromContinents])
 
   // Apply From-column filters (null = show all). Row filters are separate.
   const visibleColumns = useMemo(() => {
@@ -334,13 +441,15 @@ export default function Health(props: HealthProps): JSX.Element {
       return next.length === fromVendors.length ? null : next
     })
   const toggleFromContinent = (c: string) =>
-    setSelectedFromContinents((cur) => {
-      const base = cur ?? fromContinents
+    setMatrixState((state) => {
+      const base = state.selectedFromContinents ?? fromContinents
       const next = base.includes(c) ? base.filter((x) => x !== c) : [...base, c]
-      return next.length === fromContinents.length ? null : next
+      return { ...state, selectedFromContinents: next.length === fromContinents.length ? null : next }
     })
   const toggleRegion = (key: string) => setSelectedKeys((v) => (v.includes(key) ? v.filter((x) => x !== key) : [...v, key]))
-  const toggleBand = (b: 'fast' | 'mid' | 'slow') => setFocusBands((v) => (v.includes(b) ? v.filter((x) => x !== b) : [...v, b]))
+  const toggleBand = (b: FocusBand) => setFocusBands((v) => (v.includes(b) ? v.filter((x) => x !== b) : [...v, b]))
+  const selectCell = useCallback((cell: SelectedCell) => setSelectedCell(cell), [])
+  const closeHistory = useCallback(() => setSelectedCell(null), [])
 
   const setScopedKeys = (on: boolean) => {
     const scopedSet = new Set(scoped.map((r) => r.key))
@@ -613,100 +722,15 @@ export default function Health(props: HealthProps): JSX.Element {
                     })}
                   </tr>
                 </thead>
-                <tbody>
-                  {rows.map((row, index) => {
-                    const prev = rows[index - 1]
-                    const showGroup = showProvider && (!prev || prev.provider.key !== row.provider.key)
-                    return (
-                      <React.Fragment key={row.key}>
-                        {showGroup ? (
-                          <tr>
-                            <th className="matrix-group" scope="rowgroup">
-                              <div className="matrix-to-provider">
-                                <CloudProviderLogo width={14} providerKey={row.provider.key} providerName={row.provider.display_name} />
-                                <span>{row.provider.display_name}</span>
-                              </div>
-                            </th>
-                            {visibleColumns.map((col) => (
-                              <td key={col.id} className="matrix-group-fill" />
-                            ))}
-                          </tr>
-                        ) : null}
-                        <tr>
-                          <th className="matrix-to" title={`${row.provider.display_name} · ${row.region.location}`} scope="row">
-                            <code>{row.region.key}</code>
-                            <span className="matrix-to-location">{row.region.location}</span>
-                          </th>
-                          {visibleColumns.map((col) => {
-                            const cell = lookup.get(`${col.id}|${row.provider.key}|${row.region.key}`)
-                            const kind = sameCloudKind(col, row.provider.key, row.region.location)
-                            const displayMs = metric === 'p24' ? (cell?.ms24h ?? cell?.ms ?? null) : (cell?.ms ?? null)
-                            const displayOk =
-                              metric === 'p24' ? cell?.ms24h != null || Boolean(cell?.ok && cell.ms != null) : Boolean(cell?.ok && cell.ms != null)
-                            const band = cell ? latencyBand(displayMs, displayOk && displayMs != null) : 'empty'
-                            const failText = cell?.error === 'timeout' ? 'timeout' : cell?.error === 'network' ? 'network' : 'unreachable'
-                            const parts = [
-                              !cell
-                                ? 'no sample'
-                                : displayMs == null
-                                  ? failText
-                                  : `${formatMs(displayMs)} ${metric === 'p24' ? '24h P50' : 'latest min'} from ${columnCode(col)} to ${row.region.key}`,
-                            ]
-                            if (cell?.ms != null) parts.push(`latest ${formatMs(cell.ms)}`)
-                            if (cell?.ms24h != null) parts.push(`24h ${formatMs(cell.ms24h)} n=${cell.n24h ?? '?'}`)
-                            if (cell?.samples) parts.push(`${cell.samples} samples`)
-                            // The glyph's whole point is that these numbers are not
-                            // comparable with the rest, so the tip says so outright
-                            // rather than naming the relationship and leaving it there.
-                            const markTip =
-                              kind === 'on-net'
-                                ? 'Same cloud in the same metro — this rides the provider backbone, so it is faster than a real internet path. Not comparable with the other cells.'
-                                : kind === 'adjacent'
-                                  ? 'Vercel origin hitting AWS in the same metro — close to on-net, so it is faster than a real internet path. Not comparable with the other cells.'
-                                  : null
-                            const historyLabel = `${parts.join('. ')}${markTip ? `. ${markTip}` : ''}. Open latency history.`
-                            return (
-                              <td
-                                key={col.id}
-                                className={`matrix-cell ${band}${kind === 'on-net' ? ' on-net' : kind === 'adjacent' ? ' adjacent' : ''}${cell ? ' clickable' : ''}${
-                                  focusBands.length > 0 && !focusBands.includes(band as 'fast' | 'mid' | 'slow') ? ' is-dimmed' : ''
-                                }`}
-                                title={cell ? undefined : parts.join(' · ')}
-                              >
-                                {cell ? (
-                                  <button
-                                    type="button"
-                                    className="matrix-cell-button"
-                                    title={`${parts.join(' · ')} · click for history`}
-                                    aria-label={historyLabel}
-                                    onClick={() =>
-                                      setSelectedCell({
-                                        origin: col.id,
-                                        originVendor: originVendor(col),
-                                        originCode: columnCode(col),
-                                        originCity: columnCity(col),
-                                        provider: row.provider.key,
-                                        providerName: row.provider.display_name,
-                                        region: row.region.key,
-                                        regionLocation: row.region.location,
-                                        regionCountry: row.region.country,
-                                      })
-                                    }
-                                  >
-                                    {displayMs == null ? '—' : formatMs(displayMs)}
-                                    {markTip ? <span className="matrix-mark" data-tip={markTip} aria-hidden="true" /> : null}
-                                  </button>
-                                ) : (
-                                  '—'
-                                )}
-                              </td>
-                            )
-                          })}
-                        </tr>
-                      </React.Fragment>
-                    )
-                  })}
-                </tbody>
+                <MatrixBody
+                  rows={rows}
+                  columns={visibleColumns}
+                  lookup={lookup}
+                  metric={metric}
+                  focusBands={focusBands}
+                  showProvider={showProvider}
+                  onSelectCell={selectCell}
+                />
               </table>
             )}
           </div>
@@ -741,7 +765,7 @@ export default function Health(props: HealthProps): JSX.Element {
             region={selectedCell.region}
             regionLocation={selectedCell.regionLocation}
             regionCountry={selectedCell.regionCountry}
-            onClose={() => setSelectedCell(null)}
+            onClose={closeHistory}
           />
         ) : null}
       </div>
