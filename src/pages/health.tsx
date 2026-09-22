@@ -249,7 +249,7 @@ export default function Health(props: HealthProps): JSX.Element {
       if (va !== vb) return va - vb
       const left = columnCode(a)
       const right = columnCode(b)
-      return left < right ? -1 : left > right ? 1 : 0
+      return left < right ? -1 : left > right ? 1 : a.id.localeCompare(b.id)
     })
   }, [snapshot])
 

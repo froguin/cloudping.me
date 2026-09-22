@@ -3,7 +3,7 @@
 # Creates an Azure AD app registration + federated credential (no client
 # secret) trusted only for pushes to main on froguin/cloudping.me, and grants
 # it "Website Contributor" scoped to the cloudping-probe resource group only
-# (can deploy code to the 7 existing F1 apps, cannot create/delete plans or
+# (can deploy code to the 11 existing F1 apps, cannot create/delete plans or
 # apps, cannot touch anything outside that resource group).
 #
 # Prints the three values (client id / tenant id / subscription id) to set as

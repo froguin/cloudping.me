@@ -7,7 +7,7 @@ usage monitored because long probe rounds can exceed account-wide compute grants
 ## Overview
 
 `/health` shows a latency matrix. **Rows** are target cloud regions; **columns
-("From")** are probe *origins* — small serverless services in 27 regions across
+("From")** are probe *origins* — small serverless services in 30 regions across
 three clouds that each measure HTTP round-trip latency to every target.
 
 Two independent concerns, deliberately separated:
@@ -45,7 +45,7 @@ git push (main)
 │     esbuild → docker build → push Artifact Registry → deploy 6 Cloud Run regions
 └── .github/workflows/deploy-azure.yml  ┌ paths: azure/**, src/fns/**, src/data/**
       OIDC → Azure AD app (federated)
-      esbuild → zip → deploy 8 F1 App Service apps
+      esbuild → zip → deploy 11 F1 App Service apps
 ```
 
 ### Why GitHub Actions for all three (not each cloud's native CI)
@@ -59,15 +59,22 @@ git push (main)
 
 Result: one place (`.github/workflows/`), one auth model (OIDC), $0.
 
-### Regions (27 origins, 7 continents)
+### Regions (30 origins, 7 continents)
 
-- **AWS (13)** — us-east-1, us-east-2, us-west-2, eu-west-1, eu-central-1,
-  ap-northeast-1, ap-northeast-2, ap-southeast-1, ap-southeast-2, ap-south-1,
-  sa-east-1, af-south-1, me-central-1
+- **AWS (13)** — af-south-1, ap-northeast-1, ap-northeast-2, ap-south-1,
+  ap-southeast-1, ap-southeast-2, eu-central-1, eu-west-1, me-central-1,
+  sa-east-1, us-east-1, us-east-2, us-west-2
 - **GCP (6)** — asia-northeast1, asia-northeast3, asia-south1, europe-west1,
   southamerica-east1, us-west1
-- **Azure (8)** — australiacentral, southafricanorth, eastus2, westeurope,
-  koreacentral, israelcentral, brazilsouth, canadacentral
+- **Azure (11)** — australiacentral, brazilsouth, canadacentral, eastus2,
+  israelcentral, japaneast, koreacentral, southafricanorth, southeastasia,
+  westeurope, westindia
+
+Azure F1 concurrency is tuned only where production failure blocks justify it.
+`eastus2`, `israelcentral`, `koreacentral`, `southeastasia`, and `westindia`
+run at 4; the other Azure origins run at 8. West India has the least caller
+headroom (observed 204–232s versus the 270s limit), so a stale/missing column or
+three consecutive rounds above 15% failures is the rollback signal.
 
 Same-city overlaps (e.g. Seoul on AWS+GCP+Azure) are kept intentionally as
 cross-cloud backbone comparisons.
