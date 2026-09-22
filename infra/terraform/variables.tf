@@ -14,19 +14,19 @@ variable "aws_probe_regions" {
   type        = list(string)
   description = "List of AWS regions where cloudping-probe Lambda is deployed"
   default = [
-    "us-east-1",
-    "us-east-2",
-    "us-west-2",
-    "eu-west-1",
-    "eu-central-1",
+    "af-south-1",
     "ap-northeast-1",
     "ap-northeast-2",
+    "ap-south-1",
     "ap-southeast-1",
     "ap-southeast-2",
-    "ap-south-1",
+    "eu-central-1",
+    "eu-west-1",
+    "me-central-1",
     "sa-east-1",
-    "af-south-1",
-    "me-central-1"
+    "us-east-1",
+    "us-east-2",
+    "us-west-2"
   ]
 }
 
@@ -66,13 +66,16 @@ variable "azure_probe_regions" {
   description = "List of Azure regions where cloudping-probe App Service is deployed"
   default = [
     "australiacentral",
-    "southafricanorth",
-    "eastus2",
-    "westeurope",
-    "koreacentral",
-    "israelcentral",
     "brazilsouth",
-    "canadacentral"
+    "canadacentral",
+    "eastus2",
+    "israelcentral",
+    "japaneast",
+    "koreacentral",
+    "southafricanorth",
+    "southeastasia",
+    "westeurope",
+    "westindia"
   ]
 }
 
