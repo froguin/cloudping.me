@@ -558,6 +558,21 @@ export default function Health(props: HealthProps): JSX.Element {
                   All
                 </button>
               ) : null}
+              {fromContinents.length ? (
+                <button
+                  type="button"
+                  className={`provider-pill ${selectedFromContinents !== null && selectedFromContinents.length === 0 ? 'active' : ''}`}
+                  aria-pressed={selectedFromContinents !== null && selectedFromContinents.length === 0}
+                  title="Hide every probe origin, then pick the continents you want"
+                  onClick={() =>
+                    setMatrixState((state) =>
+                      state.selectedFromContinents !== null && state.selectedFromContinents.length === 0 ? state : { ...state, selectedFromContinents: [] }
+                    )
+                  }
+                >
+                  None
+                </button>
+              ) : null}
               {fromContinents.map((c) => {
                 const on = selectedFromContinents === null || selectedFromContinents.includes(c)
                 return (
