@@ -1,3 +1,5 @@
+import { withCacheBuster as coreWithCacheBuster } from './measure-core'
+
 export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -19,12 +21,10 @@ export function whenPageIdle(): Promise<void> {
 const warmedUrls = new Set<string>()
 
 function withCacheBuster(url: string): string {
-  const parsedUrl = new URL(url)
-  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-    parsedUrl.protocol = 'https:'
-  }
-  parsedUrl.searchParams.set('_cloudping', `${Date.now()}-${Math.random().toString(36).slice(2)}`)
-  return parsedUrl.toString()
+  // Force https when the page is served over https, to avoid mixed-content
+  // downgrades; the cache-buster contract itself lives in measure-core.
+  const forceHttps = typeof window !== 'undefined' && window.location.protocol === 'https:'
+  return coreWithCacheBuster(url, { forceHttps })
 }
 
 async function singlePing(url: string, controller: AbortController): Promise<number> {
