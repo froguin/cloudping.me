@@ -5,6 +5,7 @@ import { CloudProvider, CloudRegion, getAllCloudRegions, getAllProviders } from 
 import { CloudProviderLogo, CountryFlag, CountryName } from '@app/components'
 import { SiteHeader } from '@app/components/site-header'
 import { delay, ping, whenPageIdle } from '@app/fns/time'
+import { percentile } from '@app/fns/measure-core'
 import { FALLBACK_GEO, getClientGeo } from '@app/fns/client-geo'
 import { getSiteUrl } from '../site-config'
 
@@ -69,12 +70,6 @@ function createLatencyState(providers: CloudProvider[], regions: Record<string, 
     }
   }
   return state
-}
-
-function calcPercentile(sorted: number[], p: number): number {
-  if (sorted.length === 0) return 0
-  const idx = Math.ceil((p / 100) * sorted.length) - 1
-  return sorted[Math.max(0, idx)]
 }
 
 function GeoSection({
@@ -366,11 +361,10 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
           updateLatencyState((x) => {
             const n = { ...x[item.key] }
             const accumulated = [...(n.samples || []), ...newSamples].slice(-MAX_SAMPLES)
-            const sorted = [...accumulated].sort((a, b) => a - b)
             n.samples = accumulated
-            n.p50 = calcPercentile(sorted, 50)
-            n.p80 = calcPercentile(sorted, 80)
-            n.p95 = calcPercentile(sorted, 95)
+            n.p50 = percentile(accumulated, 50)
+            n.p80 = percentile(accumulated, 80)
+            n.p95 = percentile(accumulated, 95)
             n.failureCount = 0
             n.nextAttemptAt = undefined
             return { ...x, [item.key]: n }

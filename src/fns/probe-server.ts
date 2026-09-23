@@ -1,5 +1,6 @@
 import { getAllCloudRegions, getAllProviders } from '@app/data'
 import type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
+import { withCacheBuster, MIN_PLAUSIBLE_MS } from './measure-core'
 
 export type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 
@@ -16,12 +17,10 @@ const WARMUP_COUNT = 2
 // separated, so tightening it further would risk false timeouts.
 const DEFAULT_TIMEOUT_MS = 3000
 const CHINA_TIMEOUT_MS = 2000
-// Samples faster than this are physically implausible for an HTTP GET that
-// re-runs DNS/TLS-agnostic fetch with cache: 'no-store' — a sub-RTT reading is
-// almost certainly a measurement artifact. Because we report min(), one bogus
-// low sample would win outright, so we drop these before taking the minimum.
-// MIN_SAMPLES already tolerates dropping a sample.
-const MIN_PLAUSIBLE_MS = 1
+// The implausible-sample floor (MIN_PLAUSIBLE_MS) is shared with the browser
+// vantage point via measure-core: samples faster than it are dropped before
+// min() so one sub-RTT artifact can't win outright. MIN_SAMPLES already
+// tolerates dropping a sample.
 
 // Tracks whether a round has already entered this module instance. This is a
 // proxy, not proof: it only says "a prior runProbe() call started here", not
@@ -72,13 +71,12 @@ async function drainAfterClock(res: Response): Promise<void> {
 }
 
 async function timedGet(url: string, timeoutMs: number): Promise<number> {
-  const parsed = new URL(url)
-  parsed.searchParams.set('_cloudping', `${Date.now()}-${Math.random().toString(36).slice(2)}`)
+  const target = withCacheBuster(url)
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   const start = performance.now()
   try {
-    const res = await fetch(parsed.toString(), {
+    const res = await fetch(target, {
       method: 'GET',
       cache: 'no-store',
       redirect: 'follow',
