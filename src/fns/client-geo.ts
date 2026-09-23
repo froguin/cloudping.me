@@ -132,8 +132,7 @@ export function detectClientGeo(supported: Set<string>): string {
   const first = () => (supported.has(FALLBACK_GEO) ? FALLBACK_GEO : [...supported][0])
   if (typeof Intl === 'undefined' && typeof navigator === 'undefined') return first()
 
-  const timezone =
-    typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined
+  const timezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined
 
   const timezoneOverrideGeo = timezone ? TIMEZONE_TO_GEO[timezone] : undefined
   if (timezoneOverrideGeo && supported.has(timezoneOverrideGeo)) {
@@ -159,9 +158,7 @@ export function detectClientGeo(supported: Set<string>): string {
   if (timezoneGeo && supported.has(timezoneGeo)) return timezoneGeo
 
   const localeCountry =
-    typeof navigator !== 'undefined'
-      ? navigator.languages?.map((language) => language.split('-')[1]?.toLowerCase()).find(Boolean)
-      : undefined
+    typeof navigator !== 'undefined' ? navigator.languages?.map((language) => language.split('-')[1]?.toLowerCase()).find(Boolean) : undefined
   const localeGeo = localeCountry ? COUNTRY_TO_GEO[localeCountry] : undefined
   if (localeGeo && supported.has(localeGeo)) return localeGeo
 

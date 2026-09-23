@@ -22,10 +22,7 @@ const server = createServer((req, res) => {
     // with that Google ID token, the app secret rides on a dedicated header.
     // Falls back to Authorization for local/manual testing.
     const secretHeader = req.headers['x-probe-secret']
-    const appAuth =
-      typeof secretHeader === 'string' && secretHeader.length > 0
-        ? `Bearer ${secretHeader}`
-        : req.headers.authorization
+    const appAuth = typeof secretHeader === 'string' && secretHeader.length > 0 ? `Bearer ${secretHeader}` : req.headers.authorization
     if (!authorized(appAuth)) {
       res.writeHead(401, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ error: 'unauthorized' }))

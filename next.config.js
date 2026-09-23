@@ -11,7 +11,6 @@ function hasModule(name) {
 
 const useSiteTelemetry = process.env.NEXT_PUBLIC_SITE_TELEMETRY === '1' && hasModule('@vercel/analytics') && hasModule('@vercel/speed-insights')
 
-// eslint-disable-next-line no-undef
 module.exports = {
   reactStrictMode: true,
   eslint: {
