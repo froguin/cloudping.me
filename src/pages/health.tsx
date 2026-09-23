@@ -140,6 +140,7 @@ const MatrixBody = React.memo(function MatrixBody({
   metric,
   focusBands,
   showProvider,
+  compact,
   onSelectCell,
 }: {
   rows: CatalogRow[]
@@ -148,6 +149,12 @@ const MatrixBody = React.memo(function MatrixBody({
   metric: Metric
   focusBands: FocusBand[]
   showProvider: boolean
+  // Compact mode (small screens): skip building the verbose per-cell title and
+  // aria-label strings. Thousands of cells each allocating two long joined
+  // strings is a real memory/GC burden on low-end phones, and touch devices
+  // never show the title tooltip anyway. Full detail stays one tap away in the
+  // HistoryPanel modal opened on cell click.
+  compact: boolean
   onSelectCell: (cell: SelectedCell) => void
 }): JSX.Element {
   return (
@@ -170,7 +177,7 @@ const MatrixBody = React.memo(function MatrixBody({
                 ))}
               </tr>
             ) : null}
-            <tr>
+            <tr className="matrix-row">
               <th className="matrix-to" title={`${row.provider.display_name} · ${row.region.location}`} scope="row">
                 <code>{row.region.key}</code>
                 <span className="matrix-to-location">{row.region.location}</span>
@@ -181,38 +188,56 @@ const MatrixBody = React.memo(function MatrixBody({
                 const displayMs = metric === 'p24' ? (cell?.ms24h ?? cell?.ms ?? null) : (cell?.ms ?? null)
                 const displayOk = metric === 'p24' ? cell?.ms24h != null || Boolean(cell?.ok && cell.ms != null) : Boolean(cell?.ok && cell.ms != null)
                 const band = cell ? latencyBand(displayMs, displayOk && displayMs != null) : 'empty'
-                const failText = cell?.error === 'timeout' ? 'timeout' : cell?.error === 'network' ? 'network' : 'unreachable'
-                const parts = [
-                  !cell
-                    ? 'no sample'
-                    : displayMs == null
-                      ? failText
-                      : `${formatMs(displayMs)} ${metric === 'p24' ? '24h P50' : 'latest min'} from ${columnCode(col)} to ${row.region.key}`,
-                ]
-                if (cell?.ms != null) parts.push(`latest ${formatMs(cell.ms)}`)
-                if (cell?.ms24h != null) parts.push(`24h ${formatMs(cell.ms24h)} n=${cell.n24h ?? '?'}`)
-                if (cell?.samples) parts.push(`${cell.samples} samples`)
-                const markTip =
-                  kind === 'on-net'
-                    ? 'Same cloud in the same metro — this rides the provider backbone, so it is faster than a real internet path. Not comparable with the other cells.'
-                    : kind === 'adjacent'
-                      ? 'Vercel origin hitting AWS in the same metro — close to on-net, so it is faster than a real internet path. Not comparable with the other cells.'
-                      : null
-                const historyLabel = `${parts.join('. ')}${markTip ? `. ${markTip}` : ''}. Open latency history.`
+                const isMark = kind === 'on-net' || kind === 'adjacent'
+
+                // Compact mode skips the verbose per-cell tooltip/aria strings
+                // entirely — on thousands of cells that string building is the
+                // GC pressure we are cutting on low-end phones. We still give
+                // screen readers a short, meaningful label, and full detail is
+                // one tap away in the history modal.
+                let cellTitle: string | undefined
+                let buttonTitle: string | undefined
+                let ariaLabel: string
+                let markTip: string | null = null
+                if (compact) {
+                  const short = !cell ? 'no sample' : displayMs == null ? 'unreachable' : formatMs(displayMs)
+                  ariaLabel = cell ? `${short}, open history` : short
+                } else {
+                  const failText = cell?.error === 'timeout' ? 'timeout' : cell?.error === 'network' ? 'network' : 'unreachable'
+                  const parts = [
+                    !cell
+                      ? 'no sample'
+                      : displayMs == null
+                        ? failText
+                        : `${formatMs(displayMs)} ${metric === 'p24' ? '24h P50' : 'latest min'} from ${columnCode(col)} to ${row.region.key}`,
+                  ]
+                  if (cell?.ms != null) parts.push(`latest ${formatMs(cell.ms)}`)
+                  if (cell?.ms24h != null) parts.push(`24h ${formatMs(cell.ms24h)} n=${cell.n24h ?? '?'}`)
+                  if (cell?.samples) parts.push(`${cell.samples} samples`)
+                  markTip =
+                    kind === 'on-net'
+                      ? 'Same cloud in the same metro — this rides the provider backbone, so it is faster than a real internet path. Not comparable with the other cells.'
+                      : kind === 'adjacent'
+                        ? 'Vercel origin hitting AWS in the same metro — close to on-net, so it is faster than a real internet path. Not comparable with the other cells.'
+                        : null
+                  ariaLabel = `${parts.join('. ')}${markTip ? `. ${markTip}` : ''}. Open latency history.`
+                  cellTitle = cell ? undefined : parts.join(' · ')
+                  buttonTitle = `${parts.join(' · ')} · click for history`
+                }
                 return (
                   <td
                     key={col.id}
                     className={`matrix-cell ${band}${kind === 'on-net' ? ' on-net' : kind === 'adjacent' ? ' adjacent' : ''}${cell ? ' clickable' : ''}${
                       focusBands.length > 0 && !focusBands.includes(band as FocusBand) ? ' is-dimmed' : ''
                     }`}
-                    title={cell ? undefined : parts.join(' · ')}
+                    title={cellTitle}
                   >
                     {cell ? (
                       <button
                         type="button"
                         className="matrix-cell-button"
-                        title={`${parts.join(' · ')} · click for history`}
-                        aria-label={historyLabel}
+                        title={buttonTitle}
+                        aria-label={ariaLabel}
                         onClick={() =>
                           onSelectCell({
                             origin: col.id,
@@ -228,7 +253,7 @@ const MatrixBody = React.memo(function MatrixBody({
                         }
                       >
                         {displayMs == null ? '—' : formatMs(displayMs)}
-                        {markTip ? <span className="matrix-mark" data-tip={markTip} aria-hidden="true" /> : null}
+                        {isMark ? <span className="matrix-mark" data-tip={markTip ?? undefined} aria-hidden="true" /> : null}
                       </button>
                     ) : (
                       '—'
@@ -257,6 +282,10 @@ export default function Health(props: HealthProps): JSX.Element {
   }, [props.providers, props.regions])
 
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
+  // Small-screen flag. Drives compact matrix cells (no verbose per-cell
+  // title/aria-label strings) to cut string allocation on low-memory phones.
+  // Defaults to false so SSR/first paint matches desktop; refined on mount.
+  const [isCompact, setIsCompact] = useState(false)
   const [{ snapshot, selectedFromContinents }, setMatrixState] = useState<{
     snapshot: MatrixSnapshot | null
     selectedFromContinents: string[] | null
@@ -288,6 +317,14 @@ export default function Health(props: HealthProps): JSX.Element {
     } else {
       document.documentElement.setAttribute('data-theme', 'dark')
     }
+  }, [])
+
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 640px)')
+    const apply = () => setIsCompact(mql.matches)
+    apply()
+    mql.addEventListener('change', apply)
+    return () => mql.removeEventListener('change', apply)
   }, [])
 
   useEffect(() => {
@@ -756,6 +793,7 @@ export default function Health(props: HealthProps): JSX.Element {
                   metric={metric}
                   focusBands={focusBands}
                   showProvider={showProvider}
+                  compact={isCompact}
                   onSelectCell={selectCell}
                 />
               </table>
