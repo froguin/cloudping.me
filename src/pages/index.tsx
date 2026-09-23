@@ -187,17 +187,14 @@ const LatencyCard = memo(function LatencyCard({
   const isTop3 = rank !== undefined && rank <= 3
   const isAboveFold = rankIndex < 6
   return (
-    <div
-      className={`latency-card${isTop3 ? ` rank-${rank}` : ''}${isUnreachable ? ' opacity-50' : ''}`}
-      style={{ ['--rank' as string]: rankIndex }}
-    >
+    <div className={`latency-card${isTop3 ? ` rank-${rank}` : ''}${isUnreachable ? ' opacity-50' : ''}`} style={{ ['--rank' as string]: rankIndex }}>
       {p50 && !isUnreachable && (
         <div className="latency-bar" style={{ width: `${Math.min(relative, 100)}%`, background: `linear-gradient(90deg, ${getBarColor()}, transparent)` }} />
       )}
       <div className="latency-card-inner">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <div
-            className={`flex-shrink-0 w-9 text-center font-mono ${
+            className={`flex-shrink-0 w-6 sm:w-9 text-center font-mono ${
               isTop3 ? `text-lg sm:text-xl leading-none ${RANK_CSS[rank! - 1]}` : 'text-xs text-[color:var(--text-muted)]'
             }`}
           >
@@ -224,14 +221,18 @@ const LatencyCard = memo(function LatencyCard({
                   ⊘ Unreachable
                 </span>
               ) : p50 ? (
-                <div className="flex sm:hidden items-center gap-1.5 flex-shrink-0 text-[10px]">
-                  <span className="text-[color:var(--text-muted)]">P50</span>
-                  <span className={`latency-badge ${getBadgeClass(p50)}`}>{p50}ms</span>
-                  <span className="text-[color:var(--text-muted)]">P95</span>
-                  <span className={`latency-badge ${getBadgeClass(p95)}`}>{p95}ms</span>
+                <div className="flex sm:hidden items-center gap-1.5 flex-shrink-0">
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className={`latency-badge ${getBadgeClass(p50)}`}>{p50}ms</span>
+                    <span className="text-[10px] text-[color:var(--text-muted)] font-medium leading-none">P50</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className={`latency-badge ${getBadgeClass(p95)}`}>{p95}ms</span>
+                    <span className="text-[10px] text-[color:var(--text-muted)] font-medium leading-none">P95</span>
+                  </div>
                 </div>
               ) : (
-                <div className="flex sm:hidden skeleton w-[104px] h-[22px] flex-shrink-0" />
+                <div className="flex sm:hidden skeleton w-[86px] h-[34px] flex-shrink-0" />
               )}
             </div>
             {/* Bottom line: flag + location */}
@@ -247,22 +248,22 @@ const LatencyCard = memo(function LatencyCard({
             ⊘ Unreachable
           </span>
         ) : p50 ? (
-          <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
-            <div className="flex flex-col items-center gap-0.5">
+          <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-[color:var(--text-muted)] font-medium">P50</span>
               <span className={`latency-badge ${getBadgeClass(p50)}`}>{p50}ms</span>
-              <span className="text-[10px] text-[color:var(--text-muted)] font-medium leading-none">P50</span>
             </div>
-            <div className="flex flex-col items-center gap-0.5">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-[color:var(--text-muted)] font-medium">P80</span>
               <span className={`latency-badge ${getBadgeClass(p80)}`}>{p80}ms</span>
-              <span className="text-[10px] text-[color:var(--text-muted)] font-medium leading-none">P80</span>
             </div>
-            <div className="flex flex-col items-center gap-0.5">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-[color:var(--text-muted)] font-medium">P95</span>
               <span className={`latency-badge ${getBadgeClass(p95)}`}>{p95}ms</span>
-              <span className="text-[10px] text-[color:var(--text-muted)] font-medium leading-none">P95</span>
             </div>
           </div>
         ) : (
-          <div className="hidden sm:block skeleton w-[106px] h-[34px]" />
+          <div className="hidden sm:block skeleton w-[150px] h-[22px]" />
         )}
       </div>
     </div>
@@ -620,13 +621,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
                   </div>
                 ) : (
                   sortedRegions.map((x, index) => (
-                    <LatencyCard
-                      key={x.key}
-                      data={x}
-                      maxLatency={maxLatency}
-                      rank={x.p50 ? index + 1 : undefined}
-                      rankIndex={index}
-                    />
+                    <LatencyCard key={x.key} data={x} maxLatency={maxLatency} rank={x.p50 ? index + 1 : undefined} rankIndex={index} />
                   ))
                 )}
               </div>
