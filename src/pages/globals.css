@@ -595,17 +595,6 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   color: var(--text-muted);
   white-space: nowrap;
 }
-.matrix-to-filter-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-.matrix-to-filter-action {
-  font-size: 11px;
-  color: var(--text-muted);
-  transition: color 0.15s ease;
-}
-.matrix-to-filter-action:hover { color: var(--text-secondary); }
 /* On narrow screens the fixed label column squeezes the pills into a thin
    stack, so stack the label above them and let the pills use the full width. */
 @media (max-width: 640px) {
