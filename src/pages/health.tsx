@@ -454,7 +454,9 @@ export default function Health(props: HealthProps): JSX.Element {
   const setScopedKeys = (on: boolean) => {
     const scopedSet = new Set(scoped.map((r) => r.key))
     setSelectedKeys((current) => {
-      const rest = current.filter((k) => !scopedSet.has(k))
+      const selectedInScope = current.filter((key) => scopedSet.has(key)).length
+      if ((on && selectedInScope === scopedSet.size) || (!on && selectedInScope === 0)) return current
+      const rest = current.filter((key) => !scopedSet.has(key))
       return on ? [...rest, ...scoped.map((r) => r.key)] : rest
     })
   }
@@ -508,6 +510,17 @@ export default function Health(props: HealthProps): JSX.Element {
                 )
               })}
               <span className="matrix-from-filter-sep" aria-hidden="true" />
+              {fromContinents.length ? (
+                <button
+                  type="button"
+                  className={`provider-pill ${selectedFromContinents === null ? 'active' : ''}`}
+                  aria-pressed={selectedFromContinents === null}
+                  title="Show probe origins from every continent"
+                  onClick={() => setMatrixState((state) => (state.selectedFromContinents === null ? state : { ...state, selectedFromContinents: null }))}
+                >
+                  All
+                </button>
+              ) : null}
               {fromContinents.map((c) => {
                 const on = selectedFromContinents === null || selectedFromContinents.includes(c)
                 return (
@@ -537,16 +550,20 @@ export default function Health(props: HealthProps): JSX.Element {
                 <div className="matrix-to-filter-row matrix-to-filter-row-pills">
                   <div className="matrix-to-filter-lead">
                     <span className="matrix-to-filter-sublabel">Cloud</span>
-                    <span className="matrix-to-filter-actions">
-                      <button type="button" className="matrix-to-filter-action" onClick={() => setSelectedProviders(props.providers.map((p) => p.key))}>
-                        All
-                      </button>
-                      <button type="button" className="matrix-to-filter-action" onClick={() => setSelectedProviders([])}>
-                        None
-                      </button>
-                    </span>
                   </div>
                   <div className="pills-wrap matrix-to-filter-pills">
+                    <button
+                      type="button"
+                      className={`provider-pill ${selectedProviders.length === props.providers.length ? 'active' : ''}`}
+                      aria-pressed={selectedProviders.length === props.providers.length}
+                      onClick={() =>
+                        setSelectedProviders((current) =>
+                          current.length === props.providers.length ? current : props.providers.map((provider) => provider.key)
+                        )
+                      }
+                    >
+                      All
+                    </button>
                     {props.providers.map((provider) => {
                       const isActive = selectedProviders.includes(provider.key)
                       return (
@@ -569,16 +586,16 @@ export default function Health(props: HealthProps): JSX.Element {
                 <div className="matrix-to-filter-row matrix-to-filter-row-pills">
                   <div className="matrix-to-filter-lead">
                     <span className="matrix-to-filter-sublabel">Continent</span>
-                    <span className="matrix-to-filter-actions">
-                      <button type="button" className="matrix-to-filter-action" onClick={() => setSelectedGeos(geoKeys)}>
-                        All
-                      </button>
-                      <button type="button" className="matrix-to-filter-action" onClick={() => setSelectedGeos([])}>
-                        None
-                      </button>
-                    </span>
                   </div>
                   <div className="pills-wrap matrix-to-filter-pills">
+                    <button
+                      type="button"
+                      className={`provider-pill ${selectedGeos.length === geoKeys.length ? 'active' : ''}`}
+                      aria-pressed={selectedGeos.length === geoKeys.length}
+                      onClick={() => setSelectedGeos((current) => (current.length === geoKeys.length ? current : geoKeys))}
+                    >
+                      All
+                    </button>
                     {GEO_ORDER.map((geo) => {
                       if (!props.geos[geo]) return null
                       const on = selectedGeos.includes(geo)
@@ -603,10 +620,20 @@ export default function Health(props: HealthProps): JSX.Element {
                     placeholder="Search regions"
                     className="matrix-filter-search"
                   />
-                  <button type="button" className="matrix-to-filter-action" onClick={() => setScopedKeys(true)}>
+                  <button
+                    type="button"
+                    className={`provider-pill ${scoped.length > 0 && rows.length === scoped.length ? 'active' : ''}`}
+                    aria-pressed={scoped.length > 0 && rows.length === scoped.length}
+                    onClick={() => setScopedKeys(true)}
+                  >
                     All
                   </button>
-                  <button type="button" className="matrix-to-filter-action" onClick={() => setScopedKeys(false)}>
+                  <button
+                    type="button"
+                    className={`provider-pill ${scoped.length > 0 && rows.length === 0 ? 'active' : ''}`}
+                    aria-pressed={scoped.length > 0 && rows.length === 0}
+                    onClick={() => setScopedKeys(false)}
+                  >
                     None
                   </button>
                 </div>
