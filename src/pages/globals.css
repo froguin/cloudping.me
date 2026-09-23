@@ -482,6 +482,16 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   padding: 0.28rem 0.55rem;
   white-space: nowrap;
 }
+/* Skip layout/paint for off-screen matrix rows. With thousands of cells this
+   is the bulk of the render cost on low-end phones; content-visibility lets
+   the browser omit work for rows outside the viewport while keeping the real
+   DOM, sticky columns, and click handlers intact. contain-intrinsic-size
+   reserves each row's approximate height so the scrollbar and sticky header
+   stay stable when rows are skipped. Height auto-corrects once a row renders. */
+.matrix-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 24px;
+}
 .matrix-table thead th {
   position: sticky;
   top: 0;
