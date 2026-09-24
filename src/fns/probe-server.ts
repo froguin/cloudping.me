@@ -178,6 +178,10 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     for (const provider of providers) {
       for (const region of regions[provider.key] || []) {
         if (!region.ping_url) continue
+        // Skip regions flagged probe_disabled: they stay measured client-side
+        // ("From You") but their public endpoint rate-limits datacenter traffic,
+        // so probing them from every origin just wastes the round on failures.
+        if (region.probe_disabled) continue
         jobs.push({ provider: provider.key, region })
       }
     }

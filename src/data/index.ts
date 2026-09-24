@@ -32,6 +32,13 @@ export interface CloudRegion {
   ping_url: string
   disabled?: boolean
   disabled_reason?: string
+  // When true, the region is still shown and measured client-side ("From You"),
+  // but the server-side Health probe skips it. Use for officially-operated
+  // regions whose only public endpoint rate-limits/blocks datacenter traffic
+  // (e.g. Hetzner speedtest hosts): the region stays visible and simply reads
+  // "Unreachable" from the browser, without 30 probe origins hammering a dead
+  // endpoint every round.
+  probe_disabled?: boolean
 }
 
 const regionsMap: Record<string, CloudRegion[]> = {
