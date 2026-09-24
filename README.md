@@ -17,7 +17,7 @@ Real-time browser-based latency tester for **15 cloud providers** — including 
 
 ## Cloud Providers
 
-AWS · Azure · GCP · Alibaba Cloud · Tencent Cloud · IBM Cloud · Oracle Cloud · DigitalOcean · Akamai Cloud · Vultr · Hetzner · OVHcloud · Scaleway · NAVER Cloud · Kakao Cloud · KT Cloud · NHN Cloud
+AWS · Azure · GCP · Oracle Cloud · Alibaba Cloud · IBM Cloud · Tencent Cloud · DigitalOcean · Akamai Cloud · Vultr · Hetzner · OVHcloud · Scaleway · NAVER Cloud · Kakao Cloud · KT Cloud · NHN Cloud
 
 ## Getting Started
 
