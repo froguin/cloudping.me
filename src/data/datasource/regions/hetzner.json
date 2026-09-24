@@ -1,5 +1,8 @@
 [
   {"key": "fsn1", "display_name": "Falkenstein", "country": "DE", "location": "Falkenstein", "geo": "Europe", "ping_url": "https://fsn1.your-objectstorage.com/"},
   {"key": "nbg1", "display_name": "Nuremberg", "country": "DE", "location": "Nuremberg", "geo": "Europe", "ping_url": "https://nbg1.your-objectstorage.com/"},
-  {"key": "hel1", "display_name": "Helsinki", "country": "FI", "location": "Helsinki", "geo": "Europe", "ping_url": "https://hel1.your-objectstorage.com/"}
+  {"key": "hel1", "display_name": "Helsinki", "country": "FI", "location": "Helsinki", "geo": "Europe", "ping_url": "https://hel1.your-objectstorage.com/"},
+  {"key": "ash", "display_name": "Ashburn, VA", "country": "US", "location": "Ashburn", "geo": "North America", "ping_url": "https://ash-speed.hetzner.com/", "probe_disabled": true},
+  {"key": "hil", "display_name": "Hillsboro, OR", "country": "US", "location": "Hillsboro", "geo": "North America", "ping_url": "https://hil-speed.hetzner.com/", "probe_disabled": true},
+  {"key": "sin", "display_name": "Singapore", "country": "SG", "location": "Singapore", "geo": "Asia", "ping_url": "https://sin-speed.hetzner.com/", "probe_disabled": true}
 ]
