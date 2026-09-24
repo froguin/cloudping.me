@@ -46,7 +46,11 @@ const codeToName: { [code: string]: string } = {
 export function getCountryName(countryCode: string): string {
   const name = codeToName[countryCode.toUpperCase()]
   if (!name) {
-    throw new Error(`Country name not found for code '${countryCode}'`)
+    // Don't throw: an unknown/mistyped country code in the region data should
+    // not crash the whole client render (it previously took down the page when
+    // "select all" pulled in a region with an unmapped code). Fall back to the
+    // raw code so it stays visible and easy to spot.
+    return countryCode.toUpperCase()
   }
   return name
 }
