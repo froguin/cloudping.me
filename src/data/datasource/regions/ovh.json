@@ -5,7 +5,7 @@
   {"key": "eu-west-par", "display_name": "Paris", "country": "FR", "location": "Paris", "geo": "Europe", "ping_url": "https://s3.eu-west-par.io.cloud.ovh.net/cloudping-probe"},
   {"key": "eu-south-mil", "display_name": "Milan", "country": "IT", "location": "Milan", "geo": "Europe", "ping_url": "https://s3.eu-south-mil.io.cloud.ovh.net/cloudping-probe"},
   {"key": "de", "display_name": "Frankfurt", "country": "DE", "location": "Frankfurt", "geo": "Europe", "ping_url": "https://s3.de.io.cloud.ovh.net/cloudping-probe"},
-  {"key": "uk", "display_name": "London", "country": "GB", "location": "London", "geo": "Europe", "ping_url": "https://s3.uk.io.cloud.ovh.net/cloudping-probe"},
+  {"key": "uk", "display_name": "London", "country": "UK", "location": "London", "geo": "Europe", "ping_url": "https://s3.uk.io.cloud.ovh.net/cloudping-probe"},
   {"key": "waw", "display_name": "Warsaw", "country": "PL", "location": "Warsaw", "geo": "Europe", "ping_url": "https://s3.waw.io.cloud.ovh.net/cloudping-probe"},
   {"key": "ca-east-tor", "display_name": "Toronto", "country": "CA", "location": "Toronto", "geo": "North America", "ping_url": "https://s3.ca-east-tor.io.cloud.ovh.net/cloudping-probe"},
   {"key": "bhs", "display_name": "Beauharnois", "country": "CA", "location": "Beauharnois", "geo": "North America", "ping_url": "https://s3.bhs.io.cloud.ovh.net/cloudping-probe"},

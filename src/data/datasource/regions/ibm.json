@@ -50,7 +50,7 @@
   {
     "key": "eu-gb",
     "display_name": "EU United Kingdom",
-    "country": "GB",
+    "country": "UK",
     "location": "London",
     "geo": "Europe",
     "ping_url": "https://s3.eu-gb.cloud-object-storage.appdomain.cloud/cloudping-probe"
