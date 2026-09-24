@@ -1,0 +1,94 @@
+name: Region audit
+
+# Slow-cadence detector for cloud regions a vendor has newly opened that we don't
+# yet carry. Runs scripts/check-new-regions.mjs against the vendors with a public
+# region API (AWS, Linode, Vultr). It NEVER edits data — when it finds a candidate
+# it opens (or refreshes) a single tracking issue for a human to review, apply the
+# exclusion/endpoint policy, and add manually. No candidates => it stays quiet.
+#
+# Vendors without a usable public region list (GCP, Azure, Oracle, DigitalOcean,
+# Alibaba, Tencent, IBM, Hetzner, Korean CSPs) are out of scope here and remain on
+# event-based manual review; they change rarely.
+#
+# Public repo => Actions minutes are free.
+
+on:
+  schedule:
+    # 06:17 UTC on the 1st of each month (odd minute to avoid the top-of-hour rush).
+    - cron: '17 6 1 * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: region-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Detect new regions
+        id: detect
+        run: |
+          set -euo pipefail
+          # Human-readable log for the run page.
+          node scripts/check-new-regions.mjs || true
+          # Machine-readable report for the issue step.
+          node scripts/check-new-regions.mjs --json > /tmp/region-report.json
+          has_gaps=$(python3 -c 'import json; print(str(json.load(open("/tmp/region-report.json"))["hasGaps"]).lower())')
+          echo "has_gaps=${has_gaps}" >> "${GITHUB_OUTPUT}"
+
+      - name: Open or refresh tracking issue
+        if: steps.detect.outputs.has_gaps == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Build the issue body from the JSON report.
+          body="$(python3 - <<'PY'
+          import json
+          d = json.load(open("/tmp/region-report.json"))
+          lines = ["Automated region audit found official regions not yet in our data.", "",
+                   "These are **candidates**, not instructions. Apply the exclusion policy",
+                   "(gov/sovereign/finance realm, restricted/DR-only, sold-out, no measurable",
+                   "public endpoint, or same-city newer generation) and verify endpoint",
+                   "reachability before adding any.", "",
+                   f"_Generated {d['generatedAt']} by `.github/workflows/region-audit.yml`._", ""]
+          for r in d["report"]:
+              if r["status"] != "ok" or not r["missing"]:
+                  continue
+              lines.append(f"### {r['vendor']} — official {r['officialCount']} / ours {r['ourCount']}")
+              for m in r["missing"]:
+                  lines.append(f"- [ ] {m}")
+              lines.append("")
+          errs = [r for r in d["report"] if r["status"] == "error"]
+          if errs:
+              lines.append("### fetch errors (a source API failed this run)")
+              for r in errs:
+                  lines.append(f"- {r['vendor']}: {r['reason']}")
+              lines.append("")
+          print("\n".join(lines))
+          PY
+          )"
+
+          title="Region audit: new region candidates detected"
+          # Find an existing open issue with this exact title to avoid duplicates.
+          existing="$(gh issue list --state open --search "in:title ${title}" --json number,title \
+            --jq ".[] | select(.title==\"${title}\") | .number" | head -n1)"
+          if [ -n "${existing}" ]; then
+            gh issue comment "${existing}" --body "${body}"
+            echo "Refreshed existing issue #${existing}."
+          else
+            gh issue create --title "${title}" --body "${body}" --label region-audit 2>/dev/null \
+              || gh issue create --title "${title}" --body "${body}"
+          fi
