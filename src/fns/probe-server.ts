@@ -102,18 +102,29 @@ function errorKind(err: unknown): 'timeout' | 'network' {
 async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number; samples: number } | { error: 'timeout' | 'network' }> {
   // Warm up the connection (DNS, TLS session, and the target's own cold start)
   // with throwaway requests so the timed samples reflect steady-state latency
-  // rather than first-hit cost. Warmup failures are ignored; the measured loop
-  // below decides success.
+  // rather than first-hit cost. Individual warmup failures are tolerated, but
+  // if *every* warmup fails we treat the target as down and bail out below
+  // rather than spending the full sample budget on timeouts.
+  let warmupOk = 0
+  let warmupError: 'timeout' | 'network' = 'network'
   for (let i = 0; i < WARMUP_COUNT; i++) {
     try {
       await timedGet(url, timeoutMs)
-    } catch {
-      /* ignore warmup failures */
+      warmupOk++
+    } catch (err) {
+      warmupError = errorKind(err)
     }
   }
 
+  // Fail fast: if every warmup attempt failed, the target is down or
+  // unreachable from here. Don't spend SAMPLE_COUNT more timeouts (each up to
+  // timeoutMs) confirming it — a slow/dead region should drop out of the round
+  // quickly. A region that is merely slow still answers warmups, so this only
+  // short-circuits genuine failures.
+  if (warmupOk === 0) return { error: warmupError }
+
   const samples: number[] = []
-  let lastError: 'timeout' | 'network' = 'network'
+  let lastError: 'timeout' | 'network' = warmupError
   for (let i = 0; i < SAMPLE_COUNT; i++) {
     try {
       const ms = await timedGet(url, timeoutMs)
@@ -181,6 +192,10 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
         // Skip regions flagged probe_disabled: they stay measured client-side
         // ("From You") but their public endpoint rate-limits datacenter traffic,
         // so probing them from every origin just wastes the round on failures.
+        // Recovery is manual: if such an endpoint starts accepting datacenter
+        // traffic again, drop the flag in the region data (an automated recheck
+        // here can't re-enable a static flag, and would only pollute the
+        // round's failure diagnostics).
         if (region.probe_disabled) continue
         jobs.push({ provider: provider.key, region })
       }
