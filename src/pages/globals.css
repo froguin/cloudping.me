@@ -1038,10 +1038,14 @@ button.matrix-swatch.is-off { opacity: 0.4; }
 /* Default (used by the health page's segmented toggles): the page-switch look —
    a neutral "raised card" fill rather than a saturated color, which reads
    consistently in both themes without a dark-mode override. */
+/* Active segment: fill with the pill accent so the selected side is clearly
+   distinct from the inactive one (the neutral fill read too subtle). Shared by
+   the health metric toggle and the history modal's Daily/2h segments; pill vars
+   are theme-aware so light/dark are both covered. */
 .history-toggle button.is-on {
-  background: var(--bg);
-  color: var(--text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+  background: var(--pill-active-bg);
+  color: var(--pill-active-text);
+  box-shadow: inset 0 0 0 1px var(--pill-active-border);
 }
 .history-toggle button:focus-visible {
   outline: 2px solid var(--pill-active-border);
