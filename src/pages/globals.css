@@ -1036,11 +1036,15 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   color: var(--text);
 }
 .history-toggle button.is-on {
-  /* A lighter, white-tinted blue rather than the flat pill accent — the pill
-     blue alone read too heavy here. Gradient from a soft top to the accent
-     keeps enough contrast for the white label. */
-  background: linear-gradient(180deg, #93c5fd 0%, #60a5fa 55%, var(--pill-active-border) 100%);
+  /* Slightly lighter than the flat pill accent, with just a subtle top-down
+     tint rather than a strong gradient. */
+  background: linear-gradient(180deg, #5b9bf8 0%, var(--pill-active-border) 100%);
   color: #fff;
+}
+/* In dark mode the light-blue fill needs dark, bolder text for contrast. */
+[data-theme='dark'] .history-toggle button.is-on {
+  color: #0b1220;
+  font-weight: 700;
 }
 .history-toggle button:focus-visible {
   outline: 2px solid var(--pill-active-border);
