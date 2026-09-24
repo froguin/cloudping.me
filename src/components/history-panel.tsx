@@ -46,28 +46,34 @@ function fmtTick(unixSec: number, mode: '24h' | '7d'): string {
   if (mode === '24h') {
     return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
   }
+  // Data is stored/aggregated in UTC, but ticks are re-derived on the viewer's local
+  // day boundaries (see the 7d tick block), so format the date in local time too.
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 /**
- * Downsample a fine series to one point per UTC day, using the day's median
- * (P50) as the representative value and midday (12:00Z) as the plotted time.
- * Used for the 7-day chart's "Daily" precision toggle — no refetch needed.
+ * Downsample a fine series to one point per local calendar day, using the day's
+ * median (P50) as the value and that day's local noon as the plotted time. Data
+ * is stored/aggregated in UTC; here we re-bucket on the viewer's LOCAL day
+ * boundaries and re-render, so the "Daily" points — and the x-axis day ticks that
+ * align with them — match the dates the viewer actually sees in their time zone.
+ * Used by the 7-day "Daily" toggle — no refetch needed.
  */
 function toDaily(points: HistoryPoint[]): HistoryPoint[] {
-  const byDay = new Map<string, number[]>()
+  const byDay = new Map<number, number[]>()
   for (const p of points) {
-    const day = new Date(p.t * 1000).toISOString().slice(0, 10)
-    const arr = byDay.get(day)
+    const d = new Date(p.t * 1000)
+    // Local noon of this sample's local calendar day (stable per-day key + plot x).
+    const noon = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0)
+    const key = Math.floor(noon.getTime() / 1000)
+    const arr = byDay.get(key)
     if (arr) arr.push(p.ms)
-    else byDay.set(day, [p.ms])
+    else byDay.set(key, [p.ms])
   }
   const out: HistoryPoint[] = []
-  for (const [day, vals] of byDay) {
+  for (const [t, vals] of byDay) {
     const s = [...vals].sort((a, b) => a - b)
-    const p50 = s[Math.floor(s.length / 2)]
-    // Plot at 12:00Z so the point sits in the middle of its day.
-    out.push({ t: Math.floor(new Date(`${day}T12:00:00Z`).getTime() / 1000), ms: p50 })
+    out.push({ t, ms: s[Math.floor(s.length / 2)] })
   }
   return out.sort((a, b) => a.t - b.t)
 }
@@ -108,11 +114,36 @@ function LatencyChart({ points, mode, label }: { points: HistoryPoint[]; mode: '
     const firstX = scale.x(points[0].t)
     const lastX = scale.x(points[points.length - 1].t)
     const area = `${d} L${lastX.toFixed(1)},${(CHART_H - PAD_B).toFixed(1)} L${firstX.toFixed(1)},${(CHART_H - PAD_B).toFixed(1)} Z`
-    // Fixed x ticks across the window (equal time intervals, not data-driven).
-    const xTickCount = 4
-    const xTicks = Array.from({ length: xTickCount }, (_, k) => ({
-      t: tMin + Math.round((k / (xTickCount - 1)) * windowSec),
-    }))
+    // X ticks. 24h: four equal time intervals across the window (a clock axis
+    // reads fine that way). 7d: one tick per calendar day so every day is labelled
+    // and the ticks line up with the daily data points (plotted at 12:00Z) instead
+    // of four sparse marks that miss most points. Ticks sit at local midnight
+    // boundaries within the window; the leading partial day is included only if it
+    // has room so its label doesn't collide with the y-axis.
+    let xTicks: { t: number; anchor: 'start' | 'middle' | 'end' }[]
+    if (mode === '24h') {
+      const xTickCount = 4
+      xTicks = Array.from({ length: xTickCount }, (_, k) => ({
+        t: tMin + Math.round((k / (xTickCount - 1)) * windowSec),
+        anchor: k === 0 ? 'start' : k === xTickCount - 1 ? 'end' : 'middle',
+      }))
+    } else {
+      // 7d: one tick per LOCAL calendar day the window covers, placed at local noon.
+      // Data is UTC but we re-derive ticks on the viewer's local day boundaries so
+      // they line up with the "Daily" points (also bucketed to local noon) and read
+      // as the dates the viewer sees. Walk local-midnight to local-midnight so DST
+      // shifts are handled by the Date arithmetic rather than a fixed 86400s step.
+      const days: number[] = []
+      const cur = new Date(tMin * 1000)
+      cur.setHours(12, 0, 0, 0) // local noon of tMin's local day
+      for (; cur.getTime() <= tMax * 1000; cur.setDate(cur.getDate() + 1)) {
+        const t = Math.floor(cur.getTime() / 1000)
+        if (t >= tMin) days.push(t)
+      }
+      // Drop a leading tick too close to the y-axis so its label can't collide with it.
+      const minX = PAD_L + 14
+      xTicks = days.filter((t) => scale.x(t) >= minX).map((t) => ({ t, anchor: 'middle' as const }))
+    }
     const yTicks = [msMin, (msMin + msMax) / 2, msMax]
     return { scale, d, area, tMin, tMax, msMin, msMax, xTicks, yTicks }
   }, [points, mode])
@@ -190,13 +221,7 @@ function LatencyChart({ points, mode, label }: { points: HistoryPoint[]; mode: '
         ))}
         {/* x ticks */}
         {xTicks.map((p, i) => (
-          <text
-            key={`x${i}`}
-            className="history-axis"
-            x={scale.x(p.t)}
-            y={CHART_H - 6}
-            textAnchor={i === 0 ? 'start' : i === xTicks.length - 1 ? 'end' : 'middle'}
-          >
+          <text key={`x${i}`} className="history-axis" x={scale.x(p.t)} y={CHART_H - 6} textAnchor={p.anchor}>
             {fmtTick(p.t, mode)}
           </text>
         ))}
