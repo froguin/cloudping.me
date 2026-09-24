@@ -138,7 +138,6 @@ const MatrixBody = React.memo(function MatrixBody({
   columns,
   lookup,
   metric,
-  focusBands,
   showProvider,
   compact,
   onSelectCell,
@@ -147,7 +146,6 @@ const MatrixBody = React.memo(function MatrixBody({
   columns: ProbeColumn[]
   lookup: Map<string, ProbeResult>
   metric: Metric
-  focusBands: FocusBand[]
   showProvider: boolean
   // Compact mode (small screens): skip building the verbose per-cell title and
   // aria-label strings. Thousands of cells each allocating two long joined
@@ -227,9 +225,7 @@ const MatrixBody = React.memo(function MatrixBody({
                 return (
                   <td
                     key={col.id}
-                    className={`matrix-cell ${band}${kind === 'on-net' ? ' on-net' : kind === 'adjacent' ? ' adjacent' : ''}${cell ? ' clickable' : ''}${
-                      focusBands.length > 0 && !focusBands.includes(band as FocusBand) ? ' is-dimmed' : ''
-                    }`}
+                    className={`matrix-cell ${band}${kind === 'on-net' ? ' on-net' : kind === 'adjacent' ? ' adjacent' : ''}${cell ? ' clickable' : ''}`}
                     title={cellTitle}
                   >
                     {cell ? (
@@ -785,7 +781,7 @@ export default function Health(props: HealthProps): JSX.Element {
                 </p>
               </div>
             ) : (
-              <table className="matrix-table">
+              <table className={`matrix-table${focusBands.length ? ' has-focus' : ''}${focusBands.map((b) => ` focus-${b}`).join('')}`}>
                 <caption className="sr-only">Latency from each probe origin to every visible cloud region</caption>
                 <thead>
                   <tr>
@@ -828,7 +824,6 @@ export default function Health(props: HealthProps): JSX.Element {
                   columns={visibleColumns}
                   lookup={lookup}
                   metric={metric}
-                  focusBands={focusBands}
                   showProvider={showProvider}
                   compact={isCompact}
                   onSelectCell={selectCell}

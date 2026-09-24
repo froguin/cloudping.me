@@ -1,6 +1,6 @@
 {
   "name": "cloudping.me",
-  "version": "0.4.14",
+  "version": "0.4.15",
   "private": true,
   "engines": {
     "node": ">=24"
