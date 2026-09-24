@@ -552,25 +552,18 @@ export default function Health(props: HealthProps): JSX.Element {
                   type="button"
                   className={`provider-pill ${selectedFromContinents === null ? 'active' : ''}`}
                   aria-pressed={selectedFromContinents === null}
-                  title="Show probe origins from every continent"
-                  onClick={() => setMatrixState((state) => (state.selectedFromContinents === null ? state : { ...state, selectedFromContinents: null }))}
-                >
-                  All
-                </button>
-              ) : null}
-              {fromContinents.length ? (
-                <button
-                  type="button"
-                  className={`provider-pill ${selectedFromContinents !== null && selectedFromContinents.length === 0 ? 'active' : ''}`}
-                  aria-pressed={selectedFromContinents !== null && selectedFromContinents.length === 0}
-                  title="Hide every probe origin, then pick the continents you want"
+                  title={selectedFromContinents === null ? 'Hide every probe origin' : 'Show probe origins from every continent'}
                   onClick={() =>
-                    setMatrixState((state) =>
-                      state.selectedFromContinents !== null && state.selectedFromContinents.length === 0 ? state : { ...state, selectedFromContinents: [] }
-                    )
+                    setMatrixState((state) => ({
+                      ...state,
+                      // Toggle: All (null = every origin) ↔ None ([] = hide all).
+                      // Turning All off drops to None so you can then pick just
+                      // the continents you want; turning it on restores all.
+                      selectedFromContinents: state.selectedFromContinents === null ? [] : null,
+                    }))
                   }
                 >
-                  None
+                  All
                 </button>
               ) : null}
               {fromContinents.map((c) => {
