@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Head from 'next/head'
 import { GetStaticPropsResult } from 'next'
 import { CloudProvider, CloudRegion, getAllCloudRegions, getAllProviders } from '@app/data'
@@ -133,20 +133,177 @@ function columnCity(col: ProbeColumn): string | undefined {
   return ORIGIN_CITIES[columnCode(col)]
 }
 
-const MatrixBody = React.memo(function MatrixBody({
-  rows,
+// The matrix body is virtualized: only rows near the viewport are in the DOM,
+// with spacer rows standing in for the rest. Provider group headers interleave
+// with region rows, so both live in one flat list that the window slices by index.
+type MatrixItem = { kind: 'group'; provider: CloudProvider } | { kind: 'row'; row: CatalogRow }
+
+function buildMatrixItems(rows: CatalogRow[], showProvider: boolean): MatrixItem[] {
+  const items: MatrixItem[] = []
+  rows.forEach((row, index) => {
+    if (showProvider && (index === 0 || rows[index - 1].provider.key !== row.provider.key)) {
+      items.push({ kind: 'group', provider: row.provider })
+    }
+    items.push({ kind: 'row', row })
+  })
+  return items
+}
+
+// Header rows ahead of the body, for aria-rowindex (continent row + origin row).
+const MATRIX_HEAD_ROWS = 2
+// Extra rows rendered past each viewport edge so a touch fling does not outrun rendering.
+const OVERSCAN_ROWS = 8
+// The window edges snap to this many rows so small scrolls do not re-render at all.
+const RANGE_STEP = 4
+// Rendered before the scroll container has been measured.
+const INITIAL_RENDER_ROWS = 40
+
+// Index of the item whose [offsets[i], offsets[i + 1]) span contains y.
+function itemAt(offsets: number[], y: number): number {
+  let lo = 0
+  let hi = Math.max(0, offsets.length - 2)
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1
+    if (offsets[mid] <= y) lo = mid
+    else hi = mid - 1
+  }
+  return lo
+}
+
+function selectedCellFor(col: ProbeColumn, row: CatalogRow): SelectedCell {
+  return {
+    origin: col.id,
+    originVendor: originVendor(col),
+    originCode: columnCode(col),
+    originCity: columnCity(col),
+    provider: row.provider.key,
+    providerName: row.provider.display_name,
+    region: row.region.key,
+    regionLocation: row.region.location,
+    regionCountry: row.region.country,
+  }
+}
+
+const MatrixGroupRow = React.memo(function MatrixGroupRow({
+  index,
+  provider,
+  columns,
+}: {
+  index: number
+  provider: CloudProvider
+  columns: ProbeColumn[]
+}): JSX.Element {
+  return (
+    <tr className="matrix-group-row" data-i={index} aria-rowindex={index + MATRIX_HEAD_ROWS + 1}>
+      <th className="matrix-group" scope="rowgroup">
+        <div className="matrix-to-provider">
+          <CloudProviderLogo width={14} providerKey={provider.key} providerName={provider.display_name} />
+          <span>{provider.display_name}</span>
+        </div>
+      </th>
+      {columns.map((col) => (
+        <td key={col.id} className="matrix-group-fill" />
+      ))}
+    </tr>
+  )
+})
+
+// One region row. Memoized so shifting the virtual window only mounts the rows
+// entering it; rows that stay in view are not re-rendered. Clicks and keys are
+// handled once on the tbody (MatrixBody), so cells carry no handlers.
+const MatrixRow = React.memo(function MatrixRow({
+  index,
+  row,
   columns,
   lookup,
   metric,
-  showProvider,
   compact,
-  onSelectCell,
+  tabCol,
 }: {
-  rows: CatalogRow[]
+  index: number
+  row: CatalogRow
   columns: ProbeColumn[]
   lookup: Map<string, ProbeResult>
   metric: Metric
-  showProvider: boolean
+  compact: boolean
+  // Column holding the grid's single tab stop (roving tabindex), or -1.
+  tabCol: number
+}): JSX.Element {
+  return (
+    <tr className="matrix-row" data-i={index} aria-rowindex={index + MATRIX_HEAD_ROWS + 1}>
+      <th className="matrix-to" title={`${row.provider.display_name} · ${row.region.location}`} scope="row">
+        <code>{row.region.key}</code>
+        <span className="matrix-to-location">{row.region.location}</span>
+      </th>
+      {columns.map((col, c) => {
+        const cell = lookup.get(`${col.id}|${row.provider.key}|${row.region.key}`)
+        const kind = sameCloudKind(col, row.provider.key, row.region.location)
+        const displayMs = metric === 'p24' ? (cell?.ms24h ?? cell?.ms ?? null) : (cell?.ms ?? null)
+        const displayOk = metric === 'p24' ? cell?.ms24h != null || Boolean(cell?.ok && cell.ms != null) : Boolean(cell?.ok && cell.ms != null)
+        const band = cell ? latencyBand(displayMs, displayOk && displayMs != null) : 'empty'
+        const isMark = kind === 'on-net' || kind === 'adjacent'
+
+        // Compact mode skips the verbose per-cell tooltip/aria strings
+        // entirely — on thousands of cells that string building is the
+        // GC pressure we are cutting on low-end phones. We still give
+        // screen readers a short, meaningful label, and full detail is
+        // one tap away in the history modal.
+        let title: string | undefined
+        let ariaLabel: string
+        let markTip: string | null = null
+        if (compact) {
+          const short = !cell ? 'no sample' : displayMs == null ? 'unreachable' : formatMs(displayMs)
+          ariaLabel = cell ? `${short}, open history` : short
+        } else {
+          const failText = cell?.error === 'timeout' ? 'timeout' : cell?.error === 'network' ? 'network' : 'unreachable'
+          const parts = [
+            !cell
+              ? 'no sample'
+              : displayMs == null
+                ? failText
+                : `${formatMs(displayMs)} ${metric === 'p24' ? '24h P50' : 'latest min'} from ${columnCode(col)} to ${row.region.key}`,
+          ]
+          if (cell?.ms != null) parts.push(`latest ${formatMs(cell.ms)}`)
+          if (cell?.ms24h != null) parts.push(`24h ${formatMs(cell.ms24h)} n=${cell.n24h ?? '?'}`)
+          if (cell?.samples) parts.push(`${cell.samples} samples`)
+          markTip =
+            kind === 'on-net'
+              ? 'Same cloud in the same metro — this rides the provider backbone, so it is faster than a real internet path. Not comparable with the other cells.'
+              : kind === 'adjacent'
+                ? 'Vercel origin hitting AWS in the same metro — close to on-net, so it is faster than a real internet path. Not comparable with the other cells.'
+                : null
+          ariaLabel = cell ? `${parts.join('. ')}${markTip ? `. ${markTip}` : ''}. Open latency history.` : parts.join('. ')
+          title = cell ? `${parts.join(' · ')} · click for history` : parts.join(' · ')
+        }
+        return (
+          <td
+            key={col.id}
+            className={`matrix-cell ${band}${kind === 'on-net' ? ' on-net' : kind === 'adjacent' ? ' adjacent' : ''}${cell ? ' clickable' : ''}`}
+            tabIndex={c === tabCol ? 0 : -1}
+            title={title}
+            aria-label={ariaLabel}
+          >
+            {cell ? (displayMs == null ? '—' : formatMs(displayMs)) : '—'}
+            {cell && isMark ? <span className="matrix-mark" data-tip={markTip ?? undefined} aria-hidden="true" /> : null}
+          </td>
+        )
+      })}
+    </tr>
+  )
+})
+
+const MatrixBody = React.memo(function MatrixBody({
+  items,
+  columns,
+  lookup,
+  metric,
+  compact,
+  onSelectCell,
+}: {
+  items: MatrixItem[]
+  columns: ProbeColumn[]
+  lookup: Map<string, ProbeResult>
+  metric: Metric
   // Compact mode (small screens): skip building the verbose per-cell title and
   // aria-label strings. Thousands of cells each allocating two long joined
   // strings is a real memory/GC burden on low-end phones, and touch devices
@@ -155,112 +312,339 @@ const MatrixBody = React.memo(function MatrixBody({
   compact: boolean
   onSelectCell: (cell: SelectedCell) => void
 }): JSX.Element {
-  return (
-    <tbody>
-      {rows.map((row, index) => {
-        const prev = rows[index - 1]
-        const showGroup = showProvider && (!prev || prev.provider.key !== row.provider.key)
-        return (
-          <React.Fragment key={row.key}>
-            {showGroup ? (
-              <tr>
-                <th className="matrix-group" scope="rowgroup">
-                  <div className="matrix-to-provider">
-                    <CloudProviderLogo width={14} providerKey={row.provider.key} providerName={row.provider.display_name} />
-                    <span>{row.provider.display_name}</span>
-                  </div>
-                </th>
-                {columns.map((col) => (
-                  <td key={col.id} className="matrix-group-fill" />
-                ))}
-              </tr>
-            ) : null}
-            <tr className="matrix-row">
-              <th className="matrix-to" title={`${row.provider.display_name} · ${row.region.location}`} scope="row">
-                <code>{row.region.key}</code>
-                <span className="matrix-to-location">{row.region.location}</span>
-              </th>
-              {columns.map((col) => {
-                const cell = lookup.get(`${col.id}|${row.provider.key}|${row.region.key}`)
-                const kind = sameCloudKind(col, row.provider.key, row.region.location)
-                const displayMs = metric === 'p24' ? (cell?.ms24h ?? cell?.ms ?? null) : (cell?.ms ?? null)
-                const displayOk = metric === 'p24' ? cell?.ms24h != null || Boolean(cell?.ok && cell.ms != null) : Boolean(cell?.ok && cell.ms != null)
-                const band = cell ? latencyBand(displayMs, displayOk && displayMs != null) : 'empty'
-                const isMark = kind === 'on-net' || kind === 'adjacent'
+  const bodyRef = useRef<HTMLTableSectionElement>(null)
+  // Rendered height of each row kind, measured from the DOM after every render.
+  // CSS pins every row of a kind to one height, so one sample per kind is exact.
+  const [heights, setHeights] = useState({ row: 29, group: 29 })
+  const [range, setRange] = useState(() => ({ start: 0, end: Math.min(items.length, INITIAL_RENDER_ROWS) }))
+  // Roving-tabindex position (item index + column index) of the grid's tab stop.
+  const [active, setActive] = useState<{ i: number; c: number } | null>(null)
+  // Keyboard target whose row was outside the window; focused once it renders.
+  const pendingFocus = useRef<{ i: number; c: number } | null>(null)
+  const headHeight = useRef(0)
 
-                // Compact mode skips the verbose per-cell tooltip/aria strings
-                // entirely — on thousands of cells that string building is the
-                // GC pressure we are cutting on low-end phones. We still give
-                // screen readers a short, meaningful label, and full detail is
-                // one tap away in the history modal.
-                let cellTitle: string | undefined
-                let buttonTitle: string | undefined
-                let ariaLabel: string
-                let markTip: string | null = null
-                if (compact) {
-                  const short = !cell ? 'no sample' : displayMs == null ? 'unreachable' : formatMs(displayMs)
-                  ariaLabel = cell ? `${short}, open history` : short
-                } else {
-                  const failText = cell?.error === 'timeout' ? 'timeout' : cell?.error === 'network' ? 'network' : 'unreachable'
-                  const parts = [
-                    !cell
-                      ? 'no sample'
-                      : displayMs == null
-                        ? failText
-                        : `${formatMs(displayMs)} ${metric === 'p24' ? '24h P50' : 'latest min'} from ${columnCode(col)} to ${row.region.key}`,
-                  ]
-                  if (cell?.ms != null) parts.push(`latest ${formatMs(cell.ms)}`)
-                  if (cell?.ms24h != null) parts.push(`24h ${formatMs(cell.ms24h)} n=${cell.n24h ?? '?'}`)
-                  if (cell?.samples) parts.push(`${cell.samples} samples`)
-                  markTip =
-                    kind === 'on-net'
-                      ? 'Same cloud in the same metro — this rides the provider backbone, so it is faster than a real internet path. Not comparable with the other cells.'
-                      : kind === 'adjacent'
-                        ? 'Vercel origin hitting AWS in the same metro — close to on-net, so it is faster than a real internet path. Not comparable with the other cells.'
-                        : null
-                  ariaLabel = `${parts.join('. ')}${markTip ? `. ${markTip}` : ''}. Open latency history.`
-                  cellTitle = cell ? undefined : parts.join(' · ')
-                  buttonTitle = `${parts.join(' · ')} · click for history`
-                }
-                return (
-                  <td
-                    key={col.id}
-                    className={`matrix-cell ${band}${kind === 'on-net' ? ' on-net' : kind === 'adjacent' ? ' adjacent' : ''}${cell ? ' clickable' : ''}`}
-                    title={cellTitle}
-                  >
-                    {cell ? (
-                      <button
-                        type="button"
-                        className="matrix-cell-button"
-                        title={buttonTitle}
-                        aria-label={ariaLabel}
-                        onClick={() =>
-                          onSelectCell({
-                            origin: col.id,
-                            originVendor: originVendor(col),
-                            originCode: columnCode(col),
-                            originCity: columnCity(col),
-                            provider: row.provider.key,
-                            providerName: row.provider.display_name,
-                            region: row.region.key,
-                            regionLocation: row.region.location,
-                            regionCountry: row.region.country,
-                          })
-                        }
-                      >
-                        {displayMs == null ? '—' : formatMs(displayMs)}
-                        {isMark ? <span className="matrix-mark" data-tip={markTip ?? undefined} aria-hidden="true" /> : null}
-                      </button>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                )
-              })}
-            </tr>
-          </React.Fragment>
+  // offsets[i] = top of item i within the body; offsets[items.length] = body height.
+  const offsets = useMemo(() => {
+    const out = new Array<number>(items.length + 1)
+    out[0] = 0
+    for (let i = 0; i < items.length; i++) out[i + 1] = out[i] + (items[i].kind === 'row' ? heights.row : heights.group)
+    return out
+  }, [items, heights])
+
+  const scrollElement = (): HTMLElement | null => bodyRef.current?.closest<HTMLElement>('.matrix-scroll') ?? null
+
+  const updateRange = useCallback(() => {
+    const body = bodyRef.current
+    const el = body?.closest<HTMLElement>('.matrix-scroll')
+    if (!body || !el) return
+    const head = (body.parentElement as HTMLTableElement | null)?.tHead
+    headHeight.current = head ? head.offsetHeight : 0
+    // Lets native focus scrolling (Tab into the grid) clear the sticky header.
+    el.style.setProperty('--matrix-head-h', `${headHeight.current}px`)
+    // The sticky thead covers the top of the viewport, so in body coordinates
+    // the visible band is [scrollTop, scrollTop + clientHeight - theadHeight].
+    const top = el.scrollTop
+    const bottom = top + Math.max(0, el.clientHeight - headHeight.current)
+    const n = items.length
+    const first = Math.max(0, itemAt(offsets, top) - OVERSCAN_ROWS)
+    const last = Math.min(n, itemAt(offsets, bottom) + 1 + OVERSCAN_ROWS)
+    const start = first - (first % RANGE_STEP)
+    const end = Math.min(n, Math.ceil(last / RANGE_STEP) * RANGE_STEP)
+    // A focused cell about to leave the DOM would drop focus to <body>; park it
+    // on the scroll region instead so keyboard users stay inside the matrix.
+    const focused = document.activeElement
+    if (focused instanceof HTMLElement && body.contains(focused)) {
+      const i = Number(focused.closest('tr')?.dataset.i)
+      if (i < start || i >= end) el.focus({ preventScroll: true })
+    }
+    setRange((prev) => (prev.start === start && prev.end === end ? prev : { start, end }))
+  }, [items.length, offsets])
+
+  // Recompute synchronously whenever the list or measured heights change
+  // (filters, metric-independent), before the browser paints a stale window.
+  useLayoutEffect(() => {
+    updateRange()
+  }, [updateRange])
+
+  useEffect(() => {
+    const el = scrollElement()
+    if (!el) return
+    let frame = 0
+    const schedule = () => {
+      if (frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        updateRange()
+      })
+    }
+    el.addEventListener('scroll', schedule, { passive: true })
+    const observer = new ResizeObserver(schedule)
+    observer.observe(el)
+    return () => {
+      el.removeEventListener('scroll', schedule)
+      observer.disconnect()
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [updateRange])
+
+  // Measure one row of each kind; a changed height (breakpoint, font load)
+  // re-derives the offsets. Everything the window math uses (scrollTop,
+  // clientHeight, these heights) must be in layout pixels: getBoundingClientRect
+  // is post-transform/zoom, so a scaled page (zoom, embedded preview) would
+  // shrink the offsets and balloon the window toward every row.
+  useLayoutEffect(() => {
+    const body = bodyRef.current
+    if (!body) return
+    const measured = (selector: string, fallback: number) => {
+      const h = body.querySelector<HTMLElement>(selector)?.offsetHeight ?? 0
+      return h > 0 ? h : fallback
+    }
+    const next = { row: measured('tr.matrix-row', heights.row), group: measured('tr.matrix-group-row', heights.group) }
+    if (next.row !== heights.row || next.group !== heights.group) setHeights(next)
+  })
+
+  // Rows scroll in and out of the DOM, so an auto-sized first column would
+  // widen whenever a longer region label arrived. Measure the widest label of
+  // the whole list up front and pin the corner cell (always rendered) to it.
+  useLayoutEffect(() => {
+    const el = scrollElement()
+    const th = bodyRef.current?.querySelector<HTMLElement>('th.matrix-to')
+    const code = th?.querySelector('code')
+    const location = th?.querySelector<HTMLElement>('.matrix-to-location')
+    if (!el || !th || !code || !location) return
+    const measure = () => {
+      const locationStyle = getComputedStyle(location)
+      // Small screens hide the location and clamp the column in CSS.
+      if (locationStyle.display === 'none') {
+        el.style.removeProperty('--matrix-to-w')
+        return
+      }
+      const ctx = document.createElement('canvas').getContext('2d')
+      if (!ctx) return
+      const thStyle = getComputedStyle(th)
+      // The computed `font` shorthand is often empty, so rebuild it from longhands.
+      const fontOf = (s: CSSStyleDeclaration) => `${s.fontStyle} ${s.fontWeight} ${s.fontSize} ${s.fontFamily}`
+      const codeFont = fontOf(getComputedStyle(code))
+      const locationFont = fontOf(locationStyle)
+      const gap = parseFloat(locationStyle.marginLeft) || 0
+      let widest = 0
+      for (const item of items) {
+        if (item.kind !== 'row') continue
+        ctx.font = codeFont
+        const keyWidth = ctx.measureText(item.row.region.key).width
+        ctx.font = locationFont
+        widest = Math.max(widest, keyWidth + gap + ctx.measureText(item.row.region.location).width)
+      }
+      const chrome = parseFloat(thStyle.paddingLeft) + parseFloat(thStyle.paddingRight) + parseFloat(thStyle.borderRightWidth)
+      el.style.setProperty('--matrix-to-w', `${Math.ceil(widest + chrome) + 2}px`)
+    }
+    measure()
+    // Web fonts may land after the first measurement and change the widths.
+    let cancelled = false
+    void document.fonts?.ready.then(() => {
+      if (!cancelled) measure()
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [items, compact])
+
+  // A new list invalidates item indices; start the tab stop over.
+  useEffect(() => {
+    setActive(null)
+    pendingFocus.current = null
+  }, [items, columns])
+
+  const cellElement = (i: number, c: number): HTMLTableCellElement | null => {
+    const tr = bodyRef.current?.querySelector<HTMLTableRowElement>(`tr[data-i="${i}"]`)
+    return tr?.cells[c + 1] ?? null
+  }
+
+  // Scroll horizontally so the cell is not hidden under the sticky first column.
+  const revealColumn = (el: HTMLElement, td: HTMLTableCellElement) => {
+    const tr = td.parentElement as HTMLTableRowElement
+    const stickyWidth = tr.cells[0].offsetWidth
+    // Cell edges in scroll-content (layout) pixels. offsetLeft is measured from
+    // <body> for both, so the difference is the cell's offset inside the table.
+    const table = tr.closest('table') as HTMLTableElement
+    const left = td.offsetLeft - table.offsetLeft
+    const right = left + td.offsetWidth
+    if (left - stickyWidth < el.scrollLeft) el.scrollLeft = left - stickyWidth
+    else if (right > el.scrollLeft + el.clientWidth) el.scrollLeft = right - el.clientWidth
+  }
+
+  const focusCell = (el: HTMLElement, td: HTMLTableCellElement) => {
+    revealColumn(el, td)
+    td.focus({ preventScroll: true })
+  }
+
+  // Focus a pending keyboard target once its row has rendered.
+  useLayoutEffect(() => {
+    const target = pendingFocus.current
+    const el = scrollElement()
+    if (!target || !el) return
+    const td = cellElement(target.i, target.c)
+    if (!td) return
+    pendingFocus.current = null
+    focusCell(el, td)
+  })
+
+  const moveTo = (i: number, c: number) => {
+    const el = scrollElement()
+    if (!el) return
+    // Keep the row between the sticky header and the bottom edge. Offsets are
+    // known for every row, rendered or not, so this also reaches far rows.
+    const viewHeight = el.clientHeight - headHeight.current
+    // offsetHeight rounds the (fractional) header height and scrollTop snaps to
+    // whole pixels, so round outward with a pixel of slack at the bottom.
+    if (offsets[i] < el.scrollTop) el.scrollTop = Math.floor(offsets[i])
+    else if (offsets[i + 1] > el.scrollTop + viewHeight) el.scrollTop = Math.ceil(offsets[i + 1] - viewHeight) + 1
+    setActive({ i, c })
+    const td = cellElement(i, c)
+    if (td) {
+      focusCell(el, td)
+    } else {
+      pendingFocus.current = { i, c }
+      updateRange()
+    }
+  }
+
+  // Step over `count` region rows (skipping group headers) in `dir`, clamped.
+  const stepRow = (i: number, dir: 1 | -1, count: number) => {
+    let at = i
+    for (let step = 0; step < count; step++) {
+      let k = at + dir
+      while (k >= 0 && k < items.length && items[k].kind !== 'row') k += dir
+      if (k < 0 || k >= items.length) break
+      at = k
+    }
+    return at
+  }
+
+  const cellPosition = (target: EventTarget): { i: number; c: number } | null => {
+    const td = (target as Element).closest?.('td')
+    const tr = td?.parentElement as HTMLTableRowElement | null | undefined
+    if (!td || !tr?.dataset.i) return null
+    const i = Number(tr.dataset.i)
+    const c = td.cellIndex - 1
+    return items[i]?.kind === 'row' && c >= 0 && c < columns.length ? { i, c } : null
+  }
+
+  const openCell = (i: number, c: number) => {
+    const item = items[i]
+    const col = columns[c]
+    if (item?.kind !== 'row' || !col) return
+    if (!lookup.has(`${col.id}|${item.row.provider.key}|${item.row.region.key}`)) return
+    onSelectCell(selectedCellFor(col, item.row))
+  }
+
+  const onClick = (e: React.MouseEvent) => {
+    const pos = cellPosition(e.target)
+    if (pos) openCell(pos.i, pos.c)
+  }
+
+  const onFocus = (e: React.FocusEvent) => {
+    const pos = cellPosition(e.target)
+    if (pos) setActive((prev) => (prev && prev.i === pos.i && prev.c === pos.c ? prev : pos))
+  }
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const pos = cellPosition(e.target)
+    if (!pos) return
+    const { i, c } = pos
+    const el = scrollElement()
+    const page = Math.max(1, Math.floor(((el?.clientHeight ?? 0) - headHeight.current) / heights.row) - 1)
+    const firstRow = stepRow(-1, 1, 1)
+    const lastRow = stepRow(items.length, -1, 1)
+    let next: { i: number; c: number }
+    switch (e.key) {
+      case 'ArrowLeft':
+        next = { i, c: Math.max(0, c - 1) }
+        break
+      case 'ArrowRight':
+        next = { i, c: Math.min(columns.length - 1, c + 1) }
+        break
+      case 'ArrowUp':
+        next = { i: stepRow(i, -1, 1), c }
+        break
+      case 'ArrowDown':
+        next = { i: stepRow(i, 1, 1), c }
+        break
+      case 'PageUp':
+        next = { i: stepRow(i, -1, page), c }
+        break
+      case 'PageDown':
+        next = { i: stepRow(i, 1, page), c }
+        break
+      case 'Home':
+        next = e.ctrlKey || e.metaKey ? { i: firstRow, c: 0 } : { i, c: 0 }
+        break
+      case 'End':
+        next = e.ctrlKey || e.metaKey ? { i: lastRow, c: columns.length - 1 } : { i, c: columns.length - 1 }
+        break
+      case 'Enter':
+      case ' ':
+        e.preventDefault()
+        openCell(i, c)
+        return
+      default:
+        return
+    }
+    e.preventDefault()
+    if (next.i !== i || next.c !== c) moveTo(next.i, next.c)
+  }
+
+  const { start, end } = range
+  // The tab stop stays on the active cell while its row is rendered; otherwise
+  // it falls back to the first rendered region row so Tab can always enter.
+  let tabRow = -1
+  let tabCol = 0
+  if (active && active.i >= start && active.i < end && items[active.i]?.kind === 'row' && active.c < columns.length) {
+    tabRow = active.i
+    tabCol = active.c
+  } else {
+    for (let i = start; i < Math.min(end, items.length); i++) {
+      if (items[i].kind === 'row') {
+        tabRow = i
+        break
+      }
+    }
+  }
+  const topSpace = offsets[Math.min(start, items.length)]
+  const bottomSpace = offsets[items.length] - offsets[Math.min(end, items.length)]
+
+  return (
+    // Cells carry no handlers: one delegated listener set here serves every
+    // cell, and the table's grid role makes the tbody an interactive container.
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+    <tbody ref={bodyRef} onClick={onClick} onKeyDown={onKeyDown} onFocus={onFocus}>
+      {topSpace > 0 ? (
+        <tr className="matrix-spacer" aria-hidden="true">
+          <td colSpan={columns.length + 1} style={{ height: topSpace }} />
+        </tr>
+      ) : null}
+      {items.slice(start, end).map((item, k) => {
+        const index = start + k
+        return item.kind === 'group' ? (
+          <MatrixGroupRow key={`g:${item.provider.key}`} index={index} provider={item.provider} columns={columns} />
+        ) : (
+          <MatrixRow
+            key={item.row.key}
+            index={index}
+            row={item.row}
+            columns={columns}
+            lookup={lookup}
+            metric={metric}
+            compact={compact}
+            tabCol={index === tabRow ? tabCol : -1}
+          />
         )
       })}
+      {bottomSpace > 0 ? (
+        <tr className="matrix-spacer" aria-hidden="true">
+          <td colSpan={columns.length + 1} style={{ height: bottomSpace }} />
+        </tr>
+      ) : null}
     </tbody>
   )
 })
@@ -450,6 +834,7 @@ export default function Health(props: HealthProps): JSX.Element {
 
   const rows = useMemo(() => scoped.filter((row) => selectedKeys.includes(row.key)), [scoped, selectedKeys])
   const showProvider = selectedProviders.length !== 1
+  const matrixItems = useMemo(() => buildMatrixItems(rows, showProvider), [rows, showProvider])
   const selectedGeoCount = useMemo(() => {
     let n = 0
     for (const on of geoAllSelected.values()) if (on) n++
@@ -781,10 +1166,15 @@ export default function Health(props: HealthProps): JSX.Element {
                 </p>
               </div>
             ) : (
-              <table className={`matrix-table${focusBands.length ? ' has-focus' : ''}${focusBands.map((b) => ` focus-${b}`).join('')}`}>
+              <table
+                className={`matrix-table${focusBands.length ? ' has-focus' : ''}${focusBands.map((b) => ` focus-${b}`).join('')}`}
+                role="grid"
+                aria-readonly="true"
+                aria-rowcount={matrixItems.length + MATRIX_HEAD_ROWS}
+              >
                 <caption className="sr-only">Latency from each probe origin to every visible cloud region</caption>
                 <thead>
-                  <tr>
+                  <tr aria-rowindex={1}>
                     <th className="matrix-corner" rowSpan={2} scope="col">
                       To \ From
                     </th>
@@ -804,7 +1194,7 @@ export default function Health(props: HealthProps): JSX.Element {
                       ))
                     })()}
                   </tr>
-                  <tr>
+                  <tr aria-rowindex={2}>
                     {visibleColumns.map((col) => {
                       const vendor = originVendor(col)
                       return (
@@ -819,15 +1209,7 @@ export default function Health(props: HealthProps): JSX.Element {
                     })}
                   </tr>
                 </thead>
-                <MatrixBody
-                  rows={rows}
-                  columns={visibleColumns}
-                  lookup={lookup}
-                  metric={metric}
-                  showProvider={showProvider}
-                  compact={isCompact}
-                  onSelectCell={selectCell}
-                />
+                <MatrixBody items={matrixItems} columns={visibleColumns} lookup={lookup} metric={metric} compact={isCompact} onSelectCell={selectCell} />
               </table>
             )}
           </div>
