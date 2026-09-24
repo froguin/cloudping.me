@@ -14,6 +14,7 @@
   --pill-bg: #f1f5f9;
   --pill-border: #e2e8f0;
   --pill-active-bg: #eff6ff;
+  --toggle-on-bg: #dbeafe;
   --pill-active-border: #3b82f6;
   --pill-active-text: #1d4ed8;
   --badge-success-bg: #dcfce7;
@@ -37,6 +38,7 @@
   --pill-bg: transparent;
   --pill-border: #1e293b;
   --pill-active-bg: rgba(59, 130, 246, 0.15);
+  --toggle-on-bg: rgba(59, 130, 246, 0.3);
   --pill-active-border: #3b82f6;
   --pill-active-text: #ffffff;
   --badge-success-bg: rgba(34, 197, 94, 0.15);
@@ -61,6 +63,7 @@
     --pill-bg: transparent;
     --pill-border: #1e293b;
     --pill-active-bg: rgba(59, 130, 246, 0.15);
+    --toggle-on-bg: rgba(59, 130, 246, 0.3);
     --pill-active-border: #3b82f6;
     --pill-active-text: #ffffff;
     --badge-success-bg: rgba(34, 197, 94, 0.15);
@@ -1043,7 +1046,7 @@ button.matrix-swatch.is-off { opacity: 0.4; }
    the health metric toggle and the history modal's Daily/2h segments; pill vars
    are theme-aware so light/dark are both covered. */
 .history-toggle button.is-on {
-  background: var(--pill-active-bg);
+  background: var(--toggle-on-bg);
   color: var(--pill-active-text);
 }
 .history-toggle button:focus-visible {
