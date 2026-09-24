@@ -80,6 +80,14 @@
     "ping_url": "https://mkc1.digitaloceanspaces.com"
   },
   {
+    "key": "mem1",
+    "display_name": "MEM1",
+    "country": "US",
+    "location": "Memphis",
+    "geo": "North America",
+    "ping_url": "https://mem1.digitaloceanspaces.com"
+  },
+  {
     "key": "ric1",
     "display_name": "RIC1",
     "country": "US",
