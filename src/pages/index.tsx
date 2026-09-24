@@ -540,12 +540,17 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
               <div className="rounded-xl border border-[color:var(--border)] p-4 sticky top-4">
                 <div className="flex items-center justify-between mb-4">
                   <h5 className="text-sm font-medium text-[color:var(--text-secondary)]">Locations</h5>
-                  <button
-                    onClick={() => setSelectedCountries(selectedCountries.length === props.countries.length ? [] : props.countries)}
-                    className="text-xs text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)] transition-colors"
-                  >
-                    {selectedCountries.length === props.countries.length ? 'Clear' : 'All'}
-                  </button>
+                  <div className="history-toggle" role="group" aria-label="Toggle all locations">
+                    <button
+                      type="button"
+                      className={selectedCountries.length === props.countries.length ? 'is-on' : ''}
+                      aria-pressed={selectedCountries.length === props.countries.length}
+                      onClick={() => setSelectedCountries(selectedCountries.length === props.countries.length ? [] : props.countries)}
+                      title={selectedCountries.length === props.countries.length ? 'Deselect all locations' : 'Select all locations'}
+                    >
+                      All
+                    </button>
+                  </div>
                 </div>
                 <div className="overflow-y-auto pr-1 -mr-1" style={{ maxHeight: 'calc(100vh - 160px)' }}>
                   {geoOrder.map((geo) => {
