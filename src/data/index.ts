@@ -8,11 +8,13 @@ import ibm from './datasource/regions/ibm.json'
 import oracle from './datasource/regions/oracle.json'
 import digitalocean from './datasource/regions/digitalocean.json'
 import vultr from './datasource/regions/vultr.json'
+import hetzner from './datasource/regions/hetzner.json'
+import ovh from './datasource/regions/ovh.json'
+import scaleway from './datasource/regions/scaleway.json'
 import ncp from './datasource/regions/ncp.json'
 import kakaocloud from './datasource/regions/kakaocloud.json'
 import ktcloud from './datasource/regions/ktcloud.json'
 import nhncloud from './datasource/regions/nhncloud.json'
-import iwinv from './datasource/regions/iwinv.json'
 import linode from './datasource/regions/linode.json'
 
 export interface CloudProvider {
@@ -42,11 +44,13 @@ const regionsMap: Record<string, CloudRegion[]> = {
   oracle,
   digitalocean,
   vultr,
+  hetzner,
+  ovh,
+  scaleway,
   ncp,
   kakaocloud,
   ktcloud,
   nhncloud,
-  iwinv,
   linode,
 }
 

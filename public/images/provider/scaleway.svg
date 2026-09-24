@@ -1,0 +1,5 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Scaleway">
+  <rect width="64" height="64" rx="12" fill="#4F0599"/>
+  <path d="M24 14c9.94 0 18 8.06 18 18v10a8 8 0 0 1-8 8H22V38h12v-6c0-5.52-4.48-10-10-10h-2v-8h2z" fill="#fff"/>
+  <rect x="30" y="30" width="8" height="8" rx="4" fill="#A366FF"/>
+</svg>

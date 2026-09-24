@@ -50,6 +50,21 @@
         "short_name": "Vultr"
     },
     {
+        "key": "hetzner",
+        "display_name": "Hetzner",
+        "short_name": "Hetzner"
+    },
+    {
+        "key": "ovh",
+        "display_name": "OVHcloud",
+        "short_name": "OVH"
+    },
+    {
+        "key": "scaleway",
+        "display_name": "Scaleway",
+        "short_name": "Scaleway"
+    },
+    {
         "key": "ncp",
         "display_name": "NAVER Cloud",
         "short_name": "NAVER"
@@ -68,10 +83,5 @@
         "key": "nhncloud",
         "display_name": "NHN Cloud",
         "short_name": "NHN"
-    },
-    {
-        "key": "iwinv",
-        "display_name": "iwinv",
-        "short_name": "iwinv"
     }
 ]

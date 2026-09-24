@@ -268,9 +268,7 @@ const LatencyCard = memo(function LatencyCard({
 export default function CloudPing(props: CloudPingProps): JSX.Element {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isMeasuring, setIsMeasuring] = useState(false)
-  const [selectedProviders, setSelectedProviders] = useState(
-    props.providers.map((x) => x.key).filter((key) => !['ncp', 'kakaocloud', 'ktcloud', 'nhncloud', 'iwinv'].includes(key))
-  )
+  const [selectedProviders, setSelectedProviders] = useState(props.providers.map((x) => x.key))
   const [selectedCountries, setSelectedCountries] = useState<string[]>(props.geos[FALLBACK_GEO] || [])
   const [isLocationInitialized, setIsLocationInitialized] = useState(false)
   const latencyStateRef = useRef<LatencyState | null>(null)

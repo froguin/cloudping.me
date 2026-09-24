@@ -1,0 +1,8 @@
+[
+  {"key": "rbx", "display_name": "Roubaix", "country": "FR", "location": "Roubaix", "geo": "Europe", "ping_url": "https://lil1-rbx.speedtest.network.ovh.net/"},
+  {"key": "gra", "display_name": "Gravelines", "country": "FR", "location": "Gravelines", "geo": "Europe", "ping_url": "https://lil2-gra.speedtest.network.ovh.net/"},
+  {"key": "sbg", "display_name": "Strasbourg", "country": "FR", "location": "Strasbourg", "geo": "Europe", "ping_url": "https://sxb1-sbg.speedtest.network.ovh.net/"},
+  {"key": "sgp", "display_name": "Singapore", "country": "SG", "location": "Singapore", "geo": "Asia", "ping_url": "https://sin1-sgp.speedtest.network.ovh.net/"},
+  {"key": "syd", "display_name": "Sydney", "country": "AU", "location": "Sydney", "geo": "Oceania", "ping_url": "https://syd1-sy2.speedtest.network.ovh.net/"},
+  {"key": "bom", "display_name": "Mumbai", "country": "IN", "location": "Mumbai", "geo": "Asia", "ping_url": "https://bom1-ynm1.speedtest.network.ovh.net/"}
+]
