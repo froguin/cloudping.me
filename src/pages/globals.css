@@ -494,15 +494,30 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   padding: 0.28rem 0.55rem;
   white-space: nowrap;
 }
-/* Skip layout/paint for off-screen matrix rows. With thousands of cells this
-   is the bulk of the render cost on low-end phones; content-visibility lets
-   the browser omit work for rows outside the viewport while keeping the real
-   DOM, sticky columns, and click handlers intact. contain-intrinsic-size
-   reserves each row's approximate height so the scrollbar and sticky header
-   stay stable when rows are skipped. Height auto-corrects once a row renders. */
-.matrix-row {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 24px;
+/* The matrix body is virtualized (MatrixBody): only rows near the viewport
+   are in the DOM and spacer rows stand in for the rest. Row offsets come from
+   one measured height per row kind, so pin each kind to a fixed height instead
+   of letting cell content decide (a row with no samples would otherwise be a
+   pixel shorter). content-visibility is not an option here: it has no effect
+   on table rows. */
+.matrix-scroll {
+  --matrix-row-h: 29px;
+  --matrix-group-h: 29px;
+  /* Keep natively focused cells clear of the sticky header and first column;
+     both sizes are measured in MatrixBody. */
+  scroll-padding-top: var(--matrix-head-h, 0px);
+  scroll-padding-left: var(--matrix-to-w, 0px);
+}
+.matrix-table tbody tr.matrix-row { height: var(--matrix-row-h); }
+.matrix-table tbody tr.matrix-group-row { height: var(--matrix-group-h); }
+.matrix-table tbody tr.matrix-spacer td { padding: 0; border: 0; }
+/* Rows enter and leave the DOM, so the auto-sized first column is pinned to
+   the widest label of the whole list (measured in MatrixBody) via the corner. */
+@media (min-width: 640px) {
+  .matrix-table thead th.matrix-corner {
+    box-sizing: border-box;
+    width: var(--matrix-to-w, auto);
+  }
 }
 .matrix-table thead th {
   position: sticky;
@@ -715,23 +730,8 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
   min-width: 4.75rem;
 }
-.matrix-cell.clickable { padding: 0; }
-.matrix-cell-button {
-  appearance: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  width: 100%;
-  min-height: 1.75rem;
-  padding: 0.28rem 0.55rem;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-.matrix-cell-button:focus-visible {
+.matrix-cell:focus { outline: none; }
+.matrix-cell:focus-visible {
   outline: 2px solid var(--pill-active-border);
   outline-offset: -3px;
 }
@@ -1274,10 +1274,8 @@ button.matrix-swatch.is-off { opacity: 0.4; }
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .matrix-table tbody .matrix-cell,
-  .matrix-cell-button {
-    height: 32px;
-    min-height: 32px;
+  .matrix-scroll {
+    --matrix-row-h: 33px;
   }
   .history-overlay {
     align-items: center;
