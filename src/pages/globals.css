@@ -431,8 +431,15 @@ button.matrix-swatch.is-off { opacity: 0.4; }
 [data-theme="dark"] .matrix-cell.slow { background: #7f1d1d; color: #fca5a5; }
 .matrix-cell.fail,
 .matrix-cell.empty { background: var(--bg-surface); color: var(--text-muted); }
-.matrix-cell.is-dimmed { opacity: 0.18; }
-.matrix-cell.is-dimmed:hover { opacity: 1; }
+/* Band focus is driven by classes on the table (not per-cell React props), so
+   toggling a legend band re-matches styles instead of re-rendering all cells.
+   When a focus is active, dim every cell, then re-light the focused band(s),
+   plus hover. fail/empty cells stay dimmed while a focus is active (as before). */
+.matrix-table.has-focus .matrix-cell { opacity: 0.18; }
+.matrix-table.focus-fast .matrix-cell.fast,
+.matrix-table.focus-mid .matrix-cell.mid,
+.matrix-table.focus-slow .matrix-cell.slow,
+.matrix-table.has-focus .matrix-cell:hover { opacity: 1; }
 
 .matrix-filter-search {
   @apply text-sm px-3 py-1.5 rounded-md;
