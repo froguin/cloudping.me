@@ -1,0 +1,5 @@
+[
+  {"key": "fr-par", "display_name": "Paris", "country": "FR", "location": "Paris", "geo": "Europe", "ping_url": "https://s3.fr-par.scw.cloud/"},
+  {"key": "nl-ams", "display_name": "Amsterdam", "country": "NL", "location": "Amsterdam", "geo": "Europe", "ping_url": "https://s3.nl-ams.scw.cloud/"},
+  {"key": "pl-waw", "display_name": "Warsaw", "country": "PL", "location": "Warsaw", "geo": "Europe", "ping_url": "https://s3.pl-waw.scw.cloud/"}
+]

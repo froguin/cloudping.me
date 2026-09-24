@@ -12,12 +12,12 @@ Real-time browser-based latency tester for **15 cloud providers** — including 
 - 📊 Real-time latency with P50 / P80 / P95 percentiles
 - 🔍 Filter by provider and geographic location
 - 🌙 Dark / Light theme toggle
-- 🇰🇷 Korean CSPs: NAVER Cloud, Kakao Cloud, KT Cloud, NHN Cloud, iwinv
+- 🇰🇷 Korean CSPs: NAVER Cloud, Kakao Cloud, KT Cloud, NHN Cloud
 - 📡 Shared [latency matrix](https://www.cloudping.me/health) from a Vercel Function probe (not from your browser)
 
 ## Cloud Providers
 
-AWS · Azure · GCP · Alibaba Cloud · Tencent Cloud · IBM Cloud · Oracle Cloud · DigitalOcean · Akamai Cloud · Vultr · NAVER Cloud · Kakao Cloud · KT Cloud · NHN Cloud · iwinv
+AWS · Azure · GCP · Alibaba Cloud · Tencent Cloud · IBM Cloud · Oracle Cloud · DigitalOcean · Akamai Cloud · Vultr · Hetzner · OVHcloud · Scaleway · NAVER Cloud · Kakao Cloud · KT Cloud · NHN Cloud
 
 ## Getting Started
 
