@@ -5,7 +5,7 @@
     "country": "US",
     "location": "Dallas",
     "geo": "North America",
-    "ping_url": "https://s3.us-south.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.us-south.cloud-object-storage.appdomain.cloud/cloudping-probe"
   },
   {
     "key": "us-east",
@@ -13,135 +13,15 @@
     "country": "US",
     "location": "Washington, D.C.",
     "geo": "North America",
-    "ping_url": "https://s3.us-east.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "eu-gb",
-    "display_name": "EU United Kingdom",
-    "country": "UK",
-    "location": "London",
-    "geo": "Europe",
-    "ping_url": "https://s3.eu-gb.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "eu-de",
-    "display_name": "EU Germany",
-    "country": "DE",
-    "location": "Frankfurt",
-    "geo": "Europe",
-    "ping_url": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "au-syd",
-    "display_name": "AP Australia",
-    "country": "AU",
-    "location": "Sydney",
-    "geo": "Oceania",
-    "ping_url": "https://s3.au-syd.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "jp-tok",
-    "display_name": "AP Tokyo",
-    "country": "JP",
-    "location": "Tokyo",
-    "geo": "Asia",
-    "ping_url": "https://s3.jp-tok.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "jp-osa",
-    "display_name": "AP Osaka",
-    "country": "JP",
-    "location": "Osaka",
-    "geo": "Asia",
-    "ping_url": "https://s3.jp-osa.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "ams03",
-    "display_name": "Amsterdam, Netherlands",
-    "country": "NL",
-    "location": "Amsterdam",
-    "geo": "Europe",
-    "ping_url": "https://s3.ams03.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "che01",
-    "display_name": "Chennai, India",
-    "country": "IN",
-    "location": "Chennai",
-    "geo": "Asia",
-    "ping_url": "https://s3.che01.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "in-che",
-    "display_name": "Chennai - Airtel",
-    "country": "IN",
-    "location": "Chennai",
-    "geo": "Asia",
-    "ping_url": "https://s3.in-che.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "in-mum",
-    "display_name": "Mumbai - Airtel",
-    "country": "IN",
-    "location": "Mumbai",
-    "geo": "Asia",
-    "ping_url": "https://s3.in-mum.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "mon01",
-    "display_name": "Montreal, Canada",
-    "country": "CA",
-    "location": "Montreal",
-    "geo": "North America",
-    "ping_url": "https://s3.mon01.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "ca-mon",
-    "display_name": "Montreal",
-    "country": "CA",
-    "location": "Montreal",
-    "geo": "North America",
-    "ping_url": "https://s3.ca-mon.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "par01",
-    "display_name": "Paris, France",
-    "country": "FR",
-    "location": "Paris",
-    "geo": "Europe",
-    "ping_url": "https://s3.par01.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.us-east.cloud-object-storage.appdomain.cloud/cloudping-probe"
   },
   {
     "key": "sjc04",
-    "display_name": "San Jose, US",
+    "display_name": "San Jose",
     "country": "US",
     "location": "San Jose",
     "geo": "North America",
-    "ping_url": "https://s3.sjc04.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "sao01",
-    "display_name": "São Paulo, Brazil",
-    "country": "BR",
-    "location": "São Paulo",
-    "geo": "South America",
-    "ping_url": "https://s3.sao01.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "sng01",
-    "display_name": "Singapore",
-    "country": "SG",
-    "location": "Singapore",
-    "geo": "Asia",
-    "ping_url": "https://s3.sng01.cloud-object-storage.appdomain.cloud"
-  },
-  {
-    "key": "tor01",
-    "display_name": "Toronto, Canada",
-    "country": "CA",
-    "location": "Toronto",
-    "geo": "North America",
-    "ping_url": "https://s3.tor01.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.sjc04.cloud-object-storage.appdomain.cloud/cloudping-probe"
   },
   {
     "key": "ca-tor",
@@ -149,15 +29,15 @@
     "country": "CA",
     "location": "Toronto",
     "geo": "North America",
-    "ping_url": "https://s3.ca-tor.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.ca-tor.cloud-object-storage.appdomain.cloud/cloudping-probe"
   },
   {
-    "key": "eu-es",
-    "display_name": "Spain (Madrid)",
-    "country": "ES",
-    "location": "Madrid",
-    "geo": "Europe",
-    "ping_url": "https://s3.eu-es.cloud-object-storage.appdomain.cloud"
+    "key": "ca-mon",
+    "display_name": "Canada (Montreal)",
+    "country": "CA",
+    "location": "Montreal",
+    "geo": "North America",
+    "ping_url": "https://s3.ca-mon.cloud-object-storage.appdomain.cloud/cloudping-probe"
   },
   {
     "key": "br-sao",
@@ -165,6 +45,94 @@
     "country": "BR",
     "location": "São Paulo",
     "geo": "South America",
-    "ping_url": "https://s3.br-sao.cloud-object-storage.appdomain.cloud"
+    "ping_url": "https://s3.br-sao.cloud-object-storage.appdomain.cloud/cloudping-probe"
+  },
+  {
+    "key": "eu-gb",
+    "display_name": "EU United Kingdom",
+    "country": "GB",
+    "location": "London",
+    "geo": "Europe",
+    "ping_url": "https://s3.eu-gb.cloud-object-storage.appdomain.cloud/cloudping-probe"
+  },
+  {
+    "key": "eu-de",
+    "display_name": "EU Germany",
+    "country": "DE",
+    "location": "Frankfurt",
+    "geo": "Europe",
+    "ping_url": "https://s3.eu-de.cloud-object-storage.appdomain.cloud/cloudping-probe"
+  },
+  {
+    "key": "eu-es",
+    "display_name": "Spain (Madrid)",
+    "country": "ES",
+    "location": "Madrid",
+    "geo": "Europe",
+    "ping_url": "https://s3.eu-es.cloud-object-storage.appdomain.cloud/cloudping-probe"
+  },
+  {
+    "key": "ams03",
+    "display_name": "Amsterdam, Netherlands",
+    "country": "NL",
+    "location": "Amsterdam",
+    "geo": "Europe",
+    "ping_url": "https://s3.ams03.cloud-object-storage.appdomain.cloud/cloudping-probe"
+  },
+  {
+    "key": "par01",
+    "display_name": "Paris, France",
+    "country": "FR",
+    "location": "Paris",
+    "geo": "Europe",
+    "ping_url": "https://s3.par01.cloud-object-storage.appdomain.cloud/cloudping-probe"
+  },
+  {
+    "key": "jp-tok",
+    "display_name": "AP Tokyo",
+    "country": "JP",
+    "location": "Tokyo",
+    "geo": "Asia",
+    "ping_url": "https://s3.jp-tok.cloud-object-storage.appdomain.cloud/cloudping-probe"
+  },
+  {
+    "key": "jp-osa",
+    "display_name": "AP Osaka",
+    "country": "JP",
+    "location": "Osaka",
+    "geo": "Asia",
+    "ping_url": "https://s3.jp-osa.cloud-object-storage.appdomain.cloud/cloudping-probe"
+  },
+  {
+    "key": "au-syd",
+    "display_name": "AP Australia",
+    "country": "AU",
+    "location": "Sydney",
+    "geo": "Oceania",
+    "ping_url": "https://s3.au-syd.cloud-object-storage.appdomain.cloud/cloudping-probe"
+  },
+  {
+    "key": "in-che",
+    "display_name": "India (Chennai)",
+    "country": "IN",
+    "location": "Chennai",
+    "geo": "Asia",
+    "ping_url": "https://s3.in-che.cloud-object-storage.appdomain.cloud/cloudping-probe"
+  },
+  {
+    "key": "in-mum",
+    "display_name": "India (Mumbai)",
+    "country": "IN",
+    "location": "Mumbai",
+    "geo": "Asia",
+    "ping_url": "https://s3.in-mum.cloud-object-storage.appdomain.cloud/cloudping-probe"
+  },
+  {
+    "key": "sng01",
+    "display_name": "Singapore",
+    "country": "SG",
+    "location": "Singapore",
+    "geo": "Asia",
+    "ping_url": "https://s3.sng01.cloud-object-storage.appdomain.cloud/cloudping-probe"
   }
 ]
