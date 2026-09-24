@@ -24,6 +24,14 @@
     "ping_url": "https://s8australiaeast.blob.core.windows.net/public/latency-test.json"
   },
   {
+    "key": "australiasoutheast",
+    "display_name": "Australia Southeast",
+    "country": "AU",
+    "location": "Victoria",
+    "geo": "Oceania",
+    "ping_url": "https://s8australiasoutheast.blob.core.windows.net/public/latency-test.json"
+  },
+  {
     "key": "australiacentral",
     "display_name": "Australia Central",
     "country": "AU",
@@ -38,6 +46,30 @@
     "location": "Pune",
     "geo": "Asia",
     "ping_url": "https://s8centralindia.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "southindia",
+    "display_name": "South India",
+    "country": "IN",
+    "location": "Chennai",
+    "geo": "Asia",
+    "ping_url": "https://s8southindia.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "indiasouthcentral",
+    "display_name": "India South Central",
+    "country": "IN",
+    "location": "Hyderabad",
+    "geo": "Asia",
+    "ping_url": "https://s8indiasouthcentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "westindia",
+    "display_name": "West India",
+    "country": "IN",
+    "location": "Mumbai",
+    "geo": "Asia",
+    "ping_url": "https://s8westindia.blob.core.windows.net/public/latency-test.json"
   },
   {
     "key": "japaneast",
@@ -118,6 +150,14 @@
     "location": "London",
     "geo": "Europe",
     "ping_url": "https://s8uksouth.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "ukwest",
+    "display_name": "UK West",
+    "country": "UK",
+    "location": "Cardiff",
+    "geo": "Europe",
+    "ping_url": "https://s8ukwest.blob.core.windows.net/public/latency-test.json"
   },
   {
     "key": "germanywestcentral",
@@ -216,6 +256,14 @@
     "ping_url": "https://s8centralus.blob.core.windows.net/public/latency-test.json"
   },
   {
+    "key": "northcentralus",
+    "display_name": "North Central US",
+    "country": "US",
+    "location": "Illinois",
+    "geo": "North America",
+    "ping_url": "https://s8northcentralus.blob.core.windows.net/public/latency-test.json"
+  },
+  {
     "key": "southcentralus",
     "display_name": "South Central US",
     "country": "US",
@@ -248,12 +296,28 @@
     "ping_url": "https://s8westus3.blob.core.windows.net/public/latency-test.json"
   },
   {
+    "key": "westcentralus",
+    "display_name": "West Central US",
+    "country": "US",
+    "location": "Wyoming",
+    "geo": "North America",
+    "ping_url": "https://s8westcentralus.blob.core.windows.net/public/latency-test.json"
+  },
+  {
     "key": "canadacentral",
     "display_name": "Canada Central",
     "country": "CA",
     "location": "Toronto",
     "geo": "North America",
     "ping_url": "https://s8canadacentral.blob.core.windows.net/public/latency-test.json"
+  },
+  {
+    "key": "canadaeast",
+    "display_name": "Canada East",
+    "country": "CA",
+    "location": "Quebec",
+    "geo": "North America",
+    "ping_url": "https://s8canadaeast.blob.core.windows.net/public/latency-test.json"
   },
   {
     "key": "mexicocentral",

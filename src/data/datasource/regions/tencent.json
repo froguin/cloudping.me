@@ -80,6 +80,14 @@
     "ping_url": "https://cos.eu-frankfurt.myqcloud.com"
   },
   {
+    "key": "me-saudi-arabia",
+    "display_name": "Saudi Arabia (Riyadh)",
+    "country": "SA",
+    "location": "Riyadh",
+    "geo": "Middle East",
+    "ping_url": "https://cos.me-saudi-arabia.myqcloud.com"
+  },
+  {
     "key": "na-siliconvalley",
     "display_name": "US (Silicon Valley)",
     "country": "US",
