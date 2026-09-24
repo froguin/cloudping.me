@@ -491,7 +491,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
               <h6 className="text-xs font-medium text-[color:var(--text-muted)] uppercase tracking-wider">Cloud Providers</h6>
-              <div className="history-toggle" role="group" aria-label="Toggle all providers">
+              <div className="history-toggle select-all-toggle" role="group" aria-label="Toggle all providers">
                 <button
                   type="button"
                   className={selectedProviders.length === props.providers.length ? 'is-on' : ''}
@@ -540,7 +540,7 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
               <div className="rounded-xl border border-[color:var(--border)] p-4 sticky top-4">
                 <div className="flex items-center justify-between mb-4">
                   <h5 className="text-sm font-medium text-[color:var(--text-secondary)]">Locations</h5>
-                  <div className="history-toggle" role="group" aria-label="Toggle all locations">
+                  <div className="history-toggle select-all-toggle" role="group" aria-label="Toggle all locations">
                     <button
                       type="button"
                       className={selectedCountries.length === props.countries.length ? 'is-on' : ''}
