@@ -191,6 +191,7 @@ h6 { @apply text-xs font-medium; color: var(--text-muted); letter-spacing: 0.04e
 }
 .theme-toggle:hover { color: var(--text); }
 
+
 /* Shared header + page navigation. The two destinations remain real links but
    read visually as one segmented switch. */
 .site-header {

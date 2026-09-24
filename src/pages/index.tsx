@@ -491,12 +491,17 @@ export default function CloudPing(props: CloudPingProps): JSX.Element {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-3">
               <h6 className="text-xs font-medium text-[color:var(--text-muted)] uppercase tracking-wider">Cloud Providers</h6>
-              <button
-                onClick={() => setSelectedProviders(selectedProviders.length === props.providers.length ? [] : props.providers.map((p) => p.key))}
-                className="text-xs text-[color:var(--text-muted)] hover:text-[color:var(--text-secondary)] transition-colors"
-              >
-                {selectedProviders.length === props.providers.length ? 'Deselect all' : 'Select all'}
-              </button>
+              <div className="history-toggle" role="group" aria-label="Toggle all providers">
+                <button
+                  type="button"
+                  className={selectedProviders.length === props.providers.length ? 'is-on' : ''}
+                  aria-pressed={selectedProviders.length === props.providers.length}
+                  onClick={() => setSelectedProviders(selectedProviders.length === props.providers.length ? [] : props.providers.map((p) => p.key))}
+                  title={selectedProviders.length === props.providers.length ? 'Deselect all providers' : 'Select all providers'}
+                >
+                  All
+                </button>
+              </div>
             </div>
             <div className="pills-wrap">
               {props.providers.map((provider) => {
