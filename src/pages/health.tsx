@@ -292,7 +292,9 @@ export default function Health(props: HealthProps): JSX.Element {
   }>({ snapshot: null, selectedFromContinents: null })
   const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedProviders, setSelectedProviders] = useState(props.providers.map((p) => p.key))
-  const [selectedGeos, setSelectedGeos] = useState(Object.keys(props.geos))
+  // Continent selection is derived from selectedKeys (see geoAllSelected /
+  // toggleGeo), not stored separately — so checking/unchecking individual
+  // regions keeps the continent pills in sync automatically.
   const [selectedKeys, setSelectedKeys] = useState(catalog.map((r) => r.key))
   // The To (target region) box is collapsed by default — it holds every row-side
   // filter and would otherwise eat most of the screen above the matrix.
@@ -425,16 +427,40 @@ export default function Health(props: HealthProps): JSX.Element {
     return maxN >= MIN_N24H
   }, [columns])
 
-  const scoped = useMemo(
-    () => catalog.filter((row) => selectedProviders.includes(row.provider.key) && selectedGeos.includes(row.region.geo)),
-    [catalog, selectedProviders, selectedGeos]
-  )
+  const scoped = useMemo(() => catalog.filter((row) => selectedProviders.includes(row.provider.key)), [catalog, selectedProviders])
+
+  // Regions grouped by continent within the current provider scope, so the
+  // continent pills reflect exactly the rows a user could pick right now.
+  const scopedByGeo = useMemo(() => {
+    const map = new Map<string, CatalogRow[]>()
+    for (const row of scoped) {
+      const list = map.get(row.region.geo)
+      if (list) list.push(row)
+      else map.set(row.region.geo, [row])
+    }
+    return map
+  }, [scoped])
+
+  // A continent pill is "on" only when every region it covers (in scope) is
+  // selected. Partial selection reads as off, per the requested behavior.
+  const geoAllSelected = useMemo(() => {
+    const selectedSet = new Set(selectedKeys)
+    const result = new Map<string, boolean>()
+    for (const [geo, list] of scopedByGeo) {
+      result.set(geo, list.length > 0 && list.every((row) => selectedSet.has(row.key)))
+    }
+    return result
+  }, [scopedByGeo, selectedKeys])
 
   const rows = useMemo(() => scoped.filter((row) => selectedKeys.includes(row.key)), [scoped, selectedKeys])
   const showProvider = selectedProviders.length !== 1
-  const geoKeys = useMemo(() => Object.keys(props.geos), [props.geos])
+  const selectedGeoCount = useMemo(() => {
+    let n = 0
+    for (const on of geoAllSelected.values()) if (on) n++
+    return n
+  }, [geoAllSelected])
   // Collapsed-header summary so the counts stay visible without opening the box.
-  const toFilterSummary = `${selectedProviders.length}/${props.providers.length} clouds · ${selectedGeos.length}/${geoKeys.length} continents · ${rows.length}/${catalog.length} regions`
+  const toFilterSummary = `${selectedProviders.length}/${props.providers.length} clouds · ${selectedGeoCount}/${scopedByGeo.size} continents · ${rows.length}/${catalog.length} regions`
   // Which corner-mark kinds actually occur on screen. The legend keys only those,
   // so it never explains a glyph a viewer cannot find — 'adjacent' needs a Vercel
   // origin, and snapshots without one simply drop that row from the key.
@@ -469,7 +495,21 @@ export default function Health(props: HealthProps): JSX.Element {
     'Shared cloud-region latency matrix probed from AWS, GCP, and Azure regions. Latest values show the fastest successful HTTP round-trip after warmup; 24h values are median per-run results.'
 
   const toggleProvider = (k: string) => setSelectedProviders((v) => (v.includes(k) ? v.filter((x) => x !== k) : [...v, k]))
-  const toggleGeo = (geo: string) => setSelectedGeos((v) => (v.includes(geo) ? v.filter((x) => x !== geo) : [...v, geo]))
+  // Continent pill: select or clear every in-scope region of that continent.
+  // If they're all selected now, clear them; otherwise select them all.
+  const toggleGeo = (geo: string) => {
+    const list = scopedByGeo.get(geo) || []
+    if (list.length === 0) return
+    const keys = list.map((row) => row.key)
+    const allOn = geoAllSelected.get(geo) === true
+    setSelectedKeys((current) => {
+      if (allOn) {
+        const remove = new Set(keys)
+        return current.filter((k) => !remove.has(k))
+      }
+      return [...new Set([...current, ...keys])]
+    })
+  }
   // From-column filters. null means "all"; toggling narrows to an explicit set.
   const toggleFromVendor = (v: string) =>
     setSelectedFromVendors((cur) => {
@@ -632,15 +672,15 @@ export default function Health(props: HealthProps): JSX.Element {
                   <div className="pills-wrap matrix-to-filter-pills">
                     <button
                       type="button"
-                      className={`provider-pill ${selectedGeos.length === geoKeys.length ? 'active' : ''}`}
-                      aria-pressed={selectedGeos.length === geoKeys.length}
-                      onClick={() => setSelectedGeos((current) => (current.length === geoKeys.length ? [] : geoKeys))}
+                      className={`provider-pill ${scopedByGeo.size > 0 && selectedGeoCount === scopedByGeo.size ? 'active' : ''}`}
+                      aria-pressed={scopedByGeo.size > 0 && selectedGeoCount === scopedByGeo.size}
+                      onClick={() => setScopedKeys(!(scoped.length > 0 && rows.length === scoped.length))}
                     >
                       All
                     </button>
                     {GEO_ORDER.map((geo) => {
-                      if (!props.geos[geo]) return null
-                      const on = selectedGeos.includes(geo)
+                      if (!scopedByGeo.has(geo)) return null
+                      const on = geoAllSelected.get(geo) === true
                       return (
                         <button key={geo} type="button" onClick={() => toggleGeo(geo)} className={`provider-pill ${on ? 'active' : ''}`}>
                           {geo}
