@@ -207,10 +207,14 @@ h6 { @apply text-xs font-medium; color: var(--text-muted); letter-spacing: 0.04e
   gap: 0.75rem 1rem;
 }
 .site-header-brand {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.75rem;
   min-width: 0;
+  /* Sit in the 1fr column but only span the logo + title, not the empty space to
+     its right — otherwise the whole gap up to the page-switch would be clickable. */
+  justify-self: start;
+  max-width: 100%;
 }
 .site-header-logo {
   display: flex;
