@@ -1,5 +1,6 @@
 import { getAllCloudRegions, getAllProviders } from '@app/data'
 import type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
+import { monitorEventLoopDelay } from 'node:perf_hooks'
 import { withCacheBuster, MIN_PLAUSIBLE_MS } from './measure-core'
 
 export type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
@@ -218,7 +219,23 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
 
     origin = resolveOrigin()
 
+    // Instrument event-loop lag across the whole measurement pass. If the leading
+    // hypothesis is right (fan-out TLS/socket callbacks starving the small Lambda's
+    // ~0.15 vCPU so performance.now() elapsed absorbs scheduling delay), this shows
+    // multi-ms/second stalls that correlate with inflated per-cell mins. Near-zero
+    // lag on a round would instead point the finger at target-side variance. The
+    // histogram itself is cheap (libuv timer sampling) and adds no probe requests.
+    const eld = monitorEventLoopDelay({ resolution: 20 })
+    eld.enable()
     const results = await mapPool(jobs, concurrency, measureJob)
+    eld.disable()
+    const eldStats = {
+      // Nanoseconds → milliseconds. `max`/`p99` are the tell: a healthy event loop
+      // stays sub-millisecond; tens-to-hundreds of ms means the loop stalled.
+      meanMs: Number((eld.mean / 1e6).toFixed(2)),
+      maxMs: Number((eld.max / 1e6).toFixed(2)),
+      p99Ms: Number((eld.percentile(99) / 1e6).toFixed(2)),
+    }
     // Observability for probe_disabled recovery: how many rechecks we attempted
     // and how many came back alive this round. Lets an operator see when such a
     // region has recovered (and its flag can be dropped) without scanning cells.
@@ -260,6 +277,7 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
         origin: origin.id,
         concurrency,
         durationMs: Date.now() - started,
+        eventLoopDelay: eldStats,
         cells: results.length,
         failed: failedCount,
         firstFailedIndex,
