@@ -552,7 +552,6 @@ export default function Health(props: HealthProps): JSX.Element {
                   type="button"
                   className={`provider-pill ${selectedFromContinents === null ? 'active' : ''}`}
                   aria-pressed={selectedFromContinents === null}
-                  title={selectedFromContinents === null ? 'Hide every probe origin' : 'Show probe origins from every continent'}
                   onClick={() =>
                     setMatrixState((state) => ({
                       ...state,
@@ -602,9 +601,7 @@ export default function Health(props: HealthProps): JSX.Element {
                       className={`provider-pill ${selectedProviders.length === props.providers.length ? 'active' : ''}`}
                       aria-pressed={selectedProviders.length === props.providers.length}
                       onClick={() =>
-                        setSelectedProviders((current) =>
-                          current.length === props.providers.length ? current : props.providers.map((provider) => provider.key)
-                        )
+                        setSelectedProviders((current) => (current.length === props.providers.length ? [] : props.providers.map((provider) => provider.key)))
                       }
                     >
                       All
@@ -637,7 +634,7 @@ export default function Health(props: HealthProps): JSX.Element {
                       type="button"
                       className={`provider-pill ${selectedGeos.length === geoKeys.length ? 'active' : ''}`}
                       aria-pressed={selectedGeos.length === geoKeys.length}
-                      onClick={() => setSelectedGeos((current) => (current.length === geoKeys.length ? current : geoKeys))}
+                      onClick={() => setSelectedGeos((current) => (current.length === geoKeys.length ? [] : geoKeys))}
                     >
                       All
                     </button>
@@ -669,17 +666,9 @@ export default function Health(props: HealthProps): JSX.Element {
                     type="button"
                     className={`provider-pill ${scoped.length > 0 && rows.length === scoped.length ? 'active' : ''}`}
                     aria-pressed={scoped.length > 0 && rows.length === scoped.length}
-                    onClick={() => setScopedKeys(true)}
+                    onClick={() => setScopedKeys(!(scoped.length > 0 && rows.length === scoped.length))}
                   >
                     All
-                  </button>
-                  <button
-                    type="button"
-                    className={`provider-pill ${scoped.length > 0 && rows.length === 0 ? 'active' : ''}`}
-                    aria-pressed={scoped.length > 0 && rows.length === 0}
-                    onClick={() => setScopedKeys(false)}
-                  >
-                    None
                   </button>
                 </div>
                 <div className="matrix-filter-grid">
