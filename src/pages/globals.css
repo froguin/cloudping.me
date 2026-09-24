@@ -1043,18 +1043,65 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   color: var(--text);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
 }
-/* select-all switch (From You): match the provider pills' accent language —
-   a light/translucent blue fill with the pill text color and an inset ring
-   instead of a real border (keeps the rounded clip, no layout shift). Pill
-   variables are already theme-aware, so no [data-theme] override is needed. */
-.history-toggle.select-all-toggle button.is-on {
-  background: var(--pill-active-bg);
-  color: var(--pill-active-text);
-  box-shadow: inset 0 0 0 1px var(--pill-active-border);
-}
 .history-toggle button:focus-visible {
   outline: 2px solid var(--pill-active-border);
   outline-offset: -2px;
+}
+
+/* Select-all switch (From You): a real on/off switch (label + track + knob),
+   not a bordered single-button segment. The knob position makes the state
+   obvious — the earlier one-button-in-a-box read as ambiguous. Uses the
+   pill accent when on, so it matches the filter pills below it. */
+.switch-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  user-select: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  transition: color 0.15s ease;
+}
+.switch-toggle:hover {
+  color: var(--text-secondary);
+}
+.switch-toggle-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.18s ease;
+  flex-shrink: 0;
+}
+.switch-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform 0.18s ease;
+}
+.switch-toggle[aria-pressed='true'] .switch-toggle-track {
+  background: var(--pill-active-border);
+}
+.switch-toggle[aria-pressed='true'] .switch-toggle-knob {
+  transform: translateX(14px);
+  background: #fff;
+}
+.switch-toggle[aria-pressed='true'] {
+  color: var(--text);
+}
+.switch-toggle:focus-visible {
+  outline: 2px solid var(--pill-active-border);
+  outline-offset: 3px;
+  border-radius: 6px;
 }
 
 /* Chart */
