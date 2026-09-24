@@ -313,7 +313,7 @@ resource "aws_lambda_function" "probe_us_east_1" {
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   handler       = "index.handler"
-  memory_size   = 256
+  memory_size   = 512
   timeout       = 300
   role          = aws_iam_role.cloudping_probe_lambda.arn
   filename      = "${path.module}/dummy.zip"
@@ -344,7 +344,7 @@ resource "aws_lambda_function" "probe_us_east_2" {
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   handler       = "index.handler"
-  memory_size   = 256
+  memory_size   = 512
   timeout       = 300
   role          = aws_iam_role.cloudping_probe_lambda.arn
   filename      = "${path.module}/dummy.zip"
@@ -402,7 +402,7 @@ resource "aws_lambda_function" "probe_us_west_2" {
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   handler       = "index.handler"
-  memory_size   = 256
+  memory_size   = 512
   timeout       = 300
   role          = aws_iam_role.cloudping_probe_lambda.arn
   filename      = "${path.module}/dummy.zip"
@@ -433,7 +433,7 @@ resource "aws_lambda_function" "probe_eu_west_1" {
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   handler       = "index.handler"
-  memory_size   = 256
+  memory_size   = 512
   timeout       = 300
   role          = aws_iam_role.cloudping_probe_lambda.arn
   filename      = "${path.module}/dummy.zip"
@@ -491,7 +491,7 @@ resource "aws_lambda_function" "probe_eu_central_1" {
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   handler       = "index.handler"
-  memory_size   = 256
+  memory_size   = 512
   timeout       = 300
   role          = aws_iam_role.cloudping_probe_lambda.arn
   filename      = "${path.module}/dummy.zip"
@@ -522,7 +522,7 @@ resource "aws_lambda_function" "probe_ap_northeast_1" {
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   handler       = "index.handler"
-  memory_size   = 256
+  memory_size   = 512
   timeout       = 300
   role          = aws_iam_role.cloudping_probe_lambda.arn
   filename      = "${path.module}/dummy.zip"
@@ -580,7 +580,7 @@ resource "aws_lambda_function" "probe_ap_northeast_2" {
   runtime                        = "nodejs24.x"
   architectures                  = ["arm64"]
   handler                        = "index.handler"
-  memory_size                    = 256
+  memory_size                    = 512
   timeout                        = 300
   role                           = aws_iam_role.cloudping_probe_lambda.arn
   reserved_concurrent_executions = 2
@@ -639,7 +639,7 @@ resource "aws_lambda_function" "probe_ap_southeast_1" {
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   handler       = "index.handler"
-  memory_size   = 256
+  memory_size   = 512
   timeout       = 300
   role          = aws_iam_role.cloudping_probe_lambda.arn
   filename      = "${path.module}/dummy.zip"
@@ -670,7 +670,7 @@ resource "aws_lambda_function" "probe_ap_southeast_2" {
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   handler       = "index.handler"
-  memory_size   = 256
+  memory_size   = 512
   timeout       = 300
   role          = aws_iam_role.cloudping_probe_lambda.arn
   filename      = "${path.module}/dummy.zip"
@@ -701,7 +701,7 @@ resource "aws_lambda_function" "probe_ap_south_1" {
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   handler       = "index.handler"
-  memory_size   = 256
+  memory_size   = 512
   timeout       = 300
   role          = aws_iam_role.cloudping_probe_lambda.arn
   filename      = "${path.module}/dummy.zip"
@@ -732,7 +732,7 @@ resource "aws_lambda_function" "probe_sa_east_1" {
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   handler       = "index.handler"
-  memory_size   = 256
+  memory_size   = 512
   timeout       = 300
   role          = aws_iam_role.cloudping_probe_lambda.arn
   filename      = "${path.module}/dummy.zip"
@@ -763,7 +763,7 @@ resource "aws_lambda_function" "probe_af_south_1" {
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   handler       = "index.handler"
-  memory_size   = 256
+  memory_size   = 512
   timeout       = 300
   role          = aws_iam_role.cloudping_probe_lambda.arn
   filename      = "${path.module}/dummy.zip"
@@ -794,7 +794,7 @@ resource "aws_lambda_function" "probe_me_central_1" {
   runtime       = "nodejs24.x"
   architectures = ["arm64"]
   handler       = "index.handler"
-  memory_size   = 256
+  memory_size   = 512
   timeout       = 300
   role          = aws_iam_role.cloudping_probe_lambda.arn
   filename      = "${path.module}/dummy.zip"
