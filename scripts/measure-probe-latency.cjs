@@ -31,6 +31,16 @@ function load(data, fetchImpl = fetch) {
     exports,
     require: (id) => {
       if (id === '@app/data') return data
+      if (id === 'node:perf_hooks') return require('node:perf_hooks')
+      if (id === './measure-core' || id === './probe-snapshot') {
+        const modSrc = fs.readFileSync(`src/fns/${id.slice(2)}.ts`, 'utf8')
+        const modCode = ts.transpileModule(modSrc, {
+          compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+        }).outputText
+        const modExports = {}
+        vm.runInNewContext(modCode, { exports: modExports, module: { exports: modExports }, URL, require })
+        return modExports
+      }
       throw Error(id)
     },
     observations,
