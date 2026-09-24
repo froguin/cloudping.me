@@ -1,8 +1,15 @@
-import { Inter, Space_Grotesk, JetBrains_Mono } from 'next/font/google'
+import localFont from 'next/font/local'
 
-// Font loaders live in this shared module so both _app (which must import them so
-// next/font bundles the @font-face CSS) and _document (which puts the CSS-variable
-// classes on <html>) reference the exact same generated class names.
+// Fonts are loaded from local .woff2 files (latin subset, variable) rather than
+// next/font/google. next/font/google fetches the font files from Google's
+// servers at *build time*, which made CI flaky: an intermittent network failure
+// during the fetch broke `next build` with "An error occurred in next/font".
+// Bundling the files removes that network dependency entirely — builds are
+// deterministic and work offline. Files live in src/fonts (see SOURCES for
+// provenance: Google Fonts, latin subset, OFL-licensed).
+//
+// These are variable fonts, so a single .woff2 per family covers the weight
+// range we use; `weight` below is the supported range, not a single value.
 //
 // Why <html> and not a wrapper <div>: globals.css sets `body { font-family:
 // var(--font-inter), ... }`, but a CSS custom property only cascades to the
@@ -11,25 +18,28 @@ import { Inter, Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 // var(--font-inter) resolved to nothing and the fallback (Segoe UI on Windows)
 // always won. Declaring them on <html> makes the variables visible to <body>.
 
-export const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
+export const inter = localFont({
+  src: './fonts/inter-latin.woff2',
+  weight: '400 600',
   display: 'swap',
   variable: '--font-inter',
+  fallback: ['system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
 })
 
-export const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
+export const spaceGrotesk = localFont({
+  src: './fonts/space-grotesk-latin.woff2',
+  weight: '500 700',
   display: 'swap',
   variable: '--font-space-grotesk',
+  fallback: ['system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
 })
 
-export const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
+export const jetbrainsMono = localFont({
+  src: './fonts/jetbrains-mono-latin.woff2',
+  weight: '400 500',
   display: 'swap',
   variable: '--font-jetbrains-mono',
+  fallback: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
 })
 
 /** Space-separated CSS-variable class names, applied to <html> in _document. */
