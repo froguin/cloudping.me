@@ -1036,8 +1036,15 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   color: var(--text);
 }
 .history-toggle button.is-on {
-  background: var(--pill-active-border);
+  /* Slightly lighter than the flat pill accent, with just a subtle top-down
+     tint rather than a strong gradient. */
+  background: linear-gradient(180deg, #5b9bf8 0%, var(--pill-active-border) 100%);
   color: #fff;
+}
+/* In dark mode the light-blue fill needs dark, bolder text for contrast. */
+[data-theme='dark'] .history-toggle button.is-on {
+  color: #0b1220;
+  font-weight: 700;
 }
 .history-toggle button:focus-visible {
   outline: 2px solid var(--pill-active-border);
