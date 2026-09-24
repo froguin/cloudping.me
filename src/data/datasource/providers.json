@@ -15,14 +15,14 @@
         "short_name": "GCP"
     },
     {
+        "key": "oracle",
+        "display_name": "Oracle Cloud",
+        "short_name": "Oracle"
+    },
+    {
         "key": "alibaba",
         "display_name": "Alibaba Cloud",
         "short_name": "Alibaba"
-    },
-    {
-        "key": "tencent",
-        "display_name": "Tencent Cloud",
-        "short_name": "Tencent"
     },
     {
         "key": "ibm",
@@ -30,9 +30,9 @@
         "short_name": "IBM"
     },
     {
-        "key": "oracle",
-        "display_name": "Oracle Cloud",
-        "short_name": "Oracle"
+        "key": "tencent",
+        "display_name": "Tencent Cloud",
+        "short_name": "Tencent"
     },
     {
         "key": "digitalocean",

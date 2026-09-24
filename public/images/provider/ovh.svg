@@ -1,4 +1,1 @@
-<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OVHcloud">
-  <rect width="64" height="64" rx="12" fill="#000E9C"/>
-  <path d="M14 20h7l5 16 5-16h7l5 16 5-16h7l-8 24h-8l-4-13-4 13h-8L14 20z" fill="#fff"/>
-</svg>
+<svg fill="#2064C4" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>OVHcloud</title><path d="M19.881 10.095l2.563-4.45C23.434 7.389 24 9.404 24 11.555c0 2.88-1.017 5.523-2.71 7.594h-6.62l2.04-3.541h-2.696l3.176-5.513h2.691zm-2.32-5.243L9.333 19.14l.003.009H2.709C1.014 17.077 0 14.435 0 11.555c0-2.152.57-4.17 1.561-5.918L5.855 13.1 10.6 4.852h6.961z"/></svg>
