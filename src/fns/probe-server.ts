@@ -185,19 +185,18 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     const started = Date.now()
     const providers = getAllProviders()
     const regions = getAllCloudRegions()
-    const jobs: { provider: string; region: (typeof regions)[string][number] }[] = []
+    const jobs: { provider: string; region: (typeof regions)[string][number]; recheck: boolean }[] = []
     for (const provider of providers) {
       for (const region of regions[provider.key] || []) {
         if (!region.ping_url) continue
-        // Skip regions flagged probe_disabled: they stay measured client-side
-        // ("From You") but their public endpoint rate-limits datacenter traffic,
-        // so probing them from every origin just wastes the round on failures.
-        // Recovery is manual: if such an endpoint starts accepting datacenter
-        // traffic again, drop the flag in the region data (an automated recheck
-        // here can't re-enable a static flag, and would only pollute the
-        // round's failure diagnostics).
-        if (region.probe_disabled) continue
-        jobs.push({ provider: provider.key, region })
+        // probe_disabled regions are officially-operated regions whose public
+        // endpoint normally rate-limits/blocks datacenter traffic. We still
+        // probe them every round (marked recheck:true) so they auto-recover if
+        // the endpoint starts accepting traffic again — a successful round shows
+        // real values, and a failed one stays ok:false like any other failure
+        // (so it keeps its slot in the 7-day history and doesn't reset the
+        // series). Fail-fast in pingTarget keeps a still-dead recheck cheap.
+        jobs.push({ provider: provider.key, region, recheck: !!region.probe_disabled })
       }
     }
 
@@ -220,6 +219,12 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     origin = resolveOrigin()
 
     const results = await mapPool(jobs, concurrency, measureJob)
+    // Observability for probe_disabled recovery: how many rechecks we attempted
+    // and how many came back alive this round. Lets an operator see when such a
+    // region has recovered (and its flag can be dropped) without scanning cells.
+    const recheckJobs = jobs.filter((j) => j.recheck)
+    const recheckAttempted = recheckJobs.length
+    const recheckRecovered = results.filter((r) => r.ok && recheckJobs.some((j) => j.provider === r.provider && j.region.key === r.region)).length
     const failedTargets: Array<{ index: number; provider: string; region: string; error: string }> = []
     const failureKinds: Record<string, number> = {}
     let failedCount = 0
@@ -263,6 +268,8 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
         failureKinds,
         failedTargets,
         failedTargetsTruncated: failedCount - failedTargets.length,
+        recheckAttempted,
+        recheckRecovered,
       })
     )
 
