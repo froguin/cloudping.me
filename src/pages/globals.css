@@ -1036,8 +1036,8 @@ button.matrix-swatch.is-off { opacity: 0.4; }
   color: var(--text);
 }
 .history-toggle button.is-on {
-  background: var(--text);
-  color: var(--bg);
+  background: var(--pill-active-border);
+  color: #fff;
 }
 .history-toggle button:focus-visible {
   outline: 2px solid var(--pill-active-border);
