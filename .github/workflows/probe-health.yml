@@ -1,0 +1,89 @@
+name: Probe health
+
+# Daily census of the public 7-day probe history to catch a class of silent
+# regression that CI can't: the probe still runs and most cells look fine, but a
+# COHORT of targets (one provider / one endpoint host) is intermittently missing
+# samples — e.g. a data/config mistake that points a vendor's probes at a slow or
+# wrong path. It reads only the public status-branch history.json (no cloud creds)
+# and, when a provider cohort is unhealthy, opens or refreshes ONE tracking issue.
+# It never edits data or config — a human diagnoses and fixes. Healthy days are
+# silent.
+#
+# Retired region keys (old ids left in history after a rename) are ignored, so a
+# just-fixed migration heals on its own here once fresh samples arrive.
+#
+# Public repo => Actions minutes are free.
+
+on:
+  schedule:
+    # 05:23 UTC daily (odd minute, offset from the region-audit monthly job).
+    - cron: '23 5 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: probe-health
+  cancel-in-progress: false
+
+jobs:
+  census:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Run probe-health census
+        id: census
+        run: |
+          set -euo pipefail
+          node scripts/check-probe-health.mjs || true          # human-readable to the run log
+          node scripts/check-probe-health.mjs --json > /tmp/probe-health.json
+          has=$(python3 -c 'import json; print(str(json.load(open("/tmp/probe-health.json"))["hasProblem"]).lower())')
+          echo "has_problem=${has}" >> "${GITHUB_OUTPUT}"
+
+      - name: Open or refresh tracking issue
+        if: steps.census.outputs.has_problem == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          body="$(python3 - <<'PY'
+          import json
+          d = json.load(open("/tmp/probe-health.json"))
+          L = ["A daily census of the 7-day probe history found a provider **cohort** collecting",
+               "far fewer samples than its peers — the probe reaches most targets, but many cells",
+               "of one provider are intermittently missing. This is usually an endpoint/config",
+               "issue (wrong path, heavy operation, rate-limit), not transient loss.", "",
+               "These are **candidates to diagnose**, not auto-fixes. Retired region keys are",
+               "already excluded, so a just-shipped fix will clear on its own once fresh samples land.", "",
+               f"_Generated {d['generatedAt']} by `.github/workflows/probe-health.yml`._",
+               f"_Census: {d['totalCells']} live cells, {d['totalStarved']} starved._", ""]
+          for c in d["cohorts"]:
+              if not c.get("flagged"):
+                  continue
+              L.append(f"### {c['provider']} — {c['starvedCells']}/{c['totalCells']} cells starved ({int(c['fraction']*100)}%)")
+              for e in c["examples"]:
+                  L.append(f"- {e}")
+              L.append("")
+          L.append("Sample counts shown as (actual / origin-typical) out of a ~48-per-week window.")
+          print("\n".join(L))
+          PY
+          )"
+
+          title="Probe health: a provider cohort is missing samples"
+          existing="$(gh issue list --state open --search "in:title ${title}" --json number,title \
+            --jq ".[] | select(.title==\"${title}\") | .number" | head -n1)"
+          if [ -n "${existing}" ]; then
+            gh issue comment "${existing}" --body "${body}"
+            echo "Refreshed existing issue #${existing}."
+          else
+            gh issue create --title "${title}" --body "${body}" --label probe-health 2>/dev/null \
+              || gh issue create --title "${title}" --body "${body}"
+          fi
