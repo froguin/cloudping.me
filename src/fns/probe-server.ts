@@ -39,6 +39,7 @@ function logSelfProbe(fields: {
   ms: number | null
   samples: number | null
   error: 'timeout' | 'network' | null
+  raw?: number[] | null
 }): void {
   try {
     console.log(JSON.stringify({ kind: 'self-probe', ...fields }))
@@ -100,7 +101,7 @@ function errorKind(err: unknown): 'timeout' | 'network' {
   return 'network'
 }
 
-async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number; samples: number } | { error: 'timeout' | 'network' }> {
+async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number; samples: number; raw: number[] } | { error: 'timeout' | 'network' }> {
   // Warm up the connection (DNS, TLS session, and the target's own cold start)
   // with throwaway requests so the timed samples reflect steady-state latency
   // rather than first-hit cost. Individual warmup failures are tolerated, but
@@ -146,8 +147,11 @@ async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number;
   // Queueing and event-loop stalls add delay. The minimum estimates the least
   // congested HTTP round trip, still including target processing (not raw RTT).
   // Report whole milliseconds — sub-ms precision isn't meaningful for these paths
-  // and keeps the /health table clean.
-  return { ms: Math.round(Math.min(...samples)), samples: samples.length }
+  // and keeps the /health table clean. `raw` carries the individual per-sample
+  // timings so the self-probe log can expose their shape (a bimodal set like
+  // [4,18,4,19] would confirm the connection-reuse-failure hypothesis: some
+  // samples pay a fresh TCP+TLS handshake while others reuse a warm socket).
+  return { ms: Math.round(Math.min(...samples)), samples: samples.length, raw: samples.map((s) => Math.round(s)) }
 }
 
 async function mapPool<T, R>(items: T[], concurrency: number, worker: (item: T) => Promise<R>): Promise<R[]> {
@@ -182,6 +186,12 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
   // failure diagnostic if the exception happens before resolution completes.
   let origin: { id: string; label: string } | undefined
 
+  // Per-sample timings of the self-cell (origin measuring its own region), filled
+  // in measureJob once origin is known. Diagnostic only — surfaced in the
+  // self-probe log to test the connection-reuse-failure hypothesis for AWS self
+  // jitter. Reset each round via the module-scope declaration below.
+  let selfRaw: number[] | null = null
+
   try {
     const started = Date.now()
     const providers = getAllProviders()
@@ -214,6 +224,10 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
       }
       const out = await pingTarget(job.region.ping_url, timeoutMs)
       if ('error' in out) return { ...base, error: out.error }
+      // Capture the self-cell's individual per-sample timings (once resolved) so
+      // the self-probe log can reveal their shape. A bimodal set (e.g. [4,18,4,19])
+      // confirms connection-reuse failure; a tight set (e.g. [4,4,5,4]) refutes it.
+      if (origin && `${job.provider}-${job.region.key}` === origin.id) selfRaw = out.raw
       return { ...base, ms: out.ms, ok: true, samples: out.samples }
     }
 
@@ -300,7 +314,15 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     if (!selfResult) {
       logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'unavailable', ms: null, samples: null, error: null })
     } else if (selfResult.ok) {
-      logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'ok', ms: selfResult.ms, samples: selfResult.samples ?? null, error: null })
+      logSelfProbe({
+        origin: origin.id,
+        warmContainer: warmAtEntry,
+        status: 'ok',
+        ms: selfResult.ms,
+        samples: selfResult.samples ?? null,
+        error: null,
+        raw: selfRaw,
+      })
     } else {
       logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'failed', ms: null, samples: null, error: selfResult.error ?? null })
     }
