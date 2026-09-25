@@ -5,7 +5,7 @@
     "country": "US",
     "location": "Newark",
     "geo": "North America",
-    "ping_url": "https://us-east-1.linodeobjects.com/"
+    "ping_url": "https://us-east-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "us-southeast",
@@ -13,7 +13,7 @@
     "country": "US",
     "location": "Atlanta",
     "geo": "North America",
-    "ping_url": "https://us-southeast-1.linodeobjects.com/"
+    "ping_url": "https://us-southeast-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "us-central",
@@ -37,7 +37,7 @@
     "country": "US",
     "location": "Chicago",
     "geo": "North America",
-    "ping_url": "https://us-ord-1.linodeobjects.com/"
+    "ping_url": "https://us-ord-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "us-iad",
@@ -45,7 +45,7 @@
     "country": "US",
     "location": "Washington",
     "geo": "North America",
-    "ping_url": "https://us-iad-1.linodeobjects.com/"
+    "ping_url": "https://us-iad-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "us-lax",
@@ -53,7 +53,7 @@
     "country": "US",
     "location": "Los Angeles",
     "geo": "North America",
-    "ping_url": "https://us-lax-1.linodeobjects.com/"
+    "ping_url": "https://us-lax-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "us-mia",
@@ -61,7 +61,7 @@
     "country": "US",
     "location": "Miami",
     "geo": "North America",
-    "ping_url": "https://us-mia-1.linodeobjects.com/"
+    "ping_url": "https://us-mia-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "us-sea",
@@ -69,7 +69,7 @@
     "country": "US",
     "location": "Seattle",
     "geo": "North America",
-    "ping_url": "https://us-sea-1.linodeobjects.com/"
+    "ping_url": "https://us-sea-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "ca-central",
@@ -85,7 +85,7 @@
     "country": "BR",
     "location": "São Paulo",
     "geo": "South America",
-    "ping_url": "https://br-gru-1.linodeobjects.com/"
+    "ping_url": "https://br-gru-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "eu-west",
@@ -93,7 +93,7 @@
     "country": "UK",
     "location": "London",
     "geo": "Europe",
-    "ping_url": "https://gb-lon-1.linodeobjects.com/"
+    "ping_url": "https://gb-lon-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "eu-central",
@@ -101,7 +101,7 @@
     "country": "DE",
     "location": "Frankfurt",
     "geo": "Europe",
-    "ping_url": "https://eu-central-1.linodeobjects.com/"
+    "ping_url": "https://eu-central-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "fr-par",
@@ -109,7 +109,7 @@
     "country": "FR",
     "location": "Paris",
     "geo": "Europe",
-    "ping_url": "https://fr-par-1.linodeobjects.com/"
+    "ping_url": "https://fr-par-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "nl-ams",
@@ -117,7 +117,7 @@
     "country": "NL",
     "location": "Amsterdam",
     "geo": "Europe",
-    "ping_url": "https://nl-ams-1.linodeobjects.com/"
+    "ping_url": "https://nl-ams-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "se-sto",
@@ -125,7 +125,7 @@
     "country": "SE",
     "location": "Stockholm",
     "geo": "Europe",
-    "ping_url": "https://se-sto-1.linodeobjects.com/"
+    "ping_url": "https://se-sto-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "es-mad",
@@ -133,7 +133,7 @@
     "country": "ES",
     "location": "Madrid",
     "geo": "Europe",
-    "ping_url": "https://es-mad-1.linodeobjects.com/"
+    "ping_url": "https://es-mad-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "it-mil",
@@ -141,7 +141,7 @@
     "country": "IT",
     "location": "Milan",
     "geo": "Europe",
-    "ping_url": "https://it-mil-1.linodeobjects.com/"
+    "ping_url": "https://it-mil-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "ap-south",
@@ -149,7 +149,7 @@
     "country": "SG",
     "location": "Singapore",
     "geo": "Asia",
-    "ping_url": "https://ap-south-1.linodeobjects.com/"
+    "ping_url": "https://ap-south-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "ap-northeast",
@@ -157,7 +157,7 @@
     "country": "JP",
     "location": "Tokyo",
     "geo": "Asia",
-    "ping_url": "https://jp-tyo-1.linodeobjects.com/"
+    "ping_url": "https://jp-tyo-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "jp-osa",
@@ -165,7 +165,7 @@
     "country": "JP",
     "location": "Osaka",
     "geo": "Asia",
-    "ping_url": "https://jp-osa-1.linodeobjects.com/"
+    "ping_url": "https://jp-osa-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "ap-west",
@@ -173,7 +173,7 @@
     "country": "IN",
     "location": "Mumbai",
     "geo": "Asia",
-    "ping_url": "https://in-bom-1.linodeobjects.com/"
+    "ping_url": "https://in-bom-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "in-maa",
@@ -181,7 +181,7 @@
     "country": "IN",
     "location": "Chennai",
     "geo": "Asia",
-    "ping_url": "https://in-maa-1.linodeobjects.com/"
+    "ping_url": "https://in-maa-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "id-cgk",
@@ -189,7 +189,7 @@
     "country": "ID",
     "location": "Jakarta",
     "geo": "Asia",
-    "ping_url": "https://id-cgk-1.linodeobjects.com/"
+    "ping_url": "https://id-cgk-1.linodeobjects.com/cloudping-probe/ping"
   },
   {
     "key": "ap-southeast",
@@ -205,6 +205,6 @@
     "country": "AU",
     "location": "Melbourne",
     "geo": "Oceania",
-    "ping_url": "https://au-mel-1.linodeobjects.com/"
+    "ping_url": "https://au-mel-1.linodeobjects.com/cloudping-probe/ping"
   }
 ]
