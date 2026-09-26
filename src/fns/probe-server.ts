@@ -2,7 +2,6 @@ import { getAllCloudRegions, getAllProviders } from '@app/data'
 import type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 import { monitorEventLoopDelay } from 'node:perf_hooks'
 import diagnosticsChannel from 'node:diagnostics_channel'
-import { readFileSync } from 'node:fs'
 import { withCacheBuster, MIN_PLAUSIBLE_MS } from './measure-core'
 
 // --- cgroup v2 CPU-throttle reader (diagnostic only) ------------------------
@@ -16,33 +15,42 @@ import { withCacheBuster, MIN_PLAUSIBLE_MS } from './measure-core'
 // it's probably CPU throttling") into DIRECT evidence: seconds of throttled_usec
 // per round confirms the quota is the cause; near-zero refutes it. cpu.max gives
 // the quota/period so the numbers are interpretable. All reads are best-effort:
-// the sandbox may not expose these files, and a probe must never fail over a
-// diagnostic, so every read is guarded and returns null on any error.
-function readCpuStat(): { nrThrottled: number; throttledUsec: number } | null {
-  try {
-    const text = readFileSync('/sys/fs/cgroup/cpu.stat', 'utf8')
-    // Anchor each key to line start (multiline) so a key can't be matched as a
-    // substring of another line. cgroup v2 cpu.stat is one "key value" per line.
-    const nrThrottled = Number(text.match(/^nr_throttled (\d+)$/m)?.[1])
-    const throttledUsec = Number(text.match(/^throttled_usec (\d+)$/m)?.[1])
-    if (!Number.isFinite(nrThrottled) || !Number.isFinite(throttledUsec)) return null
-    return { nrThrottled, throttledUsec }
-  } catch {
-    return null
-  }
-}
+// --- CPU-starvation diagnostic (diagnostic only) ----------------------------
+// The near-cell-inflation hypothesis is that the 512MB Lambda's CPU quota
+// (~0.28 vCPU) is exhausted during the concurrent fan-out, so the kernel parks
+// the whole process for 10–40ms and performance.now() elapsed absorbs the wait.
+// The obvious source, cgroup v2 cpu.stat (nr_throttled/throttled_usec), is NOT
+// available: the Lambda microVM does not mount /sys/fs/cgroup at all (ENOENT),
+// verified empirically. So we measure the effect two dependency-free ways that
+// DO work in the sandbox:
+//
+// 1. process.cpuUsage(): CPU microseconds (user+system) actually consumed. The
+//    ratio cpuMs/wallMs over the pool phase is the effective CPU utilization.
+//    If the process is compute-starved against a ~0.28 vCPU cap, the ratio
+//    presses toward that ceiling while wall time stretches; a low ratio means
+//    the round is I/O-bound and CPU isn't the bottleneck.
+// 2. A periodic SPIN PROBE: run a fixed, known amount of pure synchronous work
+//    and measure its wall time. If a spin whose CPU cost is ~1ms sometimes takes
+//    20–40ms of wall time, the process was descheduled mid-spin — direct,
+//    unambiguous evidence of CPU parking that a per-fetch timer can't attribute.
+//    We record the worst inflation factor (wall/cpu) seen across the round.
 
-function readCpuMax(): { quotaUsec: number | null; periodUsec: number | null } | null {
-  try {
-    // Format: "$MAX $PERIOD" where $MAX is "max" (unlimited) or a number of usec.
-    const [maxRaw, periodRaw] = readFileSync('/sys/fs/cgroup/cpu.max', 'utf8').trim().split(/\s+/)
-    return {
-      quotaUsec: maxRaw === 'max' ? null : Number(maxRaw),
-      periodUsec: Number(periodRaw),
-    }
-  } catch {
-    return null
-  }
+// Calibrated busy-work: a fixed iteration count whose synchronous cost is a few
+// ms on this class of vCPU. Measured as wall vs cpu so parking shows up as
+// wall >> cpu. Kept small (runs a handful of times per round) so it adds
+// negligible GB-seconds and never competes meaningfully with real probes.
+function spinOnce(iterations: number): { wallMs: number; cpuMs: number } {
+  const c0 = process.cpuUsage()
+  const w0 = performance.now()
+  // Simple integer churn the JIT can't fully elide (accumulator is returned via
+  // the throwaway check below). Pure CPU, no allocation, no I/O.
+  let acc = 0
+  for (let i = 0; i < iterations; i++) acc = (acc + i * 31 + 7) >>> 0
+  const wallMs = performance.now() - w0
+  const cpu = process.cpuUsage(c0)
+  // Guard against the JIT eliding the loop entirely.
+  if (acc === 0xffffffff) throw new Error('unreachable')
+  return { wallMs, cpuMs: (cpu.user + cpu.system) / 1000 }
 }
 
 // --- Connection-establishment tracking (diagnostic only) --------------------
@@ -364,11 +372,45 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     // histogram itself is cheap (libuv timer sampling) and adds no probe requests.
     const eld = monitorEventLoopDelay({ resolution: 20 })
     eld.enable()
-    // Snapshot cgroup CPU throttling immediately around the fan-out so the delta
-    // attributes parks to the pool phase specifically (not container setup).
-    const cpuBefore = readCpuStat()
+    // Measure CPU starvation across the fan-out (see the diagnostic helpers up
+    // top). Two independent signals, both dependency-free and Lambda-safe since
+    // cgroup files are unavailable:
+    //   (a) process.cpuUsage() + wall clock around the pool → utilization ratio.
+    //   (b) spin probes running CONCURRENTLY with the pool → per-probe wall/cpu
+    //       inflation, which is direct evidence of the process being parked.
+    const cpuBefore = process.cpuUsage()
+    const wallBefore = performance.now()
+    // Self-scheduling spin sampler: yields between probes so it rides the same
+    // event loop as the fan-out (feeling the same parking) without blocking it.
+    // Bounded count keeps CPU/GB-seconds cost negligible. Stops when the pool
+    // signals completion via `poolDone`.
+    let poolDone = false
+    let spinWorstInflation = 1
+    let spinSamples = 0
+    let spinMaxWallMs = 0
+    const spinSampler = (async () => {
+      // ~several ms of synchronous work per spin so process.cpuUsage()'s ~1ms
+      // granularity doesn't dominate the wall/cpu ratio. The exact size doesn't
+      // matter (the metric is the scale-invariant ratio); it just needs to be
+      // comfortably above timer granularity on the ~0.28 vCPU Lambda.
+      const ITER = 3_000_000
+      while (!poolDone && spinSamples < 200) {
+        const { wallMs, cpuMs } = spinOnce(ITER)
+        spinSamples++
+        // Inflation = how much longer the spin took in wall time than the CPU it
+        // actually burned. ~1 means no parking; >>1 means the process was
+        // descheduled mid-spin (CPU throttling / contention).
+        if (cpuMs > 0.05) spinWorstInflation = Math.max(spinWorstInflation, wallMs / cpuMs)
+        spinMaxWallMs = Math.max(spinMaxWallMs, wallMs)
+        // Yield ~50ms between spins so the sampler is light and spread across the round.
+        await new Promise((r) => setTimeout(r, 50))
+      }
+    })()
     const poolResults = await mapPool(poolJobs, concurrency, measureJob)
-    const cpuAfter = readCpuStat()
+    poolDone = true
+    await spinSampler
+    const cpuDelta = process.cpuUsage(cpuBefore)
+    const poolWallMs = performance.now() - wallBefore
     eld.disable()
 
     // Reassemble `results` in the original catalog order so position-based
@@ -390,34 +432,25 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
       maxMs: Number((eld.max / 1e6).toFixed(2)),
       p99Ms: Number((eld.percentile(99) / 1e6).toFixed(2)),
     }
-    // CPU-throttle delta across the pool phase. This is the direct test of the
-    // near-cell-inflation root cause: if throttledMs is tens-to-hundreds of ms
-    // per round (and nrThrottled > 0), the kernel is parking the process on the
-    // cgroup quota exactly as hypothesized, so the inflation is CPU throttling
-    // and a calmer serial pass is the fix. Near-zero throttling would instead
-    // point elsewhere. `available: false` means the sandbox didn't expose the
-    // cgroup files (diagnostic simply absent — probe behavior unchanged).
-    const cpuMax = readCpuMax()
-    const cpuThrottle =
-      cpuBefore && cpuAfter
-        ? {
-            available: true,
-            nrThrottled: cpuAfter.nrThrottled - cpuBefore.nrThrottled,
-            throttledMs: Number(((cpuAfter.throttledUsec - cpuBefore.throttledUsec) / 1000).toFixed(1)),
-            // Quota fraction: quotaUsec/periodUsec ≈ effective vCPU share (e.g.
-            // ~0.28 at 512MB). Guard explicitly against a null/unlimited quota
-            // and a zero/NaN period so vcpuShare is either a finite number or null
-            // — never NaN/Infinity.
-            vcpuShare:
-              cpuMax &&
-              typeof cpuMax.quotaUsec === 'number' &&
-              Number.isFinite(cpuMax.quotaUsec) &&
-              typeof cpuMax.periodUsec === 'number' &&
-              cpuMax.periodUsec > 0
-                ? Number((cpuMax.quotaUsec / cpuMax.periodUsec).toFixed(3))
-                : null,
-          }
-        : { available: false }
+    // CPU-starvation summary for the pool phase. This is the direct test of the
+    // near-cell-inflation root cause now that cgroup stats are unavailable:
+    //   cpuUtil    = CPU seconds burned / wall seconds. Near a ~0.28 vCPU cap
+    //                under compute pressure it presses toward that ceiling.
+    //   spinWorstInflation = worst wall/cpu ratio of a fixed spin running
+    //                alongside the fan-out; >> 1 means the process was parked
+    //                mid-spin (throttling/contention) — the smoking gun.
+    // If spinWorstInflation is large (e.g. 10-40x) the inflation IS CPU parking,
+    // so a calmer serial re-measure of near cells is the fix. Near-1 would refute
+    // it. cpuMs and wall are included so the numbers are auditable.
+    const cpuMs = (cpuDelta.user + cpuDelta.system) / 1000
+    const cpuStarvation = {
+      cpuMs: Number(cpuMs.toFixed(1)),
+      wallMs: Number(poolWallMs.toFixed(1)),
+      cpuUtil: poolWallMs > 0 ? Number((cpuMs / poolWallMs).toFixed(3)) : null,
+      spinSamples,
+      spinWorstInflation: Number(spinWorstInflation.toFixed(1)),
+      spinMaxWallMs: Number(spinMaxWallMs.toFixed(1)),
+    }
 
     // Observability for probe_disabled recovery: how many rechecks we attempted
     // and how many came back alive this round. Lets an operator see when such a
@@ -461,7 +494,7 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
         concurrency,
         durationMs: Date.now() - started,
         eventLoopDelay: eldStats,
-        cpuThrottle,
+        cpuStarvation,
         cells: results.length,
         failed: failedCount,
         firstFailedIndex,
