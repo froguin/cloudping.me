@@ -2,7 +2,48 @@ import { getAllCloudRegions, getAllProviders } from '@app/data'
 import type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 import { monitorEventLoopDelay } from 'node:perf_hooks'
 import diagnosticsChannel from 'node:diagnostics_channel'
+import { readFileSync } from 'node:fs'
 import { withCacheBuster, MIN_PLAUSIBLE_MS } from './measure-core'
+
+// --- cgroup v2 CPU-throttle reader (diagnostic only) ------------------------
+// Lambda (Amazon Linux 2023) caps a function's CPU with a cgroup v2 quota
+// proportional to memory (1.8GB ≈ 1 vCPU, so 512MB ≈ 0.28 vCPU). When a round's
+// concurrent fan-out exhausts that quota within a scheduling period, the kernel
+// PARKS the whole process until the next period — 10–40ms stalls that
+// performance.now() elapsed absorbs, inflating near-cell latency. cpu.stat's
+// nr_throttled / throttled_usec count exactly those parks. Reading it before and
+// after the pool turns the current INFERENCE ("event-loop delay looks high, so
+// it's probably CPU throttling") into DIRECT evidence: seconds of throttled_usec
+// per round confirms the quota is the cause; near-zero refutes it. cpu.max gives
+// the quota/period so the numbers are interpretable. All reads are best-effort:
+// the sandbox may not expose these files, and a probe must never fail over a
+// diagnostic, so every read is guarded and returns null on any error.
+function readCpuStat(): { nrThrottled: number; throttledUsec: number } | null {
+  try {
+    const text = readFileSync('/sys/fs/cgroup/cpu.stat', 'utf8')
+    // Anchor each key to line start (multiline) so a key can't be matched as a
+    // substring of another line. cgroup v2 cpu.stat is one "key value" per line.
+    const nrThrottled = Number(text.match(/^nr_throttled (\d+)$/m)?.[1])
+    const throttledUsec = Number(text.match(/^throttled_usec (\d+)$/m)?.[1])
+    if (!Number.isFinite(nrThrottled) || !Number.isFinite(throttledUsec)) return null
+    return { nrThrottled, throttledUsec }
+  } catch {
+    return null
+  }
+}
+
+function readCpuMax(): { quotaUsec: number | null; periodUsec: number | null } | null {
+  try {
+    // Format: "$MAX $PERIOD" where $MAX is "max" (unlimited) or a number of usec.
+    const [maxRaw, periodRaw] = readFileSync('/sys/fs/cgroup/cpu.max', 'utf8').trim().split(/\s+/)
+    return {
+      quotaUsec: maxRaw === 'max' ? null : Number(maxRaw),
+      periodUsec: Number(periodRaw),
+    }
+  } catch {
+    return null
+  }
+}
 
 // --- Connection-establishment tracking (diagnostic only) --------------------
 // Node's global fetch is undici under the hood, and undici publishes a
@@ -323,7 +364,11 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     // histogram itself is cheap (libuv timer sampling) and adds no probe requests.
     const eld = monitorEventLoopDelay({ resolution: 20 })
     eld.enable()
+    // Snapshot cgroup CPU throttling immediately around the fan-out so the delta
+    // attributes parks to the pool phase specifically (not container setup).
+    const cpuBefore = readCpuStat()
     const poolResults = await mapPool(poolJobs, concurrency, measureJob)
+    const cpuAfter = readCpuStat()
     eld.disable()
 
     // Reassemble `results` in the original catalog order so position-based
@@ -345,6 +390,35 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
       maxMs: Number((eld.max / 1e6).toFixed(2)),
       p99Ms: Number((eld.percentile(99) / 1e6).toFixed(2)),
     }
+    // CPU-throttle delta across the pool phase. This is the direct test of the
+    // near-cell-inflation root cause: if throttledMs is tens-to-hundreds of ms
+    // per round (and nrThrottled > 0), the kernel is parking the process on the
+    // cgroup quota exactly as hypothesized, so the inflation is CPU throttling
+    // and a calmer serial pass is the fix. Near-zero throttling would instead
+    // point elsewhere. `available: false` means the sandbox didn't expose the
+    // cgroup files (diagnostic simply absent — probe behavior unchanged).
+    const cpuMax = readCpuMax()
+    const cpuThrottle =
+      cpuBefore && cpuAfter
+        ? {
+            available: true,
+            nrThrottled: cpuAfter.nrThrottled - cpuBefore.nrThrottled,
+            throttledMs: Number(((cpuAfter.throttledUsec - cpuBefore.throttledUsec) / 1000).toFixed(1)),
+            // Quota fraction: quotaUsec/periodUsec ≈ effective vCPU share (e.g.
+            // ~0.28 at 512MB). Guard explicitly against a null/unlimited quota
+            // and a zero/NaN period so vcpuShare is either a finite number or null
+            // — never NaN/Infinity.
+            vcpuShare:
+              cpuMax &&
+              typeof cpuMax.quotaUsec === 'number' &&
+              Number.isFinite(cpuMax.quotaUsec) &&
+              typeof cpuMax.periodUsec === 'number' &&
+              cpuMax.periodUsec > 0
+                ? Number((cpuMax.quotaUsec / cpuMax.periodUsec).toFixed(3))
+                : null,
+          }
+        : { available: false }
+
     // Observability for probe_disabled recovery: how many rechecks we attempted
     // and how many came back alive this round. Lets an operator see when such a
     // region has recovered (and its flag can be dropped) without scanning cells.
@@ -387,6 +461,7 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
         concurrency,
         durationMs: Date.now() - started,
         eventLoopDelay: eldStats,
+        cpuThrottle,
         cells: results.length,
         failed: failedCount,
         firstFailedIndex,
