@@ -54,6 +54,20 @@ Deliberately **not** shared:
   A browser page-load budget (fast, cheap on battery/data) and a serverless
   probe round (thorough, bounded GB-seconds) want different values, so these
   stay with each caller rather than in the shared core.
+- **Self-cell measured last, serially (server only)** — the one cell where a
+  server origin measures its own region (the matrix diagonal) is pulled out of
+  the concurrent fan-out and measured on its own, after every other target has
+  resolved. On a small (~0.28 vCPU) Lambda, servicing ~12 concurrent targets'
+  TLS/socket callbacks starves the event loop, and `performance.now()` elapsed
+  absorbs that scheduling delay even on a warm, reused socket — per-sample
+  instrumentation confirmed self slow samples reused the socket (no fresh
+  handshake) yet ranged 1–141 ms. Measuring self alone, after the pool drains,
+  gives it the whole vCPU so its samples reflect true in-region latency
+  (~2–6 ms). It is measured *last* rather than *first* on purpose: a self-first
+  pass was tried and reverted because it also paid the invocation's startup
+  JIT/network-path-init cost. This makes the diagonal cell slightly
+  non-comparable with off-diagonal cells (already flagged "on-net" in the UI).
+
 
 ## Rationale
 

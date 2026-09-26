@@ -292,6 +292,29 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
 
     origin = resolveOrigin()
 
+    // Split the self-cell (origin measuring its own region) out of the concurrent
+    // pool and measure it LAST, serially, after the fan-out drains. Rationale,
+    // confirmed by per-sample newConn instrumentation (every self slow sample
+    // reused a warm socket — newConn:false — yet spanned 1–141ms): the self-cell
+    // jitter is CPU/scheduling starvation while the small (~0.28 vCPU) Lambda
+    // services 12 concurrent targets' TLS/socket callbacks, not network or
+    // handshake cost. Measuring self alone, after the pool has fully resolved,
+    // gives it the whole vCPU with no competing work so its samples reflect the
+    // true in-region latency (~2–6ms) instead of scheduling delay.
+    //
+    // This is deliberately self-LAST, not the self-FIRST pre-pass that PR #5
+    // shipped and PR #11 reverted: pinning self to the invocation's first
+    // outbound call made it worse because that call pays AWS Lambda's
+    // per-invocation network-path init AND the startup JIT/compile CPU cost.
+    // By the time the pool drains, both are long past, so self-last avoids both
+    // failure modes (the ~50s pool run also means any idle keep-alive socket is
+    // already gone — self's own 2 warmups re-establish it uncontended). Self is
+    // measured differently from every other cell; the /health methodology text
+    // notes this. Other cells still contend in the pool — we only correct the
+    // diagonal here; the earlier 24→8→12 concurrency tuning bounds the rest.
+    const selfIndex = jobs.findIndex((j) => `${j.provider}-${j.region.key}` === origin!.id)
+    const poolJobs = selfIndex >= 0 ? jobs.filter((_, i) => i !== selfIndex) : jobs
+
     // Instrument event-loop lag across the whole measurement pass. If the leading
     // hypothesis is right (fan-out TLS/socket callbacks starving the small Lambda's
     // ~0.15 vCPU so performance.now() elapsed absorbs scheduling delay), this shows
@@ -300,8 +323,21 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     // histogram itself is cheap (libuv timer sampling) and adds no probe requests.
     const eld = monitorEventLoopDelay({ resolution: 20 })
     eld.enable()
-    const results = await mapPool(jobs, concurrency, measureJob)
+    const poolResults = await mapPool(poolJobs, concurrency, measureJob)
     eld.disable()
+
+    // Reassemble `results` in the original catalog order so position-based
+    // diagnostics (firstFailedIndex/longestFailureBlock) and the snapshot column
+    // order are unchanged: splice the serially-measured self result back at its
+    // original index. If there is no self target (e.g. the default 'vercel'
+    // origin has no catalog provider-region), poolResults already covers all jobs.
+    let results: ProbeResult[]
+    if (selfIndex >= 0) {
+      const selfResult = await measureJob(jobs[selfIndex])
+      results = [...poolResults.slice(0, selfIndex), selfResult, ...poolResults.slice(selfIndex)]
+    } else {
+      results = poolResults
+    }
     const eldStats = {
       // Nanoseconds → milliseconds. `max`/`p99` are the tell: a healthy event loop
       // stays sub-millisecond; tens-to-hundreds of ms means the loop stalled.
@@ -364,11 +400,11 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
       })
     )
 
-    // Self enters the ordinary pool in catalog order like every other target
-    // — it is not promoted or run first. Diagnostic-only: confirms whether
-    // that (vs. the reverted serial pre-pass) still shows the cold-start
-    // latency spike production data attributed to per-invocation
-    // network-path init.
+    // Self was measured serially after the pool drained (see the self-LAST
+    // rationale above), then spliced back at its catalog index. This diagnostic
+    // records the post-pass value and warmContainer so the accuracy of the
+    // uncontended measurement can be tracked on live rounds (and split cold vs
+    // warm to confirm the startup-CPU story behind the reverted self-first pass).
     const selfResult = results.find((r) => `${r.provider}-${r.region}` === origin!.id)
     if (!selfResult) {
       logSelfProbe({ origin: origin.id, warmContainer: warmAtEntry, status: 'unavailable', ms: null, samples: null, error: null })
