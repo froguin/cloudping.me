@@ -21,8 +21,10 @@ import { withCacheBuster, MIN_PLAUSIBLE_MS } from './measure-core'
 function readCpuStat(): { nrThrottled: number; throttledUsec: number } | null {
   try {
     const text = readFileSync('/sys/fs/cgroup/cpu.stat', 'utf8')
-    const nrThrottled = Number(text.match(/nr_throttled (\d+)/)?.[1])
-    const throttledUsec = Number(text.match(/throttled_usec (\d+)/)?.[1])
+    // Anchor each key to line start (multiline) so a key can't be matched as a
+    // substring of another line. cgroup v2 cpu.stat is one "key value" per line.
+    const nrThrottled = Number(text.match(/^nr_throttled (\d+)$/m)?.[1])
+    const throttledUsec = Number(text.match(/^throttled_usec (\d+)$/m)?.[1])
     if (!Number.isFinite(nrThrottled) || !Number.isFinite(throttledUsec)) return null
     return { nrThrottled, throttledUsec }
   } catch {
@@ -403,8 +405,17 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
             nrThrottled: cpuAfter.nrThrottled - cpuBefore.nrThrottled,
             throttledMs: Number(((cpuAfter.throttledUsec - cpuBefore.throttledUsec) / 1000).toFixed(1)),
             // Quota fraction: quotaUsec/periodUsec ≈ effective vCPU share (e.g.
-            // ~0.28 at 512MB). null quota = unlimited (unexpected on Lambda).
-            vcpuShare: cpuMax && cpuMax.quotaUsec && cpuMax.periodUsec ? Number((cpuMax.quotaUsec / cpuMax.periodUsec).toFixed(3)) : null,
+            // ~0.28 at 512MB). Guard explicitly against a null/unlimited quota
+            // and a zero/NaN period so vcpuShare is either a finite number or null
+            // — never NaN/Infinity.
+            vcpuShare:
+              cpuMax &&
+              typeof cpuMax.quotaUsec === 'number' &&
+              Number.isFinite(cpuMax.quotaUsec) &&
+              typeof cpuMax.periodUsec === 'number' &&
+              cpuMax.periodUsec > 0
+                ? Number((cpuMax.quotaUsec / cpuMax.periodUsec).toFixed(3))
+                : null,
           }
         : { available: false }
 
