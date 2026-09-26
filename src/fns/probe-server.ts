@@ -1,7 +1,34 @@
 import { getAllCloudRegions, getAllProviders } from '@app/data'
 import type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 import { monitorEventLoopDelay } from 'node:perf_hooks'
+import diagnosticsChannel from 'node:diagnostics_channel'
 import { withCacheBuster, MIN_PLAUSIBLE_MS } from './measure-core'
+
+// --- Connection-establishment tracking (diagnostic only) --------------------
+// Node's global fetch is undici under the hood, and undici publishes a
+// 'undici:client:connected' diagnostics event every time it opens a NEW socket
+// to an origin. We count those per-hostname so a probe sample can tell whether
+// it reused a warm socket or paid a fresh TCP+TLS handshake. This is the signal
+// that decides between the two live hypotheses for AWS self-cell bimodal
+// latency: if the slow samples opened new connections, the ~15ms slow-mode
+// offset is handshake cost; if they reused a socket, it's CPU/scheduling delay
+// on the small Lambda vCPU (performance.now() elapsed absorbing a parked
+// process). Subscribing is cheap and adds no probe requests. It's wrapped in a
+// try/catch because the channel name is an undici implementation detail, not a
+// stable public API — if a future Node renames it, probing must still work.
+const connectCountByHost = new Map<string, number>()
+try {
+  diagnosticsChannel.subscribe('undici:client:connected', (message: unknown) => {
+    try {
+      const host = (message as { connectParams?: { hostname?: string } })?.connectParams?.hostname
+      if (host) connectCountByHost.set(host, (connectCountByHost.get(host) ?? 0) + 1)
+    } catch {
+      /* never let diagnostics bookkeeping affect a probe */
+    }
+  })
+} catch {
+  /* channel unavailable: newConn stays undefined, probes unaffected */
+}
 
 export type { ProbeResult, ProbeSnapshot } from './probe-snapshot'
 
@@ -30,6 +57,11 @@ let warmContainer = false
 
 type SelfProbeStatus = 'ok' | 'failed' | 'unavailable' | 'round-failed'
 
+// A single self-cell sample: measured ms plus whether this request opened a new
+// TCP+TLS connection (true) or reused a warm socket (false). `newConn` is
+// undefined only if the diagnostics channel was unavailable.
+type SelfSample = { ms: number; newConn?: boolean }
+
 // Best-effort structured log. Never let a logging failure (or JSON.stringify
 // throwing on unexpected input) mask the round's real outcome.
 function logSelfProbe(fields: {
@@ -39,7 +71,7 @@ function logSelfProbe(fields: {
   ms: number | null
   samples: number | null
   error: 'timeout' | 'network' | null
-  raw?: number[] | null
+  raw?: SelfSample[] | null
 }): void {
   try {
     console.log(JSON.stringify({ kind: 'self-probe', ...fields }))
@@ -72,8 +104,22 @@ async function drainAfterClock(res: Response): Promise<void> {
   }
 }
 
-async function timedGet(url: string, timeoutMs: number): Promise<number> {
+async function timedGet(url: string, timeoutMs: number): Promise<{ ms: number; newConn?: boolean }> {
   const target = withCacheBuster(url)
+  // Host to attribute connection events to. undici reports the hostname (no
+  // port) in connectParams; parsing failure just disables newConn for this
+  // sample rather than throwing.
+  let host: string | undefined
+  try {
+    host = new URL(target).hostname
+  } catch {
+    host = undefined
+  }
+  // Snapshot the per-host new-connection counter before the request. Within a
+  // target's worker, samples run strictly sequentially (one request in flight
+  // to this host at a time), so any increase during this fetch is attributable
+  // to THIS request — an exact reused-vs-fresh signal, not a heuristic.
+  const connBefore = host ? (connectCountByHost.get(host) ?? 0) : 0
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   const start = performance.now()
@@ -88,9 +134,12 @@ async function timedGet(url: string, timeoutMs: number): Promise<number> {
     const elapsed = performance.now() - start
     clearTimeout(timer)
     await drainAfterClock(res)
+    // Compare the counter after headers arrived: a fresh socket for this request
+    // increments it, a reused one leaves it unchanged. undefined host → unknown.
+    const newConn = host ? (connectCountByHost.get(host) ?? 0) > connBefore : undefined
     // performance.now() is monotonic, so elapsed can't go negative; the clamp is
     // a cheap defensive floor, not a correction for clock step-backs.
-    return Math.max(elapsed, 0)
+    return { ms: Math.max(elapsed, 0), newConn }
   } finally {
     clearTimeout(timer)
   }
@@ -101,7 +150,7 @@ function errorKind(err: unknown): 'timeout' | 'network' {
   return 'network'
 }
 
-async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number; samples: number; raw: number[] } | { error: 'timeout' | 'network' }> {
+async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number; samples: number; raw: SelfSample[] } | { error: 'timeout' | 'network' }> {
   // Warm up the connection (DNS, TLS session, and the target's own cold start)
   // with throwaway requests so the timed samples reflect steady-state latency
   // rather than first-hit cost. Individual warmup failures are tolerated, but
@@ -125,13 +174,20 @@ async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number;
   // short-circuits genuine failures.
   if (warmupOk === 0) return { error: warmupError }
 
+  // `samples` holds the plausible per-sample timings (used for min()); `raw`
+  // pairs each with its newConn flag so the self-probe log can show, per sample,
+  // whether a slow reading coincided with a fresh TCP+TLS handshake.
   const samples: number[] = []
+  const raw: SelfSample[] = []
   let lastError: 'timeout' | 'network' = warmupError
   for (let i = 0; i < SAMPLE_COUNT; i++) {
     try {
-      const ms = await timedGet(url, timeoutMs)
+      const { ms, newConn } = await timedGet(url, timeoutMs)
       // Drop implausibly-fast readings so a single artifact can't win min().
-      if (ms >= MIN_PLAUSIBLE_MS) samples.push(ms)
+      if (ms >= MIN_PLAUSIBLE_MS) {
+        samples.push(ms)
+        raw.push({ ms: Math.round(ms), ...(newConn === undefined ? {} : { newConn }) })
+      }
     } catch (err) {
       lastError = errorKind(err)
     }
@@ -148,10 +204,12 @@ async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number;
   // congested HTTP round trip, still including target processing (not raw RTT).
   // Report whole milliseconds — sub-ms precision isn't meaningful for these paths
   // and keeps the /health table clean. `raw` carries the individual per-sample
-  // timings so the self-probe log can expose their shape (a bimodal set like
-  // [4,18,4,19] would confirm the connection-reuse-failure hypothesis: some
-  // samples pay a fresh TCP+TLS handshake while others reuse a warm socket).
-  return { ms: Math.round(Math.min(...samples)), samples: samples.length, raw: samples.map((s) => Math.round(s)) }
+  // timings + newConn flag so the self-probe log can expose their shape: a
+  // bimodal set where the slow samples have newConn:true confirms intermittent
+  // TCP+TLS handshake cost; slow samples with newConn:false point instead at
+  // CPU/scheduling delay on the constrained Lambda vCPU (elapsed absorbing a
+  // parked process even on a warm socket).
+  return { ms: Math.round(Math.min(...samples)), samples: samples.length, raw }
 }
 
 async function mapPool<T, R>(items: T[], concurrency: number, worker: (item: T) => Promise<R>): Promise<R[]> {
@@ -190,7 +248,7 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
   // in measureJob once origin is known. Diagnostic only — surfaced in the
   // self-probe log to test the connection-reuse-failure hypothesis for AWS self
   // jitter. Reset each round via the module-scope declaration below.
-  let selfRaw: number[] | null = null
+  let selfRaw: SelfSample[] | null = null
 
   try {
     const started = Date.now()
@@ -224,9 +282,10 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
       }
       const out = await pingTarget(job.region.ping_url, timeoutMs)
       if ('error' in out) return { ...base, error: out.error }
-      // Capture the self-cell's individual per-sample timings (once resolved) so
-      // the self-probe log can reveal their shape. A bimodal set (e.g. [4,18,4,19])
-      // confirms connection-reuse failure; a tight set (e.g. [4,4,5,4]) refutes it.
+      // Capture the self-cell's individual per-sample timings + newConn flags
+      // (once resolved) so the self-probe log can reveal their shape. Slow
+      // samples with newConn:true confirm intermittent TCP+TLS handshake cost;
+      // slow samples with newConn:false point at CPU/scheduling delay instead.
       if (origin && `${job.provider}-${job.region.key}` === origin.id) selfRaw = out.raw
       return { ...base, ms: out.ms, ok: true, samples: out.samples }
     }
