@@ -54,19 +54,23 @@ Deliberately **not** shared:
   A browser page-load budget (fast, cheap on battery/data) and a serverless
   probe round (thorough, bounded GB-seconds) want different values, so these
   stay with each caller rather than in the shared core.
-- **Self-cell measured last, serially (server only)** — the one cell where a
-  server origin measures its own region (the matrix diagonal) is pulled out of
-  the concurrent fan-out and measured on its own, after every other target has
-  resolved. On a small (~0.28 vCPU) Lambda, servicing ~12 concurrent targets'
-  TLS/socket callbacks starves the event loop, and `performance.now()` elapsed
-  absorbs that scheduling delay even on a warm, reused socket — per-sample
-  instrumentation confirmed self slow samples reused the socket (no fresh
-  handshake) yet ranged 1–141 ms. Measuring self alone, after the pool drains,
-  gives it the whole vCPU so its samples reflect true in-region latency
-  (~2–6 ms). It is measured *last* rather than *first* on purpose: a self-first
-  pass was tried and reverted because it also paid the invocation's startup
-  JIT/network-path-init cost. This makes the diagonal cell slightly
-  non-comparable with off-diagonal cells (already flagged "on-net" in the UI).
+- **Near cells re-measured serially (server only)** — every cell whose pooled
+  latency is under a threshold (the matrix diagonal and other nearby regions) is
+  re-measured on its own, lowest-value-first within a wall-time budget, after the
+  concurrent fan-out drains; the reported value is `min(pool, serial)`. On a small
+  (~0.28 vCPU) Lambda the fan-out intermittently exhausts the CPU quota, and the
+  kernel parks the whole process for tens of ms; `performance.now()` elapsed
+  absorbs that wait even on a warm, reused socket (confirmed by a spin probe that
+  saw 4–5× wall/CPU inflation, and by per-sample instrumentation showing the slow
+  samples reused their socket). That park adds a roughly fixed number of ms, so it
+  barely dents far cells (150 ms+) but inflates near cells (true 3–30 ms) by 2–6×.
+  Re-measuring them alone, on a quiet loop, restores the true value; the budget
+  and the min-only update keep it cheap and monotonic (a serial reading can only
+  lower a value, never raise it). Near cells are therefore measured differently
+  from far cells — the diagonal and same-metro cells are already flagged "on-net"
+  (non-comparable) in the `/health` UI. It is deliberately a POST-pass, not a
+  pre-pass: a pre-pass was tried and reverted because the first outbound call also
+  pays the invocation's startup JIT/network-path-init cost.
 
 
 ## Rationale
