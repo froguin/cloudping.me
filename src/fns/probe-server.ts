@@ -107,11 +107,15 @@ const CHINA_TIMEOUT_MS = 2000
 // near cells (true 3-30ms) by 2-6x — visible in history as a low min with a max
 // several times higher. Fix: after the pool drains, re-measure the nearest cells
 // SERIALLY (no fan-out => no parking, same principle as the self-cell fix) and
-// keep min(pool, serial) since parking only ever inflates. Bounded by a wall-time
-// budget (cost = sum of re-measured cells' latencies, not their count) so even
-// origins with ~78 sub-40ms neighbours (Europe) stay within free tier.
+// keep min(pool, serial) since parking only ever inflates.
 const NEAR_CELL_THRESHOLD_MS = 40
-const SERIAL_REMEASURE_BUDGET_MS = 3500
+// We re-measure EVERY near cell (no early budget cutoff): the accuracy of small
+// values matters and the cost is tiny (~123ms/cell; even the densest origin,
+// ~78 sub-40ms neighbours in Europe, adds only ~9s/round ≈ +$0.16/month over the
+// whole fleet). Only a generous SAFETY cap remains to protect against a
+// pathological round (e.g. a flood of slow near cells) hitting the Lambda's
+// hard timeout — it is far above any normal pass and should never trigger.
+const REMEASURE_SAFETY_CAP_MS = 120_000
 // Lighter than the pool's 2+4: the pool just left a warm keep-alive socket, so 1
 // warmup + 3 timed re-establishes/confirms it and still meets MIN_SAMPLES=3.
 const REMEASURE_WARMUP = 1
@@ -427,7 +431,8 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     // measuring its own region, the smallest value of all) is just the first
     // entry in this set — no longer special-cased. Far cells are left untouched:
     // a fixed ~tens-of-ms park is within noise on a 150ms+ path, and re-measuring
-    // them would blow the budget for no accuracy gain.
+    // them would add cost for no accuracy gain. ALL near cells are re-measured
+    // (no early cutoff); only the generous safety cap can stop the loop.
     const results = [...poolResults]
     const nearIdx = results
       .map((r, i) => ({ r, i }))
@@ -437,10 +442,16 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
 
     let remeasured = 0
     let remeasureImproved = 0
-    let remeasureBudgetSpentMs = 0
+    let remeasureCappedOut = false
     const remeasureStart = performance.now()
     for (const i of nearIdx) {
-      if (performance.now() - remeasureStart >= SERIAL_REMEASURE_BUDGET_MS) break
+      // Safety cap only: normally every near cell is re-measured. This guards a
+      // pathological round from approaching the Lambda hard timeout; it should
+      // never fire in practice (densest origin ≈ 9s << cap).
+      if (performance.now() - remeasureStart >= REMEASURE_SAFETY_CAP_MS) {
+        remeasureCappedOut = true
+        break
+      }
       const job = jobs[i]
       const timeoutMs = isChinaTarget(job.region.country, job.region.ping_url) ? CHINA_TIMEOUT_MS : DEFAULT_TIMEOUT_MS
       const out = await pingTarget(job.region.ping_url, timeoutMs, { warmupCount: REMEASURE_WARMUP, sampleCount: REMEASURE_SAMPLES })
@@ -457,7 +468,7 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
         if (origin && `${job.provider}-${job.region.key}` === origin.id) selfRaw = out.raw
       }
     }
-    remeasureBudgetSpentMs = Number((performance.now() - remeasureStart).toFixed(0))
+    const remeasureSpentMs = Number((performance.now() - remeasureStart).toFixed(0))
 
     const eldStats = {
       // Nanoseconds → milliseconds. `max`/`p99` are the tell: a healthy event loop
@@ -487,13 +498,16 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
     }
 
     // Observability for the near-cell serial re-measure pass: how many near cells
-    // there were, how many we re-measured within budget, how many the serial
-    // reading improved (min beat the pool value), and the wall time it cost.
+    // Observability for the near-cell serial re-measure pass: how many near cells
+    // there were, how many we re-measured (normally all of them), how many the
+    // serial reading improved (min beat the pool value), the wall time it cost,
+    // and whether the safety cap fired (should always be false).
     const nearCellRemeasure = {
       candidates: nearIdx.length,
       remeasured,
       improved: remeasureImproved,
-      budgetSpentMs: remeasureBudgetSpentMs,
+      spentMs: remeasureSpentMs,
+      cappedOut: remeasureCappedOut,
     }
 
     // Observability for probe_disabled recovery: how many rechecks we attempted
