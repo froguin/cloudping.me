@@ -99,6 +99,24 @@ const CHINA_TIMEOUT_MS = 2000
 // min() so one sub-RTT artifact can't win outright. MIN_SAMPLES already
 // tolerates dropping a sample.
 
+// --- Near-cell serial re-measure pass ---------------------------------------
+// Confirmed by spin-probe instrumentation: the concurrent fan-out intermittently
+// parks the process on the CPU quota (spinWorstInflation 4-5x, parks 80-150ms),
+// and that scheduling wait is absorbed into performance.now() elapsed. It adds a
+// roughly FIXED number of ms, so it barely dents far cells (300ms) but inflates
+// near cells (true 3-30ms) by 2-6x — visible in history as a low min with a max
+// several times higher. Fix: after the pool drains, re-measure the nearest cells
+// SERIALLY (no fan-out => no parking, same principle as the self-cell fix) and
+// keep min(pool, serial) since parking only ever inflates. Bounded by a wall-time
+// budget (cost = sum of re-measured cells' latencies, not their count) so even
+// origins with ~78 sub-40ms neighbours (Europe) stay within free tier.
+const NEAR_CELL_THRESHOLD_MS = 40
+const SERIAL_REMEASURE_BUDGET_MS = 3500
+// Lighter than the pool's 2+4: the pool just left a warm keep-alive socket, so 1
+// warmup + 3 timed re-establishes/confirms it and still meets MIN_SAMPLES=3.
+const REMEASURE_WARMUP = 1
+const REMEASURE_SAMPLES = 3
+
 // Tracks whether a round has already entered this module instance. This is a
 // proxy, not proof: it only says "a prior runProbe() call started here", not
 // that the platform did (or didn't) pay a cold-start / network-path-init cost.
@@ -199,7 +217,17 @@ function errorKind(err: unknown): 'timeout' | 'network' {
   return 'network'
 }
 
-async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number; samples: number; raw: SelfSample[] } | { error: 'timeout' | 'network' }> {
+async function pingTarget(
+  url: string,
+  timeoutMs: number,
+  opts?: { warmupCount?: number; sampleCount?: number }
+): Promise<{ ms: number; samples: number; raw: SelfSample[] } | { error: 'timeout' | 'network' }> {
+  // Warmup/sample counts default to the full pool values but can be trimmed for
+  // the serial near-cell re-measure pass: that pass runs after the pool, when
+  // the keep-alive socket is usually still warm, so 1 warmup + 3 timed suffices
+  // (MIN_SAMPLES stays 3) — ~33% cheaper per re-measured cell.
+  const warmupCount = opts?.warmupCount ?? WARMUP_COUNT
+  const sampleCount = opts?.sampleCount ?? SAMPLE_COUNT
   // Warm up the connection (DNS, TLS session, and the target's own cold start)
   // with throwaway requests so the timed samples reflect steady-state latency
   // rather than first-hit cost. Individual warmup failures are tolerated, but
@@ -207,7 +235,7 @@ async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number;
   // rather than spending the full sample budget on timeouts.
   let warmupOk = 0
   let warmupError: 'timeout' | 'network' = 'network'
-  for (let i = 0; i < WARMUP_COUNT; i++) {
+  for (let i = 0; i < warmupCount; i++) {
     try {
       await timedGet(url, timeoutMs)
       warmupOk++
@@ -229,7 +257,7 @@ async function pingTarget(url: string, timeoutMs: number): Promise<{ ms: number;
   const samples: number[] = []
   const raw: SelfSample[] = []
   let lastError: 'timeout' | 'network' = warmupError
-  for (let i = 0; i < SAMPLE_COUNT; i++) {
+  for (let i = 0; i < sampleCount; i++) {
     try {
       const { ms, newConn } = await timedGet(url, timeoutMs)
       // Drop implausibly-fast readings so a single artifact can't win min().
@@ -331,38 +359,14 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
       }
       const out = await pingTarget(job.region.ping_url, timeoutMs)
       if ('error' in out) return { ...base, error: out.error }
-      // Capture the self-cell's individual per-sample timings + newConn flags
-      // (once resolved) so the self-probe log can reveal their shape. Slow
-      // samples with newConn:true confirm intermittent TCP+TLS handshake cost;
-      // slow samples with newConn:false point at CPU/scheduling delay instead.
+      // Capture the self-cell's per-sample raw here as a fallback; the near-cell
+      // serial re-measure pass runs self first and overwrites this with the
+      // uncontended raw, which is what the self-probe diagnostic ultimately logs.
       if (origin && `${job.provider}-${job.region.key}` === origin.id) selfRaw = out.raw
       return { ...base, ms: out.ms, ok: true, samples: out.samples }
     }
 
     origin = resolveOrigin()
-
-    // Split the self-cell (origin measuring its own region) out of the concurrent
-    // pool and measure it LAST, serially, after the fan-out drains. Rationale,
-    // confirmed by per-sample newConn instrumentation (every self slow sample
-    // reused a warm socket — newConn:false — yet spanned 1–141ms): the self-cell
-    // jitter is CPU/scheduling starvation while the small (~0.28 vCPU) Lambda
-    // services 12 concurrent targets' TLS/socket callbacks, not network or
-    // handshake cost. Measuring self alone, after the pool has fully resolved,
-    // gives it the whole vCPU with no competing work so its samples reflect the
-    // true in-region latency (~2–6ms) instead of scheduling delay.
-    //
-    // This is deliberately self-LAST, not the self-FIRST pre-pass that PR #5
-    // shipped and PR #11 reverted: pinning self to the invocation's first
-    // outbound call made it worse because that call pays AWS Lambda's
-    // per-invocation network-path init AND the startup JIT/compile CPU cost.
-    // By the time the pool drains, both are long past, so self-last avoids both
-    // failure modes (the ~50s pool run also means any idle keep-alive socket is
-    // already gone — self's own 2 warmups re-establish it uncontended). Self is
-    // measured differently from every other cell; the /health methodology text
-    // notes this. Other cells still contend in the pool — we only correct the
-    // diagonal here; the earlier 24→8→12 concurrency tuning bounds the rest.
-    const selfIndex = jobs.findIndex((j) => `${j.provider}-${j.region.key}` === origin!.id)
-    const poolJobs = selfIndex >= 0 ? jobs.filter((_, i) => i !== selfIndex) : jobs
 
     // Instrument event-loop lag across the whole measurement pass. If the leading
     // hypothesis is right (fan-out TLS/socket callbacks starving the small Lambda's
@@ -406,25 +410,55 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
         await new Promise((r) => setTimeout(r, 50))
       }
     })()
-    const poolResults = await mapPool(poolJobs, concurrency, measureJob)
+    const poolResults = await mapPool(jobs, concurrency, measureJob)
     poolDone = true
     await spinSampler
     const cpuDelta = process.cpuUsage(cpuBefore)
     const poolWallMs = performance.now() - wallBefore
     eld.disable()
 
-    // Reassemble `results` in the original catalog order so position-based
-    // diagnostics (firstFailedIndex/longestFailureBlock) and the snapshot column
-    // order are unchanged: splice the serially-measured self result back at its
-    // original index. If there is no self target (e.g. the default 'vercel'
-    // origin has no catalog provider-region), poolResults already covers all jobs.
-    let results: ProbeResult[]
-    if (selfIndex >= 0) {
-      const selfResult = await measureJob(jobs[selfIndex])
-      results = [...poolResults.slice(0, selfIndex), selfResult, ...poolResults.slice(selfIndex)]
-    } else {
-      results = poolResults
+    // --- Near-cell serial re-measure pass -----------------------------------
+    // Every near cell (pool ms below the threshold) was measured inside the
+    // concurrent fan-out, where intermittent CPU parking inflates small values.
+    // Re-measure the nearest ones SERIALLY now that the pool has drained (a quiet
+    // event loop, no competing TLS bursts), lowest-value-first, until a wall-time
+    // budget is spent, and keep min(pool, serial): parking only inflates, so the
+    // lower of the two readings is always the more accurate. The self-cell (origin
+    // measuring its own region, the smallest value of all) is just the first
+    // entry in this set — no longer special-cased. Far cells are left untouched:
+    // a fixed ~tens-of-ms park is within noise on a 150ms+ path, and re-measuring
+    // them would blow the budget for no accuracy gain.
+    const results = [...poolResults]
+    const nearIdx = results
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => r.ok && typeof r.ms === 'number' && r.ms < NEAR_CELL_THRESHOLD_MS)
+      .sort((a, b) => (a.r.ms as number) - (b.r.ms as number))
+      .map(({ i }) => i)
+
+    let remeasured = 0
+    let remeasureImproved = 0
+    let remeasureBudgetSpentMs = 0
+    const remeasureStart = performance.now()
+    for (const i of nearIdx) {
+      if (performance.now() - remeasureStart >= SERIAL_REMEASURE_BUDGET_MS) break
+      const job = jobs[i]
+      const timeoutMs = isChinaTarget(job.region.country, job.region.ping_url) ? CHINA_TIMEOUT_MS : DEFAULT_TIMEOUT_MS
+      const out = await pingTarget(job.region.ping_url, timeoutMs, { warmupCount: REMEASURE_WARMUP, sampleCount: REMEASURE_SAMPLES })
+      remeasured++
+      // Serial failure keeps the pool value (don't fail a cell that succeeded in
+      // the pool); success takes the min so parking inflation is removed.
+      if (!('error' in out)) {
+        const pooled = results[i].ms as number
+        if (out.ms < pooled) {
+          remeasureImproved++
+          results[i] = { ...results[i], ms: out.ms, samples: out.samples }
+        }
+        // Capture the self-cell's serial raw for the self-probe diagnostic log.
+        if (origin && `${job.provider}-${job.region.key}` === origin.id) selfRaw = out.raw
+      }
     }
+    remeasureBudgetSpentMs = Number((performance.now() - remeasureStart).toFixed(0))
+
     const eldStats = {
       // Nanoseconds → milliseconds. `max`/`p99` are the tell: a healthy event loop
       // stays sub-millisecond; tens-to-hundreds of ms means the loop stalled.
@@ -450,6 +484,16 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
       spinSamples,
       spinWorstInflation: Number(spinWorstInflation.toFixed(1)),
       spinMaxWallMs: Number(spinMaxWallMs.toFixed(1)),
+    }
+
+    // Observability for the near-cell serial re-measure pass: how many near cells
+    // there were, how many we re-measured within budget, how many the serial
+    // reading improved (min beat the pool value), and the wall time it cost.
+    const nearCellRemeasure = {
+      candidates: nearIdx.length,
+      remeasured,
+      improved: remeasureImproved,
+      budgetSpentMs: remeasureBudgetSpentMs,
     }
 
     // Observability for probe_disabled recovery: how many rechecks we attempted
@@ -495,6 +539,7 @@ export async function runProbe(concurrency = 24): Promise<ProbeSnapshot> {
         durationMs: Date.now() - started,
         eventLoopDelay: eldStats,
         cpuStarvation,
+        nearCellRemeasure,
         cells: results.length,
         failed: failedCount,
         firstFailedIndex,
